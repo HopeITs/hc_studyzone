@@ -2,14 +2,18 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
+
 use Illuminate\Database\Eloquent\Model;
 
 class StudentEntry extends Model
 {
-    use HasFactory;
+    use HasUuids;
 
-    protected $fillable = ['student_id', 'user_id', 'center_id', 'entry_type', 'entry_time'];
+    public $incrementing = false; // Disable auto-increment
+    protected $keyType = 'string'; // UUIDs are stored as strings
+
+    protected $fillable = ['id','student_id', 'user_id', 'center_id', 'entry_type', 'entry_time'];
 
     public function student(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {

@@ -6,21 +6,22 @@ use App\Filament\Resources\StudentResource\Pages;
 use App\Filament\Resources\StudentResource\RelationManagers;
 use App\Models\Student;
 use App\Models\StudentEntry;
-use Filament\Forms;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\Wizard;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Actions\ActionGroup;
+use Filament\Tables\Columns\CheckboxColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class StudentResource extends Resource
 {
@@ -32,45 +33,45 @@ class StudentResource extends Resource
     {
         return $form
             ->schema([
-                TextInput::make('firstname')->label('First Name')->required()->maxLength(255),
-                TextInput::make('lastname')->label('Last Name')->required()->maxLength(255),
-                TextInput::make('father_name')->label("Father's Name")->required()->maxLength(255),
+                Wizard::make([
+                    Wizard\Step::make('Personal Information')
+                        ->schema([
+                            TextInput::make('firstname')->label('First Name')->required()->maxLength(255),
+                            TextInput::make('lastname')->label('Last Name')->required()->maxLength(255),
+                            TextInput::make('father_name')->label("Father's Name")->required()->maxLength(255),
+                            TextInput::make('national_number')
+                                ->label('National Number')
+                                ->required()
+                                ->unique(ignoreRecord: true),
+                            Select::make('gender')
+                                ->label('Gender')
+                                ->options(__('general.genders'))
+                                ->required(),
 
-                Select::make('city_id')
-                    ->label('City')
-                    ->relationship('city', 'name')
-                    ->searchable()
-                    ->preload()
-                    ->required(),
+                            Select::make('religion')
+                                ->label('Religion')
+                                ->options(__('general.religions'))
+                                ->default(0),
+                            Toggle::make('is_student'),
+                            Toggle::make('is_employee'),
+                            Textarea::make('notes')->label('Notes')->maxLength(500)->columnSpan(2),
+                        ])->columns(2),
+                    Wizard\Step::make('Contact Information')
+                        ->schema([
+                            Select::make('city_id')
+                                ->label('City')
+                                ->relationship('city', 'name')
+                                ->searchable()
+                                ->preload()
+                                ->required(),
+                            TextInput::make('phone')->label('Phone')->required()->unique(ignoreRecord: true),
+                            TextInput::make('email')->label('Email')->required()->unique(ignoreRecord: true),
+                            TextInput::make('address')->label('Address')->maxLength(255),
+                        ])->columns(2),
 
-                TextInput::make('national_number')
-                    ->label('National Number')
-                    ->required()
-                    ->unique(ignoreRecord: true),
+                ])->columnSpanFull()
 
-                TextInput::make('phone')->label('Phone')->required()->unique(ignoreRecord: true),
-                TextInput::make('email')->label('Email')->required()->unique(ignoreRecord: true),
 
-                Select::make('gender')
-                    ->label('Gender')
-                    ->options([
-                        'male' => 'Male',
-                        'female' => 'Female',
-                    ])
-                    ->required(),
-
-                Select::make('religion')
-                    ->label('Religion')
-                    ->options([
-                        'christian' => 'Christian',
-                        'muslim' => 'Muslim',
-                        'unknown' => 'Unknown',
-                    ])
-                    ->default('unknown'),
-
-                TextInput::make('address')->label('Address')->maxLength(255),
-
-                Textarea::make('note')->label('Notes')->maxLength(500),
             ]);
     }
 
@@ -81,43 +82,50 @@ class StudentResource extends Resource
             ->columns([
                 TextColumn::make('firstname')->label('First Name')->sortable()->searchable(),
                 TextColumn::make('lastname')->label('Last Name')->sortable()->searchable(),
-                TextColumn::make('national_number')->label('National Number')->sortable()->searchable(),
                 TextColumn::make('phone')->label('Phone')->sortable()->searchable(),
                 TextColumn::make('city.name')->label('City')->sortable()->searchable(),
-                TextColumn::make('gender')->label('Gender')->sortable(),
+                TextColumn::make('gender')
+                    ->label('Gender')
+                    ->badge()
+                    ->formatStateUsing(fn(string $state): string => __("general.genders.{$state}"))
+                    ->color(fn(string $state): string => match ($state) {
+                        '0' => 'info',
+                        '1' => 'danger',
+
+
+                    }),
+                CheckboxColumn::make('is_student'),
+
+
             ])
             ->filters([
                 SelectFilter::make('city')
                     ->label('Filter by City')
                     ->relationship('city', 'name')
                     ->searchable(),
+                SelectFilter::make('education_id')
+                    ->label('Filter by Educations')
+                    ->relationship('educations', 'name')
+                    ->searchable(),
 
                 SelectFilter::make('gender')
                     ->label('Filter by Gender')
-                    ->options([
-                        'male' => 'Male',
-                        'female' => 'Female',
-                    ]),
+                    ->options(__('general.genders')),
             ])
             ->actions([
                 Action::make('entry')
-                    ->label('Record Entry')
+                    ->label('Entry')
                     ->icon('heroicon-o-document-text')
                     ->form([
                         Select::make('entry_type')
                             ->label('Entry Type')
-                            ->options([
-                                'classic' => 'Classic',
-                                'dentist' => 'Dentist',
-                                'civil' => 'Civil',
-                            ])
+                            ->options(__('general.entry-types'))
                             ->required(),
                     ])
                     ->modalHeading('Record Student Entry')
                     ->modalButton('Save Entry')
                     ->action(function (array $data, Student $record) {
                         $user = Auth::user();
-
                         StudentEntry::create([
                             'student_id' => $record->id,
                             'user_id' => $user->id,
@@ -128,8 +136,10 @@ class StudentResource extends Resource
                     })
                     ->successNotificationTitle('Entry Recorded Successfully'),
                 ActionGroup::make([
+                    Tables\Actions\ViewAction::make(),
                     Tables\Actions\EditAction::make(),
                     Tables\Actions\DeleteAction::make(),
+
                 ])->icon('heroicon-m-ellipsis-horizontal')
 
             ])
@@ -137,13 +147,14 @@ class StudentResource extends Resource
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
-            ]);
+            ])
+           ;
     }
 
     public static function getRelations(): array
     {
         return [
-            //
+            RelationManagers\EducationsRelationManager::class,
         ];
     }
 
@@ -154,5 +165,11 @@ class StudentResource extends Resource
             'create' => Pages\CreateStudent::route('/create'),
             'edit' => Pages\EditStudent::route('/{record}/edit'),
         ];
+    }
+
+    public static function mutateFormDataBeforeCreate(array $data): array
+    {
+        $data['id'] = Str::uuid()->toString();
+        return $data;
     }
 }

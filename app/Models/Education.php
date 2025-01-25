@@ -7,9 +7,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Education extends Model
 {
-    protected $guarded = ['id'];
+    protected $fillable = ['name', 'degree'];
+    protected $table = 'educations';
 
-    public function students():BelongsToMany{
-        return $this->belongsToMany(Student::class);
+    public function students(): BelongsToMany
+    {
+        return $this->belongsToMany(Student::class, 'student_educations')->withPivot('level', 'type')->withTimestamps();
     }
 }

@@ -2,15 +2,21 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Student extends Model
 {
-    use HasFactory;
 
+    use HasUuids;
+
+    public $incrementing = false; // Disable auto-increment
+    protected $keyType = 'string'; // UUIDs are stored as strings
     protected $fillable = [
-        'city_id', 'firstname', 'lastname', 'father_name',
+       'id', 'city_id', 'firstname', 'lastname', 'father_name',
         'national_number', 'phone', 'email', 'gender', 'religion', 'address'
     ];
 
@@ -24,8 +30,13 @@ class Student extends Model
         return $this->hasMany(StudentEntry::class);
     }
 
-    public function educations(): \Illuminate\Database\Eloquent\Relations\HasManyThrough{
-        return $this->hasmanyThrough(Education::class, StudentEntry::class);
+    public function educations(): BelongsToMany
+    {
+        return $this->belongsToMany(Education::class, 'student_educations','student_id','education_id')->withPivot('level', 'type')->withTimestamps();
+    }
+
+    public function studentEducations(): HasMany{
+        return $this->hasMany(StudentEducation::class);
     }
 }
 
