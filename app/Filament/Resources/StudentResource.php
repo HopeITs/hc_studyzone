@@ -18,8 +18,11 @@ use Filament\Tables\Actions\Action;
 use Filament\Tables\Actions\ActionGroup;
 use Filament\Tables\Columns\CheckboxColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\QueryBuilder\Constraints\NumberConstraint;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
@@ -27,8 +30,7 @@ class StudentResource extends Resource
 {
     protected static ?string $model = Student::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
-
+    protected static ?string $navigationIcon = 'heroicon-o-user-group';
     public static function form(Form $form): Form
     {
         return $form
@@ -79,6 +81,17 @@ class StudentResource extends Resource
     {
 
         return $table
+            ->modifyQueryUsing(function (Builder $query) {
+                $user = Auth::user();
+
+                if ($user->hasRole('general_admin')) {
+                    return $query; // ✅ General admin sees all students
+                } elseif ($user->hasRole('city_admin') || $user->hasRole('center_admin')) {
+                    return $query->where('city_id', $user->city_id); // ✅ City admin & Center admin see only their city's students
+                }
+
+                return $query->whereRaw('1 = 0'); // ✅ Blocks unauthorized users from seeing data
+            })
             ->columns([
                 TextColumn::make('firstname')->label('First Name')->sortable()->searchable(),
                 TextColumn::make('lastname')->label('Last Name')->sortable()->searchable(),
@@ -99,6 +112,7 @@ class StudentResource extends Resource
 
             ])
             ->filters([
+
                 SelectFilter::make('city')
                     ->label('Filter by City')
                     ->relationship('city', 'name')
@@ -155,6 +169,7 @@ class StudentResource extends Resource
     {
         return [
             RelationManagers\EducationsRelationManager::class,
+            RelationManagers\EntriesRelationManager::class,
         ];
     }
 
@@ -171,5 +186,23 @@ class StudentResource extends Resource
     {
         $data['id'] = Str::uuid()->toString();
         return $data;
+    }
+
+    public static function canCreate(): bool
+    {
+        return auth()->user()->hasRole('center_admin');
+    }
+
+    public static function canEdit(Model $record): bool
+    {
+        return auth()->user()->hasRole('center_admin');
+    }
+    public static function canViewAny(): bool
+    {
+        return auth()->user()->can('manage_students');
+    }
+    public static function canDelete(Model $record): bool
+    {
+        return auth()->user()->hasRole('center_admin');
     }
 }

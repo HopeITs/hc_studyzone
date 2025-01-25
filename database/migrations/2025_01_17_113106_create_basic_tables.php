@@ -17,7 +17,7 @@ return new class extends Migration {
             $table->id();
             $table->string('name')->unique();
             $table->string('code')->unique();
-            $table->boolean('is_synced')->default(false);
+            $table->timestamp('synced_at')->nullable()->default(null);
             $table->timestamps();
         });
 
@@ -29,19 +29,18 @@ return new class extends Migration {
             $table->string('phone')->nullable();
             $table->string('address')->nullable();
             $table->boolean('is_active')->default(true);
-            $table->boolean('is_synced')->default(false);
+            $table->timestamp('synced_at')->nullable()->default(null);
             $table->timestamps();
-            $table->index(['is_synced'],'idx_centers');
+            $table->index(['synced_at'],'idx_centers');
         });
 
         // Users Table Modifications
         Schema::table('users', function (Blueprint $table) {
             $table->foreignId('center_id')->nullable()->constrained()->onDelete('set null');
             $table->foreignId('city_id')->nullable()->constrained()->onDelete('set null');
-            $table->enum('role', ['general_admin', 'city_admin', 'center_admin'])->default('center_admin');
             $table->boolean('is_active')->default(true);
-            $table->boolean('is_synced')->default(false);
-            $table->index(['is_synced' , 'city_id' , 'is_active' , 'center_id'],'idx_users');
+            $table->timestamp('synced_at')->nullable()->default(null);
+            $table->index(['synced_at' , 'city_id' , 'is_active' , 'center_id'],'idx_users');
         });
 
         // Students Table
@@ -61,11 +60,11 @@ return new class extends Migration {
             $table->boolean('is_student')->default(true);
             $table->boolean('is_employed')->default(false);
             $table->boolean('is_active')->default(true);
-            $table->boolean('is_synced')->default(false);
+            $table->timestamp('synced_at')->nullable()->default(null);
 
             $table->timestamps();
 
-            $table->index(['is_synced' , 'city_id' , 'is_active' , 'gender'],'idx_students');
+            $table->index(['synced_at' , 'city_id' , 'is_active' , 'gender'],'idx_students');
 
         });
 
@@ -73,10 +72,10 @@ return new class extends Migration {
             $table->id();
             $table->string('name');
             $table->tinyInteger('degree')->default(0);
-            $table->boolean('is_synced')->default(false);
+            $table->timestamp('synced_at')->nullable()->default(null);
             $table->timestamps();
 
-            $table->index(['is_synced' , 'degree' , 'name' ],'idx_educations');
+            $table->index(['synced_at' , 'degree' , 'name' ],'idx_educations');
 
         });
 
@@ -86,9 +85,9 @@ return new class extends Migration {
             $table->foreignUuid('student_id')->constrained('students')->onDelete('cascade');
             $table->tinyInteger('level')->default(0);
             $table->tinyInteger('type')->default(0);
-            $table->boolean('is_synced')->default(false);
+            $table->timestamp('synced_at')->nullable()->default(null);
             $table->timestamps();
-            $table->index(['id', 'education_id', 'student_id' , 'level' , 'type' , 'is_synced'],
+            $table->index(['id', 'education_id', 'student_id' , 'level' , 'type' , 'synced_at'],
                 'idx_student_edu');
 
         });
@@ -102,11 +101,11 @@ return new class extends Migration {
             $table->foreignId('center_id')->constrained('centers')->onDelete('cascade');
             $table->tinyInteger('entry_type')->default(0);
             $table->dateTime('entry_time')->default(now());
-            $table->boolean('is_synced')->default(false);
+            $table->timestamp('synced_at')->nullable()->default(null);
             $table->timestamps();
 
             // Indexes for performance
-            $table->index(['student_id', 'center_id', 'entry_time','is_synced'],'idx_student_entry');
+            $table->index(['student_id', 'center_id', 'entry_time','synced_at'],'idx_student_entry');
         });
     }
 

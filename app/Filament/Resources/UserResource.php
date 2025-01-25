@@ -3,7 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\UserResource\Pages;
-use App\Filament\Resources\UserResource\RelationManagers;
+use App\Models\Center;
 use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Components\Select;
@@ -17,56 +17,80 @@ use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
+
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Database\Eloquent\Builder;
+use Spatie\Permission\Models\Role;
 
 class UserResource extends Resource
 {
     protected static ?string $model = User::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-user';
+
+    public static function query(Builder $query): Builder
+    {
+        $user = auth()->user();
+
+        if ($user->hasRole('general_admin')) {
+            return $query; // See all users
+        } elseif ($user->hasRole('city_admin')) {
+            return $query->where('city_id', $user->city_id);
+        } elseif ($user->hasRole('center_admin')) {
+            return $query->where('center_id', $user->center_id);
+        }
+
+        return $query;
+    }
+
 
     public static function form(Form $form): Form
     {
-        return $form
-            ->schema([
+        return $form->schema([
+            TextInput::make('name')
+                ->label('Name')
+                ->required(),
 
+            Select::make('roles')
+                ->label('User Role')
+                ->relationship('roles', 'name')
+                ->disabled(fn () => !auth()->user()->hasRole('general_admin'))
 
+                ->required(),
 
+            TextInput::make('email')
+                ->label('Email')
+                ->email()
+                ->unique(ignoreRecord: true)
+                ->required(),
 
-                TextInput::make('email')
-                    ->label('Email')
-                    ->email()
-                    ->unique(ignoreRecord: true)
-                    ->required(),
+            TextInput::make('password')
+                ->label('Password')
+                ->password()
+                ->required(),
 
-                Select::make('role')
-                    ->label('User Role')
-                    ->options([
-                        'general_admin' => 'General Admin',
-                        'city_admin' => 'City Admin',
-                        'center_admin' => 'Center Admin',
-                    ])
-                    ->required(),
+            // City Selection
+            Select::make('city_id')
+                ->label('City (For City Admins)')
+                ->relationship(name: 'city', titleAttribute: 'name')
+                ->searchable()
+                ->preload()
+                ->live()
+                ->required(fn ($get) => in_array($get('roles'), ['city_admin', 'center_admin'])),
 
-                Select::make('city_id')
-                    ->label('City (For City Admins)')
-                    ->relationship('city', 'name')
-                    ->searchable()
-                    ->preload()
-                    ->hidden(fn ($get) => $get('role') !== 'city_admin'),
+            // Center Selection (Filtered by Selected City)
+            Select::make('center_id')
+                ->label('Center (For Center Admins)')
+                ->searchable()
+                ->preload()
+                ->options(fn ($get) => Center::where('city_id', $get('city_id'))->pluck('name', 'id')) // 👈 Filters centers based on selected city
+                ->required(fn ($get) => $get('roles') === 'center_admin'),
 
-                Select::make('center_id')
-                    ->label('Center (For Center Admins)')
-                    ->relationship('center', 'name')
-                    ->searchable()
-                    ->preload()
-                    ->hidden(fn ($get) => $get('role') !== 'center_admin'),
-
-                Toggle::make('is_active')
-                    ->label('Active User')
-                    ->default(true),
-            ]);
+            Toggle::make('is_active')
+                ->label('Active User')
+                ->default(true),
+        ]);
     }
 
     public static function table(Table $table): Table
@@ -83,13 +107,9 @@ class UserResource extends Resource
                     ->sortable()
                     ->searchable(),
 
-                BadgeColumn::make('role')
+                BadgeColumn::make('roles.name')
                     ->label('Role')
-                    ->colors([
-                        'primary' => 'general_admin',
-                        'warning' => 'city_admin',
-                        'success' => 'center_admin',
-                    ]),
+                  ,
 
                 TextColumn::make('city.name')
                     ->label('City')
@@ -112,7 +132,7 @@ class UserResource extends Resource
                     ->formatStateUsing(fn ($state) => $state ? 'Active' : 'Inactive'),
             ])
             ->filters([
-                SelectFilter::make('role')
+                SelectFilter::make('roles')
                     ->label('Filter by Role')
                     ->options([
                         'general_admin' => 'General Admin',
@@ -151,5 +171,24 @@ class UserResource extends Resource
             'create' => Pages\CreateUser::route('/create'),
             'edit' => Pages\EditUser::route('/{record}/edit'),
         ];
+    }
+
+    public static function canCreate(): bool
+    {
+        return auth()->user()->hasRole('general_admin') || auth()->user()->hasRole('city_admin');
+    }
+
+    public static function canEdit(Model $record): bool
+    {
+        return auth()->user()->hasRole('general_admin');
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        return auth()->user()->hasRole('general_admin');
+    }
+    public static function canViewAny(): bool
+    {
+        return auth()->user()->can('manage_admins');
     }
 }

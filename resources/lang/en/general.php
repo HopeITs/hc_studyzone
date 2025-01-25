@@ -30,8 +30,8 @@ return [
     ,
     'entry-types' => [
         0 => 'Classic',
-        1 => 'Dentist',
-        2 => 'Civil'
+        1 => 'Dentistry',
+        2 => 'Architecture',
     ],
     'genders' => [
         0 => 'Male',
