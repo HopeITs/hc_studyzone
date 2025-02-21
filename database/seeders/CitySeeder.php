@@ -14,26 +14,27 @@ class CitySeeder extends Seeder
     {
         $cities = [
             [
-                'name' => 'Damascus',
+                'name' => ['en' => 'Damascus', 'ar' => 'دمشق'],
                 'code' => 'damascus',
             ],
             [
-                'name' => 'Aleppo',
+                'name' => ['en' => 'Aleppo', 'ar' => 'حلب'],
                 'code' => 'aleppo',
             ],
             [
-                'name' => 'Homs',
+                'name' => ['en' => 'Homs', 'ar' => 'حمص'],
                 'code' => 'homs'
             ],
             [
-                'name' => 'Latakia',
+                'name' => ['en' => 'Latakia', 'ar' => 'اللاذقية'],
                 'code' => 'latakia'
             ],
             [
-                'name' => 'Tartous',
+                'name' => ['en' => 'Tartous', 'ar' => 'طرطوس'],
                 'code' => 'tartous'
             ],
         ];
+
 
         foreach ($cities as $city) {
             City::create($city);

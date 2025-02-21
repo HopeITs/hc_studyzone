@@ -4,8 +4,11 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\StudentResource\Pages;
 use App\Filament\Resources\StudentResource\RelationManagers;
+use App\Models\City;
+use App\Models\Education;
 use App\Models\Student;
 use App\Models\StudentEntry;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -18,7 +21,6 @@ use Filament\Tables\Actions\Action;
 use Filament\Tables\Actions\ActionGroup;
 use Filament\Tables\Columns\CheckboxColumn;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Filters\QueryBuilder\Constraints\NumberConstraint;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -31,11 +33,13 @@ class StudentResource extends Resource
     protected static ?string $model = Student::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
+
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
                 Wizard::make([
+                    // Step 1: Personal Information
                     Wizard\Step::make('Personal Information')
                         ->schema([
                             TextInput::make('firstname')->label('First Name')->required()->maxLength(255),
@@ -49,7 +53,6 @@ class StudentResource extends Resource
                                 ->label('Gender')
                                 ->options(__('general.genders'))
                                 ->required(),
-
                             Select::make('religion')
                                 ->label('Religion')
                                 ->options(__('general.religions'))
@@ -58,24 +61,52 @@ class StudentResource extends Resource
                             Toggle::make('is_employee'),
                             Textarea::make('notes')->label('Notes')->maxLength(500)->columnSpan(2),
                         ])->columns(2),
+
+                    // Step 2: Contact Information
                     Wizard\Step::make('Contact Information')
                         ->schema([
-                            Select::make('city_id')
-                                ->label('City')
-                                ->relationship('city', 'name')
-                                ->searchable()
-                                ->preload()
-                                ->required(),
+                            Hidden::make('city_id')
+                                ->default(auth()->user()->city_id)
+                                ->dehydrated(true),
+
                             TextInput::make('phone')->label('Phone')->required()->unique(ignoreRecord: true),
                             TextInput::make('email')->label('Email')->required()->unique(ignoreRecord: true),
-                            TextInput::make('address')->label('Address')->maxLength(255),
+                            TextInput::make('address')->label('Address')->maxLength(255)->columnSpanFull(),
                         ])->columns(2),
 
+                    // Step 3: Education Information (Using Repeater)
+                    Wizard\Step::make('Education')
+                        ->schema([
+                            \Filament\Forms\Components\Repeater::make('educations')
+                                ->relationship('studentEducations') // Many-to-many relationship
+                                ->schema([
+                                    Select::make('education_id')
+                                        ->label('Education')
+                                        ->options(Education::all()->pluck('name', 'id'))
+                                        ->searchable()
+                                        ->required(),
+
+
+                                    Select::make('level')
+                                        ->label('Education Level')
+                                        ->options(__('general.edu-levels'))
+                                        ->required(),
+
+                                    Select::make('type')
+                                        ->label('Education Type')
+                                        ->options(__('general.edu-types'))
+                                        ->required(),
+                                ])
+                                ->columns(2)
+                                ->minItems(1)
+                                ->addActionLabel('Add Education')
+                                ->columnSpanFull(),
+                        ])->columns(1),
+
                 ])->columnSpanFull()
-
-
             ]);
     }
+
 
     public static function table(Table $table): Table
     {
@@ -113,14 +144,19 @@ class StudentResource extends Resource
             ])
             ->filters([
 
-                SelectFilter::make('city')
+                SelectFilter::make('city_id')
                     ->label('Filter by City')
-                    ->relationship('city', 'name')
+                    ->options(City::all()->pluck('name', 'id'))
                     ->searchable(),
-                SelectFilter::make('education_id')
+                SelectFilter::make('educations')
                     ->label('Filter by Educations')
+//                    ->options(Education::all()->pluck('name', 'id'))
                     ->relationship('educations', 'name')
-                    ->searchable(),
+
+                    ->searchable()
+                    ->multiple()
+                    ->preload(),
+
 
                 SelectFilter::make('gender')
                     ->label('Filter by Gender')
@@ -161,8 +197,7 @@ class StudentResource extends Resource
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
-            ])
-           ;
+            ]);
     }
 
     public static function getRelations(): array
@@ -197,10 +232,12 @@ class StudentResource extends Resource
     {
         return auth()->user()->hasRole('center_admin');
     }
+
     public static function canViewAny(): bool
     {
         return auth()->user()->can('manage_students');
     }
+
     public static function canDelete(Model $record): bool
     {
         return auth()->user()->hasRole('center_admin');

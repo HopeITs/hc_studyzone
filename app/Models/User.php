@@ -27,6 +27,7 @@ class User extends Authenticatable
         'center_id',
         'role',
         'is_active',
+        'synced_at'
     ];
 
     /**

@@ -12,7 +12,6 @@ enum Religion: int
     // Define enum cases with associated integer values
     case Unknown = 0;
     case Christian = 1;
-
     case Muslim = 2;
 
 

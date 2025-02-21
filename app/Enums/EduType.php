@@ -12,7 +12,6 @@ enum EduType: int
     // Define enum cases with associated integer values
     case Governmental  = 0;
     case Private  = 1;
-
     case Open  = 2;
     case Virtual  = 3;
 

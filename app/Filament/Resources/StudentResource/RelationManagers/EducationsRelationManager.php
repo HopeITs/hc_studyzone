@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\StudentResource\RelationManagers;
 
 use App\Models\Education;
-use Filament\Forms;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
@@ -14,7 +13,7 @@ use Filament\Tables\Table;
 
 class EducationsRelationManager extends RelationManager
 {
-    protected static string $relationship = 'studentEducations';
+    protected static string $relationship = 'studentEducations'; // Match the Student model relationship
 
     public function form(Form $form): Form
     {
@@ -23,14 +22,15 @@ class EducationsRelationManager extends RelationManager
                 ->label('Educations')
                 ->options(Education::all()->pluck('name', 'id'))
                 ->preload()
-                ->searchable(),
+                ->searchable()
+                ->required(),
 
-            Forms\Components\Select::make('level')
+            Select::make('level')
                 ->label('Education Level')
                 ->options(__('general.edu-levels'))
                 ->required(),
 
-            Forms\Components\Select::make('type')
+            Select::make('type')
                 ->label('Education Type')
                 ->options(__('general.edu-types'))
                 ->required(),
@@ -42,10 +42,10 @@ class EducationsRelationManager extends RelationManager
         return $table->columns([
             Tables\Columns\TextColumn::make('education.name')->label('Education')->sortable(),
             Tables\Columns\TextColumn::make('level')->label('Level')
-                ->formatStateUsing(fn (string $state): string => __("general.edu-degrees.{$state}"))
+                ->formatStateUsing(fn(string $state): string => __("general.edu-levels.{$state}"))
                 ->sortable(),
             Tables\Columns\TextColumn::make('type')->label('Type')
-                ->formatStateUsing(fn (string $state): string => __("general.edu-degrees.{$state}"))
+                ->formatStateUsing(fn(string $state): string => __("general.edu-types.{$state}"))
                 ->sortable(),
         ])
             ->headerActions([

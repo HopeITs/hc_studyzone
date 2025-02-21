@@ -11,13 +11,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Student extends Model
 {
 
-    use HasUuids;
+    use HasUuids , HasFactory;
 
     public $incrementing = false; // Disable auto-increment
     protected $keyType = 'string'; // UUIDs are stored as strings
     protected $fillable = [
        'id', 'city_id', 'firstname', 'lastname', 'father_name',
-        'national_number', 'phone', 'email', 'gender', 'religion', 'address'
+        'national_number', 'phone', 'email', 'gender', 'religion', 'address' , 'synced_at'
     ];
 
     public function city(): \Illuminate\Database\Eloquent\Relations\BelongsTo
@@ -32,8 +32,11 @@ class Student extends Model
 
     public function educations(): BelongsToMany
     {
-        return $this->belongsToMany(Education::class, 'student_educations','student_id','education_id')->withPivot('level', 'type')->withTimestamps();
+        return $this->belongsToMany(Education::class, 'student_educations')
+            ->withPivot(['level', 'type'])
+            ->withTimestamps();
     }
+
 
     public function studentEducations(): HasMany{
         return $this->hasMany(StudentEducation::class);

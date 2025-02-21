@@ -12,7 +12,6 @@ enum EduDegree: int
     // Define enum cases with associated integer values
     case MiddleSchool = 0;
     case HighSchool = 1;
-
     case HigherSecondary = 2;
     case Institution = 3;
     case University = 4;

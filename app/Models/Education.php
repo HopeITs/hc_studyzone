@@ -2,12 +2,16 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Spatie\Translatable\HasTranslations;
 
 class Education extends Model
 {
-    protected $fillable = ['name', 'degree'];
+    use HasFactory , HasTranslations;
+    protected $translatable = ['name'];
+    protected $fillable = ['name', 'degree' , 'synced_at'];
     protected $table = 'educations';
 
     public function students(): BelongsToMany

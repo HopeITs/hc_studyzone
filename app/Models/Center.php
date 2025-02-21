@@ -4,12 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Spatie\Translatable\HasTranslations;
 
 class Center extends Model
 {
-    use HasFactory;
-
-    protected $fillable = ['city_id', 'name', 'phone', 'email', 'address'];
+    use HasFactory , HasTranslations;
+    protected $translatable = ['name'];
+    protected $fillable = ['city_id', 'name', 'phone', 'email', 'address' ,'synced_at'];
 
     public function city(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {

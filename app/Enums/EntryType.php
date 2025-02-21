@@ -12,7 +12,6 @@ enum EntryType: int
     // Define enum cases with associated integer values
     case Classic  = 0;
     case Dentist  = 1;
-
     case civil  = 2;
 
 

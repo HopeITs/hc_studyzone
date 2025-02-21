@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Education;
 use App\Models\User;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -25,5 +26,12 @@ class DatabaseSeeder extends Seeder
             'email' => 'admin_city@sz.com',
             'city_id' => 1,
         ])->assignRole('city_admin');
+        $this->call(CenterSeeder::class);
+        $this->call(EducationSeeder::class);
+        $this->call(StudentSeeder::class);
+
+
+
+
     }
 }

@@ -7,6 +7,7 @@ use App\Filament\Resources\EducationResource\RelationManagers;
 use App\Models\Education;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Resources\Concerns\Translatable;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Actions\DeleteAction;
@@ -19,6 +20,7 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class EducationResource extends Resource
 {
+    use Translatable;
     protected static ?string $model = Education::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-academic-cap';

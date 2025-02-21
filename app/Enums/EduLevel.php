@@ -12,7 +12,6 @@ enum EduLevel: int
     // Define enum cases with associated integer values
     case Graduate = 0;
     case First = 1;
-
     case Second = 2;
     case Third = 3;
     case Forth = 4;

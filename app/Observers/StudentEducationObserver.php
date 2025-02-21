@@ -15,10 +15,10 @@ class StudentEducationObserver
         //
     }
 
-    public function creating(StudentEducation $studentEducation): void
-    {
-        $studentEducation->id = Str::uuid();
-    }
+//    public function creating(StudentEducation $studentEducation): void
+//    {
+//        $studentEducation->id = Str::uuid();
+//    }
 
     /**
      * Handle the StudentEducation "updated" event.

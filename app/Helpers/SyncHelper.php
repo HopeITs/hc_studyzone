@@ -55,8 +55,13 @@ class SyncHelper
                 $data
             );
 
-            // Mark as synced locally
-            DB::table($table)->where('id', $data['id'])->update(['synced_at' => now()]);
+            // update synced_at on local
+            $updated = DB::connection('mysql')->table($table)
+                ->find('id', $data['id'])
+                ->update(['synced_at' => now()]);
+
+            dd($updated); // Will return 1 if successful, 0 if no row was updated
+
         }
 
         Log::info("Uploaded " . count($localData) . " records to online server for {$table}.");

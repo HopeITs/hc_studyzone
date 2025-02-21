@@ -133,12 +133,17 @@ class UserResource extends Resource
             ])
             ->filters([
                 SelectFilter::make('roles')
+                    ->relationship('roles', 'name')
                     ->label('Filter by Role')
-                    ->options([
-                        'general_admin' => 'General Admin',
-                        'city_admin' => 'City Admin',
-                        'center_admin' => 'Center Admin',
-                    ]),
+                   ,
+                SelectFilter::make('city_id')
+                    ->relationship('city', 'name')
+                    ->label('Filter by City')
+                ,
+                SelectFilter::make('center_id')
+                    ->relationship('center', 'name')
+                    ->label('Filter by Center')
+                ,
 
                 SelectFilter::make('is_active')
                     ->label('Filter by Status')
