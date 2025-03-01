@@ -15,6 +15,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call(CitySeeder::class);
+        $this->call(StreetSeeder::class);
         $this->call(RoleSeeder::class);
         User::factory()->create([
             'name' => 'Administrator',
@@ -24,7 +25,7 @@ class DatabaseSeeder extends Seeder
         User::factory()->create([
             'name' => 'Administrator',
             'email' => 'admin_city@sz.com',
-            'city_id' => 1,
+            'city_id' => 2,
         ])->assignRole('city_admin');
         $this->call(CenterSeeder::class);
         $this->call(EducationSeeder::class);

@@ -47,14 +47,15 @@ class SyncHelper
         }
 
         foreach ($localData as $row) {
-            $data = (array) $row;
+            $data = (array)$row;
+            $data['synced_at'] = now();
 
             // Merge data on online server
-            DB::connection('online_mysql')->table($table)->updateOrInsert(
+            $onlineData = DB::connection('online_mysql')->table($table)->upsert(
                 ['id' => $data['id']], // Unique identifier
                 $data
             );
-
+            dd($onlineData);
             // update synced_at on local
             $updated = DB::connection('mysql')->table($table)
                 ->find('id', $data['id'])
@@ -85,7 +86,7 @@ class SyncHelper
         }
 
         foreach ($onlineData as $row) {
-            $data = (array) $row;
+            $data = (array)$row;
 
             // Merge data locally
             DB::table($table)->updateOrInsert(

@@ -21,10 +21,19 @@ return new class extends Migration {
             $table->timestamps();
         });
 
+        Schema::create('streets', function (Blueprint $table) {
+            $table->id();
+            $table->json('name');
+            $table->foreignId('city_id')->constrained()->onDelete('cascade');
+            $table->timestamp('synced_at')->nullable()->default(null);
+            $table->timestamps();
+        });
+
         // Centers Table
         Schema::create('centers', function (Blueprint $table) {
             $table->id();
             $table->foreignId('city_id')->constrained()->onDelete('cascade');
+            $table->foreignId('street_id')->nullable()->constrained()->onDelete('cascade');
             $table->json('name');
             $table->string('phone')->nullable();
             $table->string('address')->nullable();
@@ -46,7 +55,7 @@ return new class extends Migration {
         // Students Table
         Schema::create('students', function (Blueprint $table) {
             $table->uuid('id')->primary()->default(Str::uuid());
-            $table->foreignId('city_id')->constrained()->onDelete('cascade');
+            $table->foreignId('street_id')->constrained()->onDelete('cascade');
             $table->string('firstname');
             $table->string('lastname');
             $table->string('father_name');
@@ -64,7 +73,7 @@ return new class extends Migration {
 
             $table->timestamps();
 
-            $table->index(['synced_at' , 'city_id' , 'is_active' , 'gender'],'idx_students');
+            $table->index(['synced_at' , 'street_id' , 'is_active' , 'gender'],'idx_students');
 
         });
 
@@ -120,6 +129,7 @@ return new class extends Migration {
         Schema::dropIfExists('students');
         Schema::dropIfExists('users');
         Schema::dropIfExists('centers');
+        Schema::dropIfExists('streets');
         Schema::dropIfExists('cities');
 
     }

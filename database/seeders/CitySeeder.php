@@ -14,6 +14,14 @@ class CitySeeder extends Seeder
     {
         $cities = [
             [
+                'name' => ['en' => 'N/A', 'ar' => 'لا شيء'],
+                'code' => 'na',
+            ],
+            [
+                'name' => ['en' => 'Homs', 'ar' => 'حمص'],
+                'code' => 'homs'
+            ],
+            [
                 'name' => ['en' => 'Damascus', 'ar' => 'دمشق'],
                 'code' => 'damascus',
             ],
@@ -22,16 +30,20 @@ class CitySeeder extends Seeder
                 'code' => 'aleppo',
             ],
             [
-                'name' => ['en' => 'Homs', 'ar' => 'حمص'],
-                'code' => 'homs'
-            ],
-            [
                 'name' => ['en' => 'Latakia', 'ar' => 'اللاذقية'],
                 'code' => 'latakia'
             ],
             [
+                'name' => ['en' => 'Homs Countryside', 'ar' => 'ريف حمص'],
+                'code' => 'homs-countryside'
+            ],
+            [
                 'name' => ['en' => 'Tartous', 'ar' => 'طرطوس'],
                 'code' => 'tartous'
+            ],
+            [
+                'name' => ['en' => 'Al Wadi', 'ar' => 'الوادي'],
+                'code' => 'al-wadi'
             ],
         ];
 

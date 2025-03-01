@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\Translatable\HasTranslations;
 
 class City extends Model
@@ -20,8 +21,12 @@ class City extends Model
         return $this->hasMany(Center::class);
     }
 
-    public function students(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function students(): HasMany
     {
         return $this->hasMany(Student::class);
+    }
+
+    public function streets():HasMany{
+        return $this->hasMany(Street::class);
     }
 }

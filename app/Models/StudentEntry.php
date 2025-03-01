@@ -14,7 +14,7 @@ class StudentEntry extends Model
     public $incrementing = false; // Disable auto-increment
     protected $keyType = 'string'; // UUIDs are stored as strings
 
-    protected $fillable = ['id','student_id', 'user_id', 'center_id', 'entry_type', 'entry_time' ,'synced_at'];
+    protected $guarded = ['id'];
 
     public function student(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {

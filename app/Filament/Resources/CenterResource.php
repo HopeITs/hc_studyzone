@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\CenterResource\Pages;
 use App\Filament\Resources\CenterResource\RelationManagers;
 use App\Models\Center;
+use App\Models\City;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Concerns\Translatable;
@@ -13,6 +14,7 @@ use Filament\Tables;
 use Filament\Tables\Actions\DeleteAction;
 use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Actions\ViewAction;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
@@ -23,7 +25,7 @@ class CenterResource extends Resource
     use Translatable;
     protected static ?string $model = Center::class;
     protected static ?string $navigationIcon = 'heroicon-o-building-office-2';
-
+    protected static ?int $navigationSort = 4;
 
     public static function form(Form $form): Form
     {
@@ -44,7 +46,10 @@ class CenterResource extends Resource
                 Tables\Columns\TextColumn::make('city.name')->sortable()->searchable(),
             ])
             ->filters([
-                //
+                SelectFilter::make('city_id')
+                    ->label('Filter by City')
+                    ->options(City::all()->pluck('name', 'id'))
+                    ->searchable(),
             ])
             ->actions([
                 ViewAction::make(),

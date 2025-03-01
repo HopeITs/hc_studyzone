@@ -6,6 +6,7 @@ use App\Filament\Resources\StudentResource\Pages;
 use App\Filament\Resources\StudentResource\RelationManagers;
 use App\Models\City;
 use App\Models\Education;
+use App\Models\Street;
 use App\Models\Student;
 use App\Models\StudentEntry;
 use Filament\Forms\Components\Hidden;
@@ -33,7 +34,7 @@ class StudentResource extends Resource
     protected static ?string $model = Student::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
-
+    protected static ?int $navigationSort = 6;
     public static function form(Form $form): Form
     {
         return $form
@@ -65,9 +66,13 @@ class StudentResource extends Resource
                     // Step 2: Contact Information
                     Wizard\Step::make('Contact Information')
                         ->schema([
-                            Hidden::make('city_id')
-                                ->default(auth()->user()->city_id)
-                                ->dehydrated(true),
+
+
+                            Select::make('street_id')
+                                ->label('Street')
+                                ->options(fn () => Street::where('city_id', auth()->user()->city_id)->pluck('name', 'id'))
+                                ->searchable()
+                                ->required(),
 
                             TextInput::make('phone')->label('Phone')->required()->unique(ignoreRecord: true),
                             TextInput::make('email')->label('Email')->required()->unique(ignoreRecord: true),
@@ -118,7 +123,7 @@ class StudentResource extends Resource
                 if ($user->hasRole('general_admin')) {
                     return $query; // ✅ General admin sees all students
                 } elseif ($user->hasRole('city_admin') || $user->hasRole('center_admin')) {
-                    return $query->where('city_id', $user->city_id); // ✅ City admin & Center admin see only their city's students
+                    return $query->whereIn('street_id', $user->city->streets->keys()->toArray()); // ✅ City admin & Center admin see only their city's students
                 }
 
                 return $query->whereRaw('1 = 0'); // ✅ Blocks unauthorized users from seeing data
@@ -127,7 +132,7 @@ class StudentResource extends Resource
                 TextColumn::make('firstname')->label('First Name')->sortable()->searchable(),
                 TextColumn::make('lastname')->label('Last Name')->sortable()->searchable(),
                 TextColumn::make('phone')->label('Phone')->sortable()->searchable(),
-                TextColumn::make('city.name')->label('City')->sortable()->searchable(),
+                TextColumn::make('street.city.name')->label('City')->sortable()->searchable(),
                 TextColumn::make('gender')
                     ->label('Gender')
                     ->badge()
@@ -143,25 +148,36 @@ class StudentResource extends Resource
 
             ])
             ->filters([
-
-                SelectFilter::make('city_id')
+                // City filter (Only for General Admins)
+                SelectFilter::make('city')
+                    ->relationship('street.city', 'name')
                     ->label('Filter by City')
+                    ->preload()
                     ->options(City::all()->pluck('name', 'id'))
+                    ->searchable()
+                    ->visible(auth()->user()->hasRole('general_admin')),
+
+                // Street Filter (Depends on City for General Admins, Else User's City)
+                SelectFilter::make('street_id')
+                    ->label('Filter by Street')
+                    ->options(Street::whereIn('city_id', auth()->user()->city_id ??  City::all()->keys()->toArray())->pluck('name', 'id'))
                     ->searchable(),
+
+
+                // Education filter
                 SelectFilter::make('educations')
                     ->label('Filter by Educations')
-//                    ->options(Education::all()->pluck('name', 'id'))
                     ->relationship('educations', 'name')
-
                     ->searchable()
                     ->multiple()
                     ->preload(),
 
-
+                // Gender filter
                 SelectFilter::make('gender')
                     ->label('Filter by Gender')
                     ->options(__('general.genders')),
             ])
+
             ->actions([
                 Action::make('entry')
                     ->label('Entry')
