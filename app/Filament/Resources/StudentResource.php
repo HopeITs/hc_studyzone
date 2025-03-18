@@ -9,6 +9,7 @@ use App\Models\Education;
 use App\Models\Street;
 use App\Models\Student;
 use App\Models\StudentEntry;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -58,6 +59,7 @@ class StudentResource extends Resource
                                 ->label('Religion')
                                 ->options(__('general.religions'))
                                 ->default(0),
+                            DatePicker::make('year_of_birth'),
                             Toggle::make('is_student'),
                             Toggle::make('is_employee'),
                             Textarea::make('notes')->label('Notes')->maxLength(500)->columnSpan(2),
@@ -75,6 +77,7 @@ class StudentResource extends Resource
                                 ->required(),
 
                             TextInput::make('phone')->label('Phone')->required()->unique(ignoreRecord: true),
+                            TextInput::make('whatsapp')->label('Whatsapp')->unique(ignoreRecord: true),
                             TextInput::make('email')->label('Email')->required()->unique(ignoreRecord: true),
                             TextInput::make('address')->label('Address')->maxLength(255)->columnSpanFull(),
                         ])->columns(2),
@@ -123,7 +126,7 @@ class StudentResource extends Resource
                 if ($user->hasRole('general_admin')) {
                     return $query; // ✅ General admin sees all students
                 } elseif ($user->hasRole('city_admin') || $user->hasRole('center_admin')) {
-                    return $query->whereIn('street_id', $user->city->streets->keys()->toArray()); // ✅ City admin & Center admin see only their city's students
+                    return $query->whereIn('street_id', $user->city->streets->pluck('id')->toArray()); // ✅ City admin & Center admin see only their city's students
                 }
 
                 return $query->whereRaw('1 = 0'); // ✅ Blocks unauthorized users from seeing data
@@ -132,14 +135,15 @@ class StudentResource extends Resource
                 TextColumn::make('firstname')->label('First Name')->sortable()->searchable(),
                 TextColumn::make('lastname')->label('Last Name')->sortable()->searchable(),
                 TextColumn::make('phone')->label('Phone')->sortable()->searchable(),
+
                 TextColumn::make('street.city.name')->label('City')->sortable()->searchable(),
                 TextColumn::make('gender')
                     ->label('Gender')
                     ->badge()
                     ->formatStateUsing(fn(string $state): string => __("general.genders.{$state}"))
                     ->color(fn(string $state): string => match ($state) {
-                        '0' => 'info',
-                        '1' => 'danger',
+                        '1' => 'info',
+                        '2' => 'danger',
 
 
                     }),
@@ -160,7 +164,7 @@ class StudentResource extends Resource
                 // Street Filter (Depends on City for General Admins, Else User's City)
                 SelectFilter::make('street_id')
                     ->label('Filter by Street')
-                    ->options(Street::whereIn('city_id', auth()->user()->city_id ??  City::all()->keys()->toArray())->pluck('name', 'id'))
+                    ->options(Street::whereIn('city_id', [auth()->user()->city_id] ??  City::all()->keys()->toArray())->pluck('name', 'id'))
                     ->searchable(),
 
 
