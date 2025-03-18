@@ -10,8 +10,9 @@ enum Gender: int
     use InvokableCases, Values;
 
     // Define enum cases with associated integer values
-    case Male  = 0;
-    case Female  = 1;
+    case Unkonwn = 0;
+    case Male  = 1;
+    case Female  = 2;
 
 
 

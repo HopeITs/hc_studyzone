@@ -1,45 +1,55 @@
 <?php
+
+use App\Enums\EduDegree;
+use App\Enums\EduLevel;
+use App\Enums\EduType;
+use App\Enums\EntryType;
+use App\Enums\Gender;
+use App\Enums\Religion;
+
 return [
 
     'edu-degrees' => [
-        0 => 'Middle School',
-        1 => 'High School',
-        2 => 'Higher Secondary',
-        3 => 'Institution',
-        4 => 'University',
-        5 => 'Diploma',
-        6 => 'Masters',
-        7 => 'PhD',
+        EduDegree::MiddleSchool() => 'Middle School',
+        EduDegree::HighSchool() => 'High School',
+        EduDegree::HigherSecondary() => 'Higher Secondary',
+        EduDegree::Institution() => 'Institution',
+        EduDegree::University() => 'University',
+        EduDegree::Diploma() => 'Diploma',
+        EduDegree::Masters() => 'Masters',
+        EduDegree::PhD() => 'PhD',
     ],
     'edu-types' => [
-        0 => 'Governmental Education',
-        1 => 'Private Education',
-        2 => 'Open Education',
-        3 => 'Virtual Education',
+        EduType::Governmental() => 'Governmental Education',
+        EduType::Private() => 'Private Education',
+        EduType::Open() => 'Open Education',
+        EduType::Virtual() => 'Virtual Education',
     ],
 
     'edu-levels' => [
-        0 => 'Graduate',
-        1 => 'First Year',
-        2 => 'Second Year',
-        3 => 'Third Year',
-        4 => 'Fourth Year',
-        5 => 'Fifth Year',
-        6 => 'Sixth Year',
+
+        EduLevel::First() => 'First Year',
+        EduLevel::Second() => 'Second Year',
+        EduLevel::Third() => 'Third Year',
+        EduLevel::Forth() => 'Fourth Year',
+        EduLevel::Fifth() => 'Fifth Year',
+        EduLevel::Sixth() => 'Sixth Year',
+        EduLevel::Graduate() => 'Graduate',
     ]
     ,
     'entry-types' => [
-        0 => 'Classic',
-        1 => 'Dentistry',
-        2 => 'Architecture',
+        EntryType::Free() => 'Free',
+        EntryType::Daily() => 'Daily',
+        EntryType::Monthly() => 'Monthly',
     ],
     'genders' => [
-        0 => 'Male',
-        1 => 'Female',
+        Gender::Unkonwn() => 'Unkonwn',
+        Gender::Male() => 'Male',
+        Gender::Female() => 'Female',
     ],
     'religions' => [
-        0 => 'Unknown',
-        1 => 'Christian',
-        2 => 'Muslim'
+        Religion::Unknown() => 'Unknown',
+        Religion::Christian() => 'Christian',
+        Religion::Muslim() => 'Muslim'
     ]
 ];

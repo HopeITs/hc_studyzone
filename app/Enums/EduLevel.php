@@ -10,14 +10,14 @@ enum EduLevel: int
     use InvokableCases, Values;
 
     // Define enum cases with associated integer values
-    case Graduate = 0;
+
     case First = 1;
     case Second = 2;
     case Third = 3;
     case Forth = 4;
     case Fifth = 5;
     case Sixth = 6;
-
+    case Graduate = 7;
 
     // Return the default case
     public static function default(): self

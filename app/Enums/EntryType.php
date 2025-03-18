@@ -10,9 +10,9 @@ enum EntryType: int
     use InvokableCases, Values;
 
     // Define enum cases with associated integer values
-    case Classic  = 0;
-    case Dentist  = 1;
-    case civil  = 2;
+    case Free  = 0;
+    case Daily  = 1;
+    case Monthly  = 2;
 
 
 
