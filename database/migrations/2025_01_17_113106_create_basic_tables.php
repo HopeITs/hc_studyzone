@@ -61,6 +61,8 @@ return new class extends Migration {
             $table->string('father_name');
             $table->string('national_number')->unique();
             $table->string('phone')->unique();
+            $table->string('whatsapp')->unique()->nullable();
+            $table->date('year_of_birth')->nullable();
             $table->string('email')->nullable()->unique();
             $table->tinyInteger('gender')->default(0);
             $table->tinyInteger('religion')->default(0);
@@ -108,7 +110,10 @@ return new class extends Migration {
             $table->foreignUuid('student_id')->constrained('students')->onDelete('cascade');
             $table->foreignId('user_id')->nullable()->constrained('users')->onDelete('set null');
             $table->foreignId('center_id')->constrained('centers')->onDelete('cascade');
-            $table->tinyInteger('entry_type')->default(0);
+            $table->tinyInteger('entry_type')->default(1);
+            $table->boolean('use_printer')->default(false);
+            $table->boolean('use_drawer')->default(false);
+            $table->boolean('use_mecrator')->default(false);
             $table->dateTime('entry_time')->default(now());
             $table->timestamp('synced_at')->nullable()->default(null);
             $table->timestamps();
