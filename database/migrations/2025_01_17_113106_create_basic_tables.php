@@ -55,12 +55,12 @@ return new class extends Migration {
         // Students Table
         Schema::create('students', function (Blueprint $table) {
             $table->uuid('id')->primary()->default(Str::uuid());
-            $table->foreignId('street_id')->constrained()->onDelete('cascade');
+            $table->foreignId('street_id')->nullable()->constrained()->onDelete('cascade');
             $table->string('firstname');
             $table->string('lastname');
             $table->string('father_name');
-            $table->string('national_number')->unique();
-            $table->string('phone')->unique();
+            $table->string('national_number')->unique()->nullable();
+            $table->string('phone')->unique()->nullable();
             $table->string('whatsapp')->unique()->nullable();
             $table->date('year_of_birth')->nullable();
             $table->string('email')->nullable()->unique();
