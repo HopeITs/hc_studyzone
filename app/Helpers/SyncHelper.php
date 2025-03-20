@@ -4,28 +4,36 @@ namespace App\Helpers;
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 
 class SyncHelper
 {
     /**
-     * Sync a given table between local and online databases.
-     *
-     * @param string $table The table name.
+     * Sync all specified tables between local and online databases.
+     */
+    public static function syncAllTables(array $tables): void
+    {
+        foreach ($tables as $table) {
+            self::syncTable($table);
+        }
+    }
+
+    /**
+     * Sync a single table.
      */
     public static function syncTable(string $table): void
     {
+        Log::info("✅ Sync Start for table: {$table}");
         try {
-            DB::transaction(function () use ($table) {
-                // Step 1: Sync Local to Online
-                self::syncLocalToOnline($table);
 
-                // Step 2: Sync Online to Local
+            DB::transaction(function () use ($table) {
+                self::syncLocalToOnline($table);
                 self::syncOnlineToLocal($table);
             });
 
-            Log::info("Synchronization for table {$table} completed.");
+            Log::info("✅ Sync completed for table: {$table}");
         } catch (\Exception $e) {
-            Log::error("Sync error for {$table}: " . $e->getMessage());
+            Log::error("❌ Sync error for {$table}: " . $e->getMessage());
         }
     }
 
@@ -34,38 +42,33 @@ class SyncHelper
      */
     private static function syncLocalToOnline(string $table): void
     {
-        $localData = DB::table($table)
-            ->where(function ($query) {
-                $query->whereNull('synced_at') // Never synced
-                ->orWhereColumn('updated_at', '>', 'synced_at'); // Modified after last sync
-            })
-            ->get();
+        Log::info("🔄 Syncing local to online: {$table}");
 
-        if ($localData->isEmpty()) {
-            Log::info("No new data to sync from local to online for {$table}.");
-            return;
+        $query = DB::table($table)->whereNull('synced_at');
+
+        if (Schema::hasColumn($table, 'updated_at')) {
+            $query->orWhereColumn('updated_at', '>', 'synced_at');
         }
+
+        $localData = $query->get();
 
         foreach ($localData as $row) {
             $data = (array)$row;
             $data['synced_at'] = now();
 
-            // Merge data on online server
-            $onlineData = DB::connection('online_mysql')->table($table)->upsert(
-                ['id' => $data['id']], // Unique identifier
-                $data
-            );
-            dd($onlineData);
-            // update synced_at on local
-            $updated = DB::connection('mysql')->table($table)
-                ->find('id', $data['id'])
-                ->update(['synced_at' => now()]);
+            $onlineDb = DB::connection('online_mysql')->table($table);
+            $existingRecord = $onlineDb->where('id', $data['id'])->first();
 
-            dd($updated); // Will return 1 if successful, 0 if no row was updated
+            if ($existingRecord) {
+                $onlineDb->where('id', $data['id'])->update($data);
+            } else {
+                $onlineDb->insert($data);
+            }
 
+            DB::table($table)->where('id', $data['id'])->update(['synced_at' => $data['synced_at']]);
         }
 
-        Log::info("Uploaded " . count($localData) . " records to online server for {$table}.");
+        Log::info("✅ Uploaded " . count($localData) . " records to online for {$table}");
     }
 
     /**
@@ -73,33 +76,26 @@ class SyncHelper
      */
     private static function syncOnlineToLocal(string $table): void
     {
-        $onlineData = DB::connection('online_mysql')->table($table)
-            ->where(function ($query) {
-                $query->whereNull('synced_at') // Never synced
-                ->orWhereColumn('updated_at', '>', 'synced_at'); // Modified after last sync
-            })
-            ->get();
+        Log::info("🔄 Syncing online to local: {$table}");
 
-        if ($onlineData->isEmpty()) {
-            Log::info("No new data to sync from online to local for {$table}.");
-            return;
+        $query = DB::connection('online_mysql')->table($table)->whereNull('synced_at');
+
+        if (Schema::hasColumn($table, 'updated_at')) {
+            $query->orWhereColumn('updated_at', '>', 'synced_at');
         }
+
+        $onlineData = $query->get();
 
         foreach ($onlineData as $row) {
             $data = (array)$row;
 
-            // Merge data locally
-            DB::table($table)->updateOrInsert(
-                ['id' => $data['id']], // Unique identifier
-                $data
-            );
+            DB::table($table)->updateOrInsert(['id' => $data['id']], $data);
 
-            // Mark as synced online
             DB::connection('online_mysql')->table($table)
                 ->where('id', $data['id'])
                 ->update(['synced_at' => now()]);
         }
 
-        Log::info("Downloaded " . count($onlineData) . " records to local server for {$table}.");
+        Log::info("✅ Downloaded " . count($onlineData) . " records to local for {$table}");
     }
 }

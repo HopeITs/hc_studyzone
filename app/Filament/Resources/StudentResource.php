@@ -59,7 +59,7 @@ class StudentResource extends Resource
                                 ->label('Religion')
                                 ->options(__('general.religions'))
                                 ->default(0),
-                            DatePicker::make('year_of_birth'),
+                            DatePicker::make('dob'),
                             Toggle::make('is_student'),
                             Toggle::make('is_employee'),
                             Textarea::make('notes')->label('Notes')->maxLength(500)->columnSpan(2),

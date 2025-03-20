@@ -10,14 +10,17 @@ use Illuminate\Support\Facades\DB;
 class SyncDataToOnlineServer extends Command
 {
     protected $signature = 'sync:data';
-    protected $description = 'Bidirectional sync between local and online database';
+    protected $description = 'Bidirectional sync between local and online database using async jobs';
 
     public function handle(): void
     {
         $this->info('Starting data synchronization...');
 
-        $tables = ['students', 'student_entries', 'educations', 'student_educations', 'centers', 'cities', 'users']; // Add all tables to sync
-
+        $tables = [
+            'cities' , 'centers' , 'streets' , 'users' , 'educations',
+            'permissions' , 'roles' , 'model_has_permissions' , 'model_has_roles' , 'role_has_permissions',
+            'students' , 'student_educations' , 'student_entries'
+        ];
         $this->info('Starting bidirectional sync...');
 
 

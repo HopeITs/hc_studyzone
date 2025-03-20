@@ -33,7 +33,6 @@ return new class extends Migration {
         Schema::create('centers', function (Blueprint $table) {
             $table->id();
             $table->foreignId('city_id')->constrained()->onDelete('cascade');
-            $table->foreignId('street_id')->nullable()->constrained()->onDelete('cascade');
             $table->json('name');
             $table->string('phone')->nullable();
             $table->string('address')->nullable();
@@ -62,7 +61,7 @@ return new class extends Migration {
             $table->string('national_number')->unique()->nullable();
             $table->string('phone')->unique()->nullable();
             $table->string('whatsapp')->unique()->nullable();
-            $table->date('year_of_birth')->nullable();
+            $table->date('dob')->nullable();
             $table->string('email')->nullable()->unique();
             $table->tinyInteger('gender')->default(0);
             $table->tinyInteger('religion')->default(0);

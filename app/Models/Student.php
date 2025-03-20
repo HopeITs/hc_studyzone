@@ -16,7 +16,7 @@ class Student extends Model
 
     public $incrementing = false; // Disable auto-increment
     protected $keyType = 'string'; // UUIDs are stored as strings
-    protected $guarded = ['id'];
+    protected $guarded = [];
 
 
 

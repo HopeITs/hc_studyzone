@@ -116,6 +116,7 @@ return [
         'online_mysql' => [
             'driver' => 'mysql',
             'prefix' => 'hcsz_',
+            'port' => env('ONLINE_DB_PORT', '3306'),
             'host' => env('ONLINE_DB_HOST', 'online-server-ip'),
             'database' => env('ONLINE_DB_DATABASE', 'online_db'),
             'username' => env('ONLINE_DB_USERNAME', 'online_user'),
