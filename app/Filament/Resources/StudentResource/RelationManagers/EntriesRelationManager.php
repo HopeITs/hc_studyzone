@@ -13,6 +13,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Forms;
 use Illuminate\Support\Facades\Auth;
+use App\Filament\Resources\StudentResource\RelationManagers\Pages;
 class EntriesRelationManager extends RelationManager
 {
     protected static string $relationship = 'entries';
@@ -62,7 +63,10 @@ class EntriesRelationManager extends RelationManager
 
         ])
             ->headerActions([
-                CreateAction::make(),
+//                CreateAction::make(),
+                CreateAction::make()
+
+                    ->openUrlInNewTab(),
             ])
             ->actions([
                 ViewAction::make(),
@@ -70,6 +74,14 @@ class EntriesRelationManager extends RelationManager
                 DeleteAction::make(),
 
             ]);
+    }
+
+    public static function getPages(): array
+    {
+        return [
+            'create' => Pages\CreateEntry::route('/create'),
+            'edit' => Pages\EditEntry::route('/{record}/edit'),
+        ];
     }
 
 
