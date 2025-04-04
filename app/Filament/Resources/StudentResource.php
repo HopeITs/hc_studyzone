@@ -5,7 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\StudentResource\Pages;
 use App\Filament\Resources\StudentResource\RelationManagers;
 use App\Models\{City, Education, Street, Student, StudentEntry};
-use Filament\Forms\Components\{DatePicker, Hidden, Select, Textarea, TextInput, Toggle, Wizard};
+use Filament\Forms\Components\{DatePicker, Select, Textarea, TextInput, Toggle, Wizard};
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -117,35 +117,21 @@ class StudentResource extends Resource
                 ->formatStateUsing(fn(string $state) => __("general.genders.{$state}"))
                 ->color(fn(string $state) => $state === '1' ? 'info' : 'danger'),
             CheckboxColumn::make('is_student'),
-            self::qrCodeColumn(),
+
         ];
     }
 
-    protected static function qrCodeColumn(): TextColumn
-{
-    return TextColumn::make('qr_code')
-        ->label('QR Code')
-        ->formatStateUsing(fn($state, Student $record) => '<a href="#" class="filament-link">View QR Code</a>')
-        ->html()
-        ->action(
-            Tables\Actions\Action::make('view_qr_code')
-                ->label('View QR Code')
-                ->modalHeading('Student QR Code Details')
-                ->modalContent(fn(Student $record) => self::qrCodeModalContent($record))
-                ->modalSubmitAction(false)
-        );
-}
 
-protected static function qrCodeModalContent(Student $record)
-{
-    $url = url("student/{$record->id}/entry");
-    $qrCode = QrCode::size(200)->generate($url);
-    return view('filament.qr-code-modal', [
-        'uuid' => $record->id,
-        'url' => $url,
-        'qrCode' => $qrCode,
-    ]);
-}
+    protected static function qrCodeModalContent(Student $record)
+    {
+        $url = url("student/{$record->id}/entry");
+        $qrCode = QrCode::size(200)->generate($url);
+        return view('filament.qr-code-modal', [
+            'uuid' => $record->id,
+            'url' => $url,
+            'qrCode' => $qrCode,
+        ]);
+    }
 
     protected static function filterQueryByRole(Builder $query): Builder
     {
@@ -186,6 +172,12 @@ protected static function qrCodeModalContent(Student $record)
     protected static function tableActions(): array
     {
         return [
+            Tables\Actions\Action::make('view_qr_code')
+                ->label('View QR Code')
+                ->icon('heroicon-o-qr-code')
+                ->modalHeading('Student QR Code Details')
+                ->modalContent(fn(Student $record) => self::qrCodeModalContent($record))
+                ->modalSubmitAction(false),
             Action::make('entry')
                 ->label('Entry')
                 ->icon('heroicon-o-document-text')
@@ -228,17 +220,17 @@ protected static function qrCodeModalContent(Student $record)
     }
 
     public static function getGlobalActions(): array
-{
-    return [
-        Action::make('scan:qrcode')
-            ->label('Open Camera')
-            ->icon('heroicon-o-camera')
-            ->modalHeading('Scan QR Code')
-            ->modalContent(fn() => view('filament.qr-code-scanner'))
-            ->modalSubmitAction(false)
-            ->modalCancelActionLabel('Close'),
-    ];
-}
+    {
+        return [
+            Action::make('scan:qrcode')
+                ->label('Open Camera')
+                ->icon('heroicon-o-camera')
+                ->modalHeading('Scan QR Code')
+                ->modalContent(fn() => view('filament.qr-code-scanner'))
+                ->modalSubmitAction(false)
+                ->modalCancelActionLabel('Close'),
+        ];
+    }
 
     public static function mutateFormDataBeforeCreate(array $data): array
     {
