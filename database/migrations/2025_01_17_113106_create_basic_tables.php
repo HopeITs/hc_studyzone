@@ -54,6 +54,7 @@ return new class extends Migration {
         // Students Table
         Schema::create('students', function (Blueprint $table) {
             $table->uuid('id')->primary()->default(Str::uuid());
+            $table->string('qr_code')->nullable();
             $table->foreignId('street_id')->nullable()->constrained()->onDelete('cascade');
             $table->string('firstname');
             $table->string('lastname');

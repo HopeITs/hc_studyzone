@@ -26,5 +26,4 @@ enum EduDegree: int
     }
 
     // Return an array of all case values
-
 }
