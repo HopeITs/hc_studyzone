@@ -36,6 +36,7 @@ class AdminPanelProvider extends PanelProvider
             ->brandLogoHeight('2.5rem')
             ->colors([
                 'primary' => Color::Amber,
+                'secondary' => '#063c54'
             ])
             ->brandName('Study Zone')
             ->brandLogo(asset('images/logo.png'))

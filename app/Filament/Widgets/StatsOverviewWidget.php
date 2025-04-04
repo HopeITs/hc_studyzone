@@ -2,12 +2,15 @@
 
 namespace App\Filament\Widgets;
 
+use App\Models\Center;
+use App\Models\City;
 use Carbon\Carbon;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Number;
-
+use Filament\Forms;
 class StatsOverviewWidget extends BaseWidget
 {
     use InteractsWithPageFilters;
@@ -24,6 +27,10 @@ class StatsOverviewWidget extends BaseWidget
         $endDate = ! is_null($this->filters['endDate'] ?? null) ?
             Carbon::parse($this->filters['endDate']) :
             now();
+
+        $city = $this->filters['city'] ?? null;
+
+        $city = $this->filters['center'] ?? null;
 
         $isBusinessCustomersOnly = $this->filters['businessCustomersOnly'] ?? null;
         $businessCustomerMultiplier = match (true) {
@@ -51,21 +58,26 @@ class StatsOverviewWidget extends BaseWidget
         };
 
         return [
-            Stat::make('Revenue', '$' . $formatNumber($revenue))
-                ->description('32k increase')
-                ->descriptionIcon('heroicon-m-arrow-trending-up')
-                ->chart([7, 2, 10, 3, 15, 4, 17])
-                ->color('success'),
-            Stat::make('New customers', $formatNumber($newCustomers))
-                ->description('3% decrease')
-                ->descriptionIcon('heroicon-m-arrow-trending-down')
-                ->chart([17, 16, 14, 15, 14, 13, 12])
-                ->color('danger'),
-            Stat::make('New orders', $formatNumber($newOrders))
-                ->description('7% increase')
-                ->descriptionIcon('heroicon-m-arrow-trending-up')
-                ->chart([15, 4, 10, 2, 12, 4, 12])
-                ->color('success'),
+//            Stat::make('Revenue', '$' . $formatNumber($revenue))
+//                ->description('32k increase')
+//                ->descriptionIcon('heroicon-m-arrow-trending-up')
+//                ->chart([7, 2, 10, 3, 15, 4, 17])
+//                ->color('success'),
+//            Stat::make('New customers', $formatNumber($newCustomers))
+//                ->description('3% decrease')
+//                ->descriptionIcon('heroicon-m-arrow-trending-down')
+//                ->chart([17, 16, 14, 15, 14, 13, 12])
+//                ->color('danger'),
+//            Stat::make('New orders', $formatNumber($newOrders))
+//                ->description('7% increase')
+//                ->descriptionIcon('heroicon-m-arrow-trending-up')
+//                ->chart([15, 4, 10, 2, 12, 4, 12])
+//                ->color('success'),
         ];
     }
+
+
+
+
+
 }
