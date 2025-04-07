@@ -1,53 +1,84 @@
-<div>
+{{-- <div>
     <div id="reader" class="w-full" style="max-width: 600px;"></div>
 
-    <script type="text/javascript">
-        document.addEventListener('DOMContentLoaded', function () {
+    <script>
+        document.addEventListener('livewire:load', function () {
             if (typeof Html5Qrcode === 'undefined') {
-                console.error('html5-qrcode library not loaded. Ensure it is properly included.');
+                console.error('html5-qrcode library not loaded.');
                 return;
             }
 
             const html5QrCode = new Html5Qrcode("reader");
 
-            async function startScanner() {
-                const readerElement = document.getElementById('reader');
-                if (!readerElement) {
-                    console.error('Reader element not found in DOM');
-                    return;
-                }
-
+            const startScanner = async () => {
                 try {
                     await html5QrCode.start(
                         { facingMode: "environment" },
                         { fps: 10, qrbox: { width: 250, height: 250 } },
-                        (decodedText) => {
+                        decodedText => {
                             window.location.href = decodedText;
-                            stopScanner();
+                            html5QrCode.stop();
                         },
-                        (errorMessage) => {
-                            console.warn(`QR Code scan error: ${errorMessage}`);
+                        errorMessage => {
+                            console.warn(`QR error: ${errorMessage}`);
                         }
                     );
                 } catch (err) {
-                    console.error('Failed to start QR scanner:', err);
+                    console.error('Scanner start failed:', err);
                 }
-            }
+            };
 
-            function stopScanner() {
-                html5QrCode.stop().catch(err => console.error('Failed to stop QR scanner:', err));
-            }
+            const stopScanner = () => {
+                html5QrCode.stop().catch(err => console.error('Stop failed:', err));
+            };
 
-            // Start the scanner immediately when the modal loads
-            startScanner();
-
-            // Stop the scanner when the modal is closed
-            document.addEventListener('livewire:load', () => {
-                Livewire.on('modal-closed', stopScanner);
+            const observer = new MutationObserver(() => {
+                if (document.getElementById('reader')?.offsetParent !== null) {
+                    startScanner();
+                    observer.disconnect();
+                }
             });
 
-            // Stop the scanner when the page unloads
+            observer.observe(document.body, { childList: true, subtree: true });
+
             window.addEventListener('beforeunload', stopScanner);
+            Livewire.on('modal-closed', stopScanner);
         });
     </script>
+</div> --}}
+
+
+{{--             ALPINE.JS                --}}
+<div
+    x-data="{
+        html5QrCode: null,
+        startScanner() {
+            this.html5QrCode = new Html5Qrcode('scanner');
+            Html5Qrcode.getCameras().then(devices => {
+                if (devices.length) {
+                    const cameraId = devices[0].id;
+                    this.html5QrCode.start(cameraId, {
+                        fps: 10,
+                        qrbox: 250
+                    },
+                    qrCodeMessage => {
+                        this.html5QrCode.stop();
+                        window.location.href = `/student/${qrCodeMessage}/entry`;
+                    },
+                    errorMessage => {
+                        console.warn(errorMessage);
+                    });
+                }
+            }).catch(err => console.error('Camera init error', err));
+        },
+        stopScanner() {
+            if (this.html5QrCode) {
+                this.html5QrCode.stop().catch(err => console.error('Stop failed', err));
+            }
+        }
+    }"
+    x-init="startScanner();
+        window.addEventListener('close', stopScanner);"
+>
+    <div id="scanner" class="w-full h-64 bg-gray-100"></div>
 </div>
