@@ -9,6 +9,7 @@ use Spatie\Translatable\HasTranslations;
 class Center extends Model
 {
     use HasFactory , HasTranslations;
+
     protected $translatable = ['name'];
     protected $fillable = ['city_id', 'name', 'phone', 'email', 'address' ,'synced_at'];
 

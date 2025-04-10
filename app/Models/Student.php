@@ -11,19 +11,21 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Student extends Model
 {
+    use HasUuids, HasFactory;
 
-    use HasUuids , HasFactory;
 
-    public $incrementing = false; // Disable auto-increment
-    protected $keyType = 'string'; // UUIDs are stored as strings
+
+
+    public $incrementing = false;
+    protected $keyType = 'string';
     protected $guarded = [];
 
 
-
-    public function entries(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function entries(): HasMany
     {
         return $this->hasMany(StudentEntry::class);
     }
+
 
     public function educations(): BelongsToMany
     {
@@ -32,13 +34,15 @@ class Student extends Model
             ->withTimestamps();
     }
 
-    public function street(): BelongsTo{
+
+    public function street(): BelongsTo
+    {
         return $this->belongsTo(Street::class);
     }
 
 
-    public function studentEducations(): HasMany{
-        return $this->hasMany(StudentEducation::class);
+    public function studentEducations(): HasMany
+    {
+        return $this->hasMany(StudentEducation::class, 'student_id');
     }
 }
-
