@@ -3,11 +3,9 @@
 namespace App\Filament\Widgets;
 
 
-use App\Filament\Resources\StudentResource;
-
-use App\Models\Student;
+use App\Enums\Gender;
 use App\Models\StudentEducation;
-use Filament\Tables;
+use Carbon\Carbon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget as BaseWidget;
@@ -16,9 +14,9 @@ use Illuminate\Support\Facades\DB;
 
 class LatestOrders extends BaseWidget
 {
-    protected int | string | array $columnSpan = 'full';
+    protected int|string|array $columnSpan = 'full';
 
-    protected static ?int $sort = 6;
+    protected static ?int $sort = 7;
 
     public function table(Table $table): Table
     {
@@ -29,53 +27,52 @@ class LatestOrders extends BaseWidget
 
         $query = StudentEducation::query()
             ->join('students', 'students.id', '=', 'student_educations.student_id')
-            ->when($startDate, fn($q) => $q->whereDate('students.created_at', '>=', Carbon::parse($startDate))
-            )
-            ->when($endDate, fn($q) => $q->whereDate('students.created_at', '<=', Carbon::parse($endDate))
-            )
-            ->when($cityIds, fn($q) => $q->whereIn('students.city_id', (array)$cityIds)
-            )
+            ->when($startDate, fn($q) => $q->whereDate('students.created_at', '>=', Carbon::parse($startDate)))
+            ->when($endDate, fn($q) => $q->whereDate('students.created_at', '<=', Carbon::parse($endDate)))
+            ->when($cityIds, fn($q) => $q->whereIn('students.city_id', (array)$cityIds))
             ->when($centerIds, fn($q) => $q->whereExists(function ($sub) use ($centerIds) {
                 $sub->select(DB::raw(1))
                     ->from('student_entries')
                     ->whereColumn('student_entries.student_id', 'students.id')
                     ->whereIn('student_entries.center_id', (array)$centerIds);
-            })
-            )
-            ->select(
+            }))
+            ->select('student_educations.level');
+//            ->distinct('student_educations.level');
 
-                'student_educations.level',
-                DB::raw('COUNT(DISTINCT student_educations.student_id) as total_students'),
-                DB::raw('COUNT(DISTINCT CASE WHEN students.gender = 0 THEN student_educations.student_id END) as male_students'),
-                DB::raw('COUNT(DISTINCT CASE WHEN students.gender = 1 THEN student_educations.student_id END) as female_students')
-            )
-            ->groupBy('student_educations.level')
-            ->orderByDesc('total_students')
-            ->limit(5);
-
+//      dd($query);
         return $table
             ->query($query)
             ->columns([
                 TextColumn::make('level')
                     ->label('السنة الدراسية')
-                    ->formatStateUsing(fn($state) => __('levels.' . $state)),
+                    ->formatStateUsing(fn($state) => __('general.edu-levels.' . $state)),
 
-                TextColumn::make('total_students')
+                TextColumn::make('students_count')
                     ->label('عدد الطلاب')
-                    ->sortable(),
+                    ->getStateUsing(fn($record) =>
+                    StudentEducation::where('level', $record->level)->count()
+                    ),
 
                 TextColumn::make('male_students')
                     ->label('عدد الذكور')
-                    ->sortable(),
+                    ->getStateUsing(fn($record) =>
+                    StudentEducation::where('level', $record->level)
+                        ->whereHas('student', fn($q) => $q->where('gender', Gender::Male))
+                        ->count()
+                    ),
 
                 TextColumn::make('female_students')
                     ->label('عدد الإناث')
-                    ->sortable(),
+                    ->getStateUsing(fn($record) =>
+                    StudentEducation::where('level', $record->level)
+                        ->whereHas('student', fn($q) => $q->where('gender', Gender::Female))
+                        ->count()
+                    ),
             ]);
     }
 
     public function getTableRecordKey(mixed $record): string
     {
-        return (string) $record->level;
+        return (string)$record->level;
     }
 }
