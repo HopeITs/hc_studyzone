@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -9,13 +8,16 @@ use Spatie\Translatable\HasTranslations;
 
 class Education extends Model
 {
-    use HasFactory , HasTranslations;
-    protected $translatable = ['name'];
-    protected $fillable = ['name', 'degree' , 'synced_at'];
+    use HasFactory, HasTranslations;
+
     protected $table = 'educations';
+    protected $translatable = ['name'];
+    protected $fillable = ['name', 'degree', 'synced_at'];
 
     public function students(): BelongsToMany
     {
-        return $this->belongsToMany(Student::class, 'student_educations')->withPivot('level', 'type')->withTimestamps();
+        return $this->belongsToMany(Student::class, 'student_educations')
+            ->withPivot('level', 'type')
+            ->withTimestamps();
     }
 }

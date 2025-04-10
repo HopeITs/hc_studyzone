@@ -10,15 +10,13 @@ use Illuminate\Database\Eloquent\Relations\Pivot;
 
 class StudentEducation extends Model
 {
-
     use HasUuids, HasFactory;
 
     protected $table = 'student_educations';
-    public $incrementing = false; // Disable auto-increment
-    protected $keyType = 'string'; // UUIDs are stored as strings
+
+    public $incrementing = false;
+    protected $keyType = 'string';
     protected $guarded = [];
-
-
 
     public function student(): BelongsTo
     {
@@ -29,6 +27,4 @@ class StudentEducation extends Model
     {
         return $this->belongsTo(Education::class);
     }
-
-
 }

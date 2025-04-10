@@ -9,6 +9,7 @@ use Spatie\Translatable\HasTranslations;
 class Street extends Model
 {
     use HasTranslations;
+
     protected $guarded = ['id'];
     protected $translatable = ['name'];
 
