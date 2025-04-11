@@ -6,6 +6,7 @@ use App\Filament\Resources\StudentResource\Widgets\StudentCountOverTime;
 use App\Filament\Resources\StudentResource\Widgets\StudentEducationStats;
 use App\Filament\Resources\StudentResource\Widgets\StudentEntryTypeStats;
 use App\Filament\Resources\StudentResource\Widgets\StudentStats;
+use App\Models\User;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -78,5 +79,12 @@ class AdminPanelProvider extends PanelProvider
                 SpatieLaravelTranslatablePlugin::make()
                 ->defaultLocales(['en', 'ar']))
             ;
+    }
+
+    public function bootPanel(Panel $panel): void
+    {
+        $panel->authorizeUsing(function (User $user) {
+            return $user->hasAnyRole(['general_admin', 'city_admin', 'center_admin']);
+        });
     }
 }
