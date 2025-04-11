@@ -13,7 +13,7 @@ class City extends Model
     use HasTranslations;
 
     protected $translatable = ['name'];
-    protected $fillable = ['name', 'code'];
+    protected $guarded = ['id'];
 
     public function centers(): \Illuminate\Database\Eloquent\Relations\HasMany
     {

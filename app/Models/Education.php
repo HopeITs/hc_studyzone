@@ -12,7 +12,7 @@ class Education extends Model
 
     protected $table = 'educations';
     protected $translatable = ['name'];
-    protected $fillable = ['name', 'degree', 'synced_at'];
+    protected $guarded = ['id'];
 
     public function students(): BelongsToMany
     {

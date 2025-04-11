@@ -11,7 +11,8 @@ class Center extends Model
     use HasFactory , HasTranslations;
 
     protected $translatable = ['name'];
-    protected $fillable = ['city_id', 'name', 'phone', 'email', 'address' ,'synced_at'];
+
+    protected $guarded = ['id'];
 
     public function city(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {

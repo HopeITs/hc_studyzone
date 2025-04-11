@@ -22,13 +22,19 @@ class SyncDataToOnlineServer extends Command
             'students' , 'student_educations' , 'student_entries'
         ];
         $this->info('Starting bidirectional sync...');
+        $this->output->progressStart(count($tables));
+        foreach ($tables as $table) {
+            $this->info("➡️ Syncing table: {$table}");
+            SyncHelper::syncTable($table);
+            $this->output->progressAdvance();
+        }
+        $this->output->progressFinish();
 
-
-        DB::transaction(function () use ($tables) {
-            foreach ($tables as $table) {
-                SyncHelper::syncTable($table);
-            }
-        });
+//        DB::transaction(function () use ($tables) {
+//            foreach ($tables as $table) {
+//                SyncHelper::syncTable($table);
+//            }
+//        });
 
         $this->info('Sync completed.');
 
