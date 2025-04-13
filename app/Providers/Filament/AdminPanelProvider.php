@@ -32,6 +32,7 @@ class AdminPanelProvider extends PanelProvider
         return $panel
             ->default()
             ->id('admin')
+            ->authGuard('web')
             ->path('admin')
             ->login()
             ->brandLogoHeight('2.5rem')
@@ -56,6 +57,7 @@ class AdminPanelProvider extends PanelProvider
 
             ])
             ->middleware([
+                'web',
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
                 StartSession::class,
@@ -81,10 +83,5 @@ class AdminPanelProvider extends PanelProvider
             ;
     }
 
-    public function bootPanel(Panel $panel): void
-    {
-        $panel->authorizeUsing(function (User $user) {
-            return $user->hasAnyRole(['general_admin', 'city_admin', 'center_admin']);
-        });
-    }
+
 }
