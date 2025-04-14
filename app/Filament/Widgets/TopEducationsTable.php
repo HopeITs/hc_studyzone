@@ -3,6 +3,7 @@ namespace App\Filament\Widgets;
 
 use App\Models\Education;
 use Carbon\Carbon;
+use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Filament\Widgets\TableWidget;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -12,13 +13,15 @@ class TopEducationsTable extends TableWidget
 {
     protected static ?string $heading = 'Top 10 Educations by Students';
     protected int|string|array $columnSpan = 'full';
+    use InteractsWithPageFilters;
+
 
     public function table(Table $table): Table
     {
         return $table
             ->query($this->getQuery())
             ->columns([
-                Tables\Columns\TextColumn::make('name.en')
+                Tables\Columns\TextColumn::make('name')
                     ->label('Education'),
                 Tables\Columns\TextColumn::make('total')
                     ->label('Total'),
@@ -43,14 +46,17 @@ class TopEducationsTable extends TableWidget
 
 
         $cityIds = $this->filters['city'] ?? null;
-
+        $centerIds = $this->filters['center'] ?? null;
 
         return Education::query()
             ->withCount([
-                'students as total' => function ($query) use ($startDate, $endDate, $cityIds) {
+                'students as total' => function ($query) use ($startDate, $endDate, $cityIds,$centerIds) {
                     $query->whereBetween('students.created_at', [$startDate, $endDate]);
                     if ($cityIds) {
                         $query->whereHas('street', fn($q) => $q->whereIn('city_id', (array)$cityIds));
+                    }
+                    if($centerIds) {
+                        $query->whereHas('entries', fn($q) => $q->whereIn('center_id', (array)$centerIds));
                     }
                 },
                 'students as males' => function ($query) use ($startDate, $endDate, $cityIds) {
