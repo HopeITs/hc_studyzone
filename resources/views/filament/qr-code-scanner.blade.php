@@ -1,54 +1,9 @@
-{{-- <div>
-    <div id="reader" class="w-full" style="max-width: 600px;"></div>
 
-    <script>
-        document.addEventListener('livewire:load', function () {
-            if (typeof Html5Qrcode === 'undefined') {
-                console.error('html5-qrcode library not loaded.');
-                return;
-            }
-
-            const html5QrCode = new Html5Qrcode("reader");
-
-            const startScanner = async () => {
-                try {
-                    await html5QrCode.start(
-                        { facingMode: "environment" },
-                        { fps: 10, qrbox: { width: 250, height: 250 } },
-                        decodedText => {
-                            window.location.href = decodedText;
-                            html5QrCode.stop();
-                        },
-                        errorMessage => {
-                            console.warn(`QR error: ${errorMessage}`);
-                        }
-                    );
-                } catch (err) {
-                    console.error('Scanner start failed:', err);
-                }
-            };
-
-            const stopScanner = () => {
-                html5QrCode.stop().catch(err => console.error('Stop failed:', err));
-            };
-
-            const observer = new MutationObserver(() => {
-                if (document.getElementById('reader')?.offsetParent !== null) {
-                    startScanner();
-                    observer.disconnect();
-                }
-            });
-
-            observer.observe(document.body, { childList: true, subtree: true });
-
-            window.addEventListener('beforeunload', stopScanner);
-            Livewire.on('modal-closed', stopScanner);
-        });
-    </script>
-</div> --}}
 
 
 {{--             ALPINE.JS                --}}
+
+
 <div
     x-data="{
         html5QrCode: null,
@@ -63,7 +18,8 @@
                     },
                     qrCodeMessage => {
                         this.html5QrCode.stop();
-                        window.location.href = `/student/${qrCodeMessage}/entry`;
+
+                        window.location.href = `${qrCodeMessage}`;
                     },
                     errorMessage => {
                         console.warn(errorMessage);
