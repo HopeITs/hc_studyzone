@@ -8,14 +8,15 @@ use App\Models\StudentEducation;
 use Carbon\Carbon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Filament\Widgets\TableWidget as BaseWidget;
 use Illuminate\Support\Facades\DB;
 
 
 class LatestOrders extends BaseWidget
 {
-    protected int|string|array $columnSpan = 'full';
-
+//    protected int|string|array $columnSpan = 'full';
+    use InteractsWithPageFilters;
     protected static ?int $sort = 7;
 
     public function table(Table $table): Table

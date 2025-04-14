@@ -13,7 +13,7 @@ class FrequentStudentsChart extends ChartWidget
     use InteractsWithPageFilters;
 
     protected static ?string $heading = 'Frequent Students (More than X Visits)';
-
+    protected int|string|array $columnSpan = 'full';
     protected static ?int $sort = 3;
 
     protected function getType(): string

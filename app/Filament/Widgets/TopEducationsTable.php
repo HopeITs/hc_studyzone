@@ -11,9 +11,11 @@ use Illuminate\Database\Eloquent\Builder;
 
 class TopEducationsTable extends TableWidget
 {
-    protected static ?string $heading = 'Top 10 Educations by Students';
-    protected int|string|array $columnSpan = 'full';
     use InteractsWithPageFilters;
+    protected static ?string $heading = 'Top 10 Educations by Students';
+//    protected int|string|array $columnSpan = 'full';
+
+    protected static ?int $sort = 7;
 
 
     public function table(Table $table): Table
