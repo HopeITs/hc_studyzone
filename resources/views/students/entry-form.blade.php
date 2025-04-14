@@ -36,11 +36,16 @@
                         </select>
                     </div>
 
-                    <div class="flex justify-end">
+                    <div class="flex justify-between">
+                        <a href="{{route('filament.admin.resources.students.index')}}"
+                           class="inline-flex items-center px-4 py-2 bg-amber-950 text-white text-sm font-medium rounded-md hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2">
+                            Back to students
+                        </a>
                         <button type="submit"
                             class="inline-flex items-center px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-md hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2">
                             Submit Entry
                         </button>
+
                     </div>
                 </div>
             </form>
