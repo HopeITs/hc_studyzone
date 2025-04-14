@@ -20,14 +20,14 @@ class CreateStudent extends CreateRecord
         // Construct the QR code content (UUID and URL)
         $qrContent = json_encode([
             'uuid' => $data['id'],
-            'url' => route('students.entry', ['id' => $data['id']]),
+            'url' => route('student.entry', ['uuid' => $data['id']]),
         ]);
 
         // Define the file path for the QR code
         $fileName = 'qr-codes/' . $data['id'] . '.png';
 
         // Generate and store the QR code
-        $qrCode = QrCode::format('png')->size(300)->generate($qrContent);
+        $qrCode = QrCode::format('svg')->size(300)->generate($qrContent);
         Storage::disk('public')->put($fileName, $qrCode);
 
         // Save the file path to the student's record
