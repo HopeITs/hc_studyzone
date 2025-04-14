@@ -29,10 +29,6 @@ class DatabaseSeeder extends Seeder
         ])->assignRole('city_admin');
         $this->call(CenterSeeder::class);
         $this->call(EducationSeeder::class);
-//        $this->call(StudentSeeder::class);
-
-
-
-
+        $this->call(StudentSeeder::class);
     }
 }

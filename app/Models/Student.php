@@ -13,19 +13,16 @@ class Student extends Model
 {
     use HasUuids, HasFactory;
 
-
-
-
-    public $incrementing = false;
-    protected $keyType = 'string';
+    public $incrementing = false; // Disable auto-increment
+    protected $keyType = 'string'; // UUIDs are stored as strings
     protected $guarded = [];
+    protected $primaryKey = 'id';
 
 
-    public function entries(): HasMany
+    public function entries(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(StudentEntry::class);
     }
-
 
     public function educations(): BelongsToMany
     {
@@ -40,9 +37,16 @@ class Student extends Model
         return $this->belongsTo(Street::class);
     }
 
-
     public function studentEducations(): HasMany
+
     {
         return $this->hasMany(StudentEducation::class, 'student_id');
     }
+
+    // Method to get the QR code path
+    public function getQrCodePath(): string
+    {
+        return $this->qr_code ?? '';
+    }
 }
+

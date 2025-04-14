@@ -55,6 +55,7 @@ return new class extends Migration {
         // Students Table
         Schema::create('students', function (Blueprint $table) {
             $table->uuid('id')->primary()->default(Str::uuid());
+            $table->string('qr_code')->nullable();
             $table->foreignId('street_id')->nullable()->constrained()->onDelete('cascade');
             $table->string('firstname');
             $table->string('lastname');
@@ -124,7 +125,11 @@ return new class extends Migration {
         Schema::dropIfExists('student_educations');
         Schema::dropIfExists('educations');
         Schema::dropIfExists('students');
-        Schema::dropIfExists('users');
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropForeign(['center_id']);
+            $table->dropForeign(['city_id']);
+            $table->dropColumn(['center_id', 'city_id', 'is_active', 'synced_at']);
+        });
         Schema::dropIfExists('centers');
         Schema::dropIfExists('streets');
         Schema::dropIfExists('cities');
