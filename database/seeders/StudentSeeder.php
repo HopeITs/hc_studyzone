@@ -15,9 +15,9 @@ class StudentSeeder extends Seeder
      */
     public function run(): void
     {
-        for ($i = 1; $i <= 10; $i++) {
+        for ($i = 1; $i <= 50; $i++) {
             $student = Student::factory()->create();
-            StudentEntry::factory(5)->create(['student_id' => $student->id]);
+            StudentEntry::factory(rand(1,50))->create(['student_id' => $student->id]);
             StudentEducation::factory(1)->create(['student_id' => $student->id]);
         }
     }

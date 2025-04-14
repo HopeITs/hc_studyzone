@@ -1,0 +1,75 @@
+<?php
+
+namespace App\Filament\Widgets;
+
+use App\Models\Student;
+use Carbon\Carbon;
+use Filament\Widgets\ChartWidget;
+use Filament\Widgets\Concerns\InteractsWithPageFilters;
+
+class StudentGenderChart extends ChartWidget
+{
+    use InteractsWithPageFilters;
+
+    protected static ?string $heading = 'Gender Distribution (Students)';
+    protected static ?int $sort = 5;
+    protected static string $color = 'primary';
+
+    protected function getType(): string
+    {
+        return 'bar'; // or 'bar'
+    }
+
+    protected function getData(): array
+    {
+        $query = Student::query()
+            ->when($this->filters['startDate'] ?? null, fn($q) => $q->whereDate('created_at', '>=', Carbon::parse($this->filters['startDate']))
+            )
+            ->when($this->filters['endDate'] ?? null, fn($q) => $q->whereDate('created_at', '<=', Carbon::parse($this->filters['endDate']))
+            )
+            ->when($this->filters['center'] ?? null, fn($q) => $q->whereHas('entries', fn($q) => $q->whereIn('center_id', (array)$this->filters['center'])))
+            ->when($this->filters['city'] ?? null, fn($q) => $q->whereHas('entries.center', fn($q) => $q->whereIn('city_id', (array)$this->filters['city'])))
+            ->selectRaw('gender, COUNT(*) as total')
+            ->groupBy('gender')
+            ->pluck('total', 'gender')
+            ->toArray();
+
+
+        $query[0] = collect($query)->sum();
+        $genderLabels = [
+            0 => 'Total',
+            1 => 'Male',
+            2 => 'Female',
+        ];
+
+        $labels = [];
+        $data = [];
+
+        foreach ($genderLabels as $key => $label) {
+            $labels[] = $label;
+            $data[] = $query[$key] ?? 0;
+        }
+
+        return [
+            'datasets' => [
+                [
+                    'label' => 'Students',
+                    'data' => $data,
+                    'backgroundColor' => [
+                        'rgba(255, 159, 64, 0.2)',
+                        'rgba(54, 162, 235, 0.2)',
+                        'rgba(255, 99, 132, 0.2)',
+
+                    ],
+                    'borderColor' => [
+                        'rgb(255, 159, 64)',
+                        'rgb(54, 162, 235)',
+                        'rgb(255, 99, 132)',
+
+                    ],
+                ],
+            ],
+            'labels' => $labels,
+        ];
+    }
+}

@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Pages;
 use App\Filament\Resources\StudentResource\Widgets\StudentCountOverTime;
 use App\Filament\Resources\StudentResource\Widgets\StudentEducationStats;
 use App\Filament\Resources\StudentResource\Widgets\StudentEntryTypeStats;
@@ -12,12 +13,10 @@ use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Navigation\NavigationGroup;
-use App\Filament\Pages;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\SpatieLaravelTranslatablePlugin;
 use Filament\Support\Colors\Color;
-use Filament\Widgets;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -35,27 +34,21 @@ class AdminPanelProvider extends PanelProvider
             ->authGuard('web')
             ->path('admin')
             ->login()
+            ->brandLogo(asset('images/logo.png'))
             ->brandLogoHeight('2.5rem')
+            ->favicon(asset('images/logo.png'))
+            ->brandName('Study Zone')
             ->colors([
                 'primary' => Color::Amber,
+                'secondary' => '#063c54'
             ])
-            ->brandName('Study Zone')
-            ->brandLogo(asset('images/logo.png'))
-            ->favicon(asset('images/logo.png'))
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
                 Pages\Dashboard::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
-            ->widgets([
-//                StudentStats::class,
-//                StudentEducationStats::class,
-//                StudentEntryTypeStats::class,
-//                StudentCountOverTime::class,
-//                Widgets\AccountWidget::class,
-
-            ])
+            ->widgets([])
             ->middleware([
                 'web',
                 EncryptCookies::class,
@@ -71,7 +64,6 @@ class AdminPanelProvider extends PanelProvider
             ->authMiddleware([
                 Authenticate::class,
             ])
-            ->default()
             ->navigationGroups([
                 NavigationGroup::make()->label('Admin Management'),
                 NavigationGroup::make()->label('City Management'),
@@ -79,8 +71,10 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->plugin(
                 SpatieLaravelTranslatablePlugin::make()
-                ->defaultLocales(['en', 'ar']))
-            ;
+                    ->defaultLocales(['en', 'ar'])
+            )
+            ->viteTheme('resources/css/filament/admin/theme.css') // If you use Vite
+            ->renderHook('panels::body.start', fn() => view('filament.hooks.qr-code-script'));
     }
 
 

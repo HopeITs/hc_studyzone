@@ -40,6 +40,7 @@ class StudentFactory extends Factory
             'is_employed' => $this->faker->boolean(),
             'is_active' => true,
             'synced_at' => null,
+            'created_at' => $this->faker->dateTimeBetween('-2 year', 'now'),
         ];
     }
 }

@@ -24,7 +24,6 @@ class EntriesRelationManager extends RelationManager
     {
         $user = Auth::user();
         $isCenterAdmin = $user->hasRole('center_admin');
-
         return $form->schema([
             Forms\Components\Hidden::make('center_id')
                 ->default(fn () => $isCenterAdmin ? $user->center_id : null) // ✅ Always set center_id
