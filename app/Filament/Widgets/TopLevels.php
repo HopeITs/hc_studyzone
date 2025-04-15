@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Builder;
 
 class TopLevels extends TableWidget
 {
-//    protected int|string|array $columnSpan = 'full';
+
     use InteractsWithPageFilters;
 
     protected static ?int $sort = 7;
@@ -23,7 +23,7 @@ class TopLevels extends TableWidget
 
     public function table(Table $table): Table
     {
-//   dd($this->getQuery()->get());
+
         return $table
             ->query($this->getQuery())
             ->columns([
