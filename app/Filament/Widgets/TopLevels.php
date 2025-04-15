@@ -1,76 +1,87 @@
 <?php
-//
-//use App\Models\StudentEducation;
-//use Carbon\Carbon;
-//use Filament\Tables\Columns\TextColumn;
-//use Filament\Tables\Table;
-//use Filament\Widgets\Concerns\InteractsWithPageFilters;
-//use Filament\Widgets\TableWidget as BaseWidget;
-//use Illuminate\Support\Facades\DB;
-//
-//class TopLevels extends BaseWidget
-//{
-//    use InteractsWithPageFilters;
-//
-//    protected static ?string $heading = 'أكثر السنوات الدراسية للطلاب';
-//    protected static ?int $sort = 6;
-//    public function table(Table $table): Table
-//    {
-//        $startDate = $this->filters['startDate'] ?? null;
-//        $endDate = $this->filters['endDate'] ?? null;
-//        $cityIds = $this->filters['city'] ?? null;
-//        $centerIds = $this->filters['center'] ?? null;
-//
-//        $query = StudentEducation::query()
-//            ->join('students', 'students.id', '=', 'idstudent_id')
-//            ->when($startDate, fn($q) => $q->whereDate('students.created_at', '>=', Carbon::parse($startDate))
-//            )
-//            ->when($endDate, fn($q) => $q->whereDate('students.created_at', '<=', Carbon::parse($endDate))
-//            )
-//            ->when($cityIds, fn($q) => $q->whereIn('students.city_id', (array)$cityIds)
-//            )
-//            ->when($centerIds, fn($q) => $q->whereExists(function ($sub) use ($centerIds) {
-//                $sub->select(DB::raw(1))
-//                    ->from('student_entries')
-//                    ->whereColumn('student_entries.student_id', 'students.id')
-//                    ->whereIn('student_entries.center_id', (array)$centerIds);
-//            })
-//            )
-//            ->select(
-//
-//                'student_educations.level',
-//                DB::raw('COUNT(DISTINCT student_educations.student_id) as total_students'),
-//                DB::raw('COUNT(DISTINCT CASE WHEN students.gender = 0 THEN student_educations.student_id END) as male_students'),
-//                DB::raw('COUNT(DISTINCT CASE WHEN students.gender = 1 THEN student_educations.student_id END) as female_students')
-//            )
-//            ->groupBy('student_educations.level')
-//            ->orderByDesc('total_students')
-//            ->limit(5);
-//
-//        return $table
-//            ->query($query)
-//            ->columns([
-//                TextColumn::make('level')
-//                    ->label('السنة الدراسية')
-//                    ->formatStateUsing(fn($state) => __('levels.' . $state)),
-//
-//                TextColumn::make('total_students')
-//                    ->label('عدد الطلاب')
-//                    ->sortable(),
-//
-//                TextColumn::make('male_students')
-//                    ->label('عدد الذكور')
-//                    ->sortable(),
-//
-//                TextColumn::make('female_students')
-//                    ->label('عدد الإناث')
-//                    ->sortable(),
-//            ]);
-//    }
-//
-//    public function getTableRecordKey(mixed $record): string
-//    {
-//        return (string) $record->level;
-//    }
-//}
-//
+
+namespace App\Filament\Widgets;
+
+
+use App\Enums\Gender;
+use App\Models\StudentEducation;
+use Carbon\Carbon;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Table;
+use Filament\Widgets\Concerns\InteractsWithPageFilters;
+use Filament\Widgets\TableWidget;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
+
+
+class TopLevels extends TableWidget
+{
+//    protected int|string|array $columnSpan = 'full';
+    use InteractsWithPageFilters;
+
+    protected static ?int $sort = 1;
+    protected static ?string $heading = 'Top 10 Levels by Students';
+
+    public function table(Table $table): Table
+    {
+//        dd($this->getQuery()->get());
+        return $table
+            ->query($this->getQuery())
+            ->columns([
+                TextColumn::make('level')
+                    ->formatStateUsing(function ($state) {
+                        return __('general.edu-levels.' . $state);
+                    })
+                    ->label('Level'),
+                TextColumn::make('total')
+                    ->label('Total'),
+                TextColumn::make('males')
+                    ->label('Males'),
+                TextColumn::make('females')
+                    ->label('Females'),
+            ])
+            ->paginated(false);
+    }
+
+    protected function getQuery(): Builder
+    {
+
+        $startDate = !is_null($this->filters['startDate'] ?? null)
+            ? Carbon::parse($this->filters['startDate'])->startOfDay()
+            : now()->startOfMonth()->startOfDay();
+
+        $endDate = !is_null($this->filters['endDate'] ?? null)
+            ? Carbon::parse($this->filters['endDate'])->endOfDay()
+            : now()->endOfMonth()->endOfDay();
+        $cityIds = $this->filters['city'] ?? null;
+        $centerIds = $this->filters['center'] ?? null;
+
+        return
+
+            StudentEducation::query()
+            ->selectRaw('
+            level,
+            COUNT(*) as total,
+            SUM(CASE WHEN gender = ? THEN 1 ELSE 0 END) as males,
+            SUM(CASE WHEN gender = ? THEN 1 ELSE 0 END) as females
+        ', [Gender::Male->value, Gender::Female->value])
+            ->join('students', 'student_educations.student_id', '=', 'students.id')
+            ->when($startDate, fn($query) => $query->where('students.created_at', '>=', $startDate))
+            ->when($endDate, fn($query) => $query->where('students.created_at', '<=', $endDate))
+            ->when($cityIds, fn($query) => $query->whereHas('student', function ($sQuery) use ($cityIds) {
+                $sQuery->whereHas('street', fn($q) => $q->whereIn('city_id', $cityIds));
+            }))
+            ->when($centerIds, fn($query) => $query->whereHas('student', function ($sQuery) use ($centerIds) {
+                $sQuery->whereHas('entries', fn($q) => $q->whereIn('center_id', $centerIds));
+            }))
+            ->groupBy('level')
+            ->having('total', '>', 0)
+            ->orderByDesc('total')
+            ->limit(10);
+    }
+
+    public function getTableRecordKey(mixed $record): string
+    {
+        return uniqid();
+    }
+}
