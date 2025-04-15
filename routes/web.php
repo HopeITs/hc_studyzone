@@ -5,6 +5,12 @@ use Illuminate\Support\Facades\Route;
 use App\Models\Student;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use App\Http\Controllers\StudentEntryController;
+<<<<<<< Updated upstream
+=======
+use App\Filament\Widgets\EntryGenderChart;
+use App\Filament\Widgets\AllEntriesChart;
+
+>>>>>>> Stashed changes
 
 
 
@@ -25,3 +31,19 @@ Route::get('/download-qr-code/{uuid}', function ($uuid) {
 
 Route::get('/student/{uuid}/entry', [StudentEntryController::class, 'showEntryForm'])->name('student.entry');
 Route::post('/student/{uuid}/entry', [StudentEntryController::class, 'store'])->name('student.entry.store');
+<<<<<<< Updated upstream
+=======
+
+
+
+Route::post('/filament/widgets/entry-gender/export', function () {
+    $widget = new EntryGenderChart();
+    return $widget->export();
+})->name('filament.widgets.export-entry-gender');
+
+
+Route::post('/filament/widgets/all-entries/export', function () {
+    $widget = new AllEntriesChart();
+    return $widget->export();
+})->name('filament.widgets.export-all-entries');
+>>>>>>> Stashed changes
