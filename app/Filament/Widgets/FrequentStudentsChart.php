@@ -5,25 +5,24 @@ namespace App\Filament\Widgets;
 use App\Models\StudentEntry;
 use Carbon\Carbon;
 use Filament\Forms\Components\TextInput;
-use Filament\Widgets\ChartWidget;
+use Filament\Widgets\Widget;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
 
-class FrequentStudentsChart extends ChartWidget
+class FrequentStudentsChart extends Widget
 {
     use InteractsWithPageFilters;
 
     protected static ?string $heading = 'Frequent Students (More than X Visits)';
     protected int|string|array $columnSpan = 'full';
     protected static ?int $sort = 3;
+    protected static string $view = 'exports.frequent-students-chart';
 
     protected function getType(): string
     {
         return 'bar';
     }
 
-
-
-    protected function getData(): array
+    protected function data(): array
     {
         $startDate = !is_null($this->filters['startDate'] ?? null)
             ? Carbon::parse($this->filters['startDate'])->startOfMonth()
@@ -37,7 +36,7 @@ class FrequentStudentsChart extends ChartWidget
         $centerIds = $this->filters['center'] ?? null;
         $minVisits = intval($this->filter ?? 5);
 
-// Get students who visited more than minVisits during the period
+        // Get students who visited more than minVisits during the period
         $frequentStudentIds = StudentEntry::query()
             ->select('student_id')
             ->whereBetween('entry_time', [$startDate, $endDate])
@@ -49,7 +48,7 @@ class FrequentStudentsChart extends ChartWidget
             ->havingRaw('COUNT(*) > ?', [$minVisits])
             ->pluck('student_id');
 
-// Count how many of them visited per month
+        // Count how many of them visited per month
         $results = StudentEntry::query()
             ->selectRaw("DATE_FORMAT(entry_time, '%Y-%m') as month, COUNT(DISTINCT student_id) as total")
             ->whereIn('student_id', $frequentStudentIds)
@@ -59,7 +58,7 @@ class FrequentStudentsChart extends ChartWidget
             ->pluck('total', 'month')
             ->toArray();
 
-// Generate month labels
+        // Generate month labels
         $months = [];
         $labels = [];
         $current = $startDate->copy();
@@ -129,5 +128,26 @@ class FrequentStudentsChart extends ChartWidget
             '500000'   => '500000',
 
         ];
+    }
+
+    public function export(): \Symfony\Component\HttpFoundation\BinaryFileResponse
+    {
+        $data = $this->data();
+        $rows = [];
+
+        foreach ($data['labels'] as $i => $label) {
+            $rows[] = [
+                'Month' => $label,
+                'Frequent Students' => $data['datasets'][0]['data'][$i],
+            ];
+        }
+
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new \App\Exports\ArrayExport($rows, [
+                'Month' => 'Month',
+                'Frequent Students' => 'Frequent Students',
+            ], 'exports.frequent-students-chart'),
+            'frequent_students_per_month.xlsx'
+        );
     }
 }

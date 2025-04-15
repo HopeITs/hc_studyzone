@@ -11,6 +11,7 @@ use App\Filament\Widgets\AllEntriesChart;
 use App\Filament\Widgets\EntryToolsChart;
 use App\Filament\Widgets\HourlyAverageChart;
 use App\Filament\Widgets\StudentGenderChart;
+use App\Filament\Widgets\FrequentStudentsChart;
 
 
 Route::get('/', function () {
@@ -66,3 +67,9 @@ Route::post('/filament/widgets/student-gender/export', function () {
     $widget = new StudentGenderChart();
     return $widget->export();
 })->name('filament.widgets.export-student-gender');
+
+
+Route::post('/filament/widgets/frequent-students/export', function () {
+    $widget = new FrequentStudentsChart();
+    return $widget->export();
+})->name('filament.widgets.export-frequent-students');
