@@ -8,6 +8,9 @@ use Filament\Widgets\TableWidget;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Filament\Tables\Actions\Action;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\TopEducationsExport;
 
 class TopEducationsTable extends TableWidget
 {
@@ -16,7 +19,6 @@ class TopEducationsTable extends TableWidget
 //    protected int|string|array $columnSpan = 'full';
 
     protected static ?int $sort = 7;
-
 
     public function table(Table $table): Table
     {
@@ -32,7 +34,17 @@ class TopEducationsTable extends TableWidget
                 Tables\Columns\TextColumn::make('females')
                     ->label('Females'),
             ])
-            ->paginated(false);
+            ->paginated(false)
+            ->headerActions([
+                Action::make('export_excel')
+                    ->label('Export to Excel')
+                    ->action(function () {
+                        $data = $this->getQuery()->get();
+                        return response()->streamDownload(function () use ($data) {
+                            echo Excel::download(new TopEducationsExport($data), 'top_educations.xlsx')->getFile()->getContent();
+                        }, 'top_educations.xlsx');
+                    })
+            ]);
     }
 
     protected function getQuery(): Builder
@@ -45,7 +57,6 @@ class TopEducationsTable extends TableWidget
         $endDate = !is_null($this->filters['endDate'] ?? null)
             ? Carbon::parse($this->filters['endDate'])->endOfDay()
             : now()->endOfMonth()->endOfDay();
-
 
         $cityIds = $this->filters['city'] ?? null;
         $centerIds = $this->filters['center'] ?? null;
