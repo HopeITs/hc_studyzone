@@ -6,7 +6,11 @@ use App\Models\Student;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use App\Http\Controllers\StudentEntryController;
 use App\Filament\Widgets\EntryGenderChart;
+use App\Filament\Widgets\NewStudentsChart;
 use App\Filament\Widgets\AllEntriesChart;
+use App\Filament\Widgets\EntryToolsChart;
+use App\Filament\Widgets\HourlyAverageChart;
+use App\Filament\Widgets\StudentGenderChart;
 
 
 Route::get('/', function () {
@@ -39,3 +43,26 @@ Route::post('/filament/widgets/all-entries/export', function () {
     return $widget->export();
 })->name('filament.widgets.export-all-entries');
 
+
+Route::post('/filament/widgets/new-students/export', function () {
+    $widget = new NewStudentsChart();
+    return $widget->export();
+})->name('filament.widgets.export-new-students');
+
+
+Route::post('/filament/widgets/entry-tools/export', function () {
+    $widget = new EntryToolsChart();
+    return $widget->export();
+})->name('filament.widgets.export-entry-tools');
+
+
+Route::post('/filament/widgets/hourly-average/export', function () {
+    $widget = new HourlyAverageChart();
+    return $widget->export();
+})->name('filament.widgets.export-hourly-average');
+
+
+Route::post('/filament/widgets/student-gender/export', function () {
+    $widget = new StudentGenderChart();
+    return $widget->export();
+})->name('filament.widgets.export-student-gender');

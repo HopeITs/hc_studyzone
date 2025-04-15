@@ -2,27 +2,23 @@
 
 namespace App\Filament\Widgets;
 
-use Carbon\Carbon;
-use Filament\Widgets\ChartWidget;
-use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use App\Models\StudentEntry;
-use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
+use Filament\Widgets\Widget;
+use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use App\Exports\ArrayExport;
 
-class AllEntriesChart extends ChartWidget
+class AllEntriesChart extends Widget
 {
     use InteractsWithPageFilters;
+
     protected static ?string $heading = 'Entries per month';
     protected static ?int $sort = 1;
+    protected static string $view = 'exports.all-entries-chart';
 
-    protected function getType(): string
-    {
-        return 'line';
-    }
-
-    protected function getData(): array
+    public function data(): array
     {
         $startDate = !is_null($this->filters['startDate'] ?? null)
             ? Carbon::parse($this->filters['startDate'])->startOfMonth()
@@ -35,24 +31,20 @@ class AllEntriesChart extends ChartWidget
         $cityId = $this->filters['city'] ?? null;
         $centerId = $this->filters['center'] ?? null;
 
-        // Base query
         $query = StudentEntry::query()
             ->selectRaw("DATE_FORMAT(entry_time, '%Y-%m') as month, COUNT(*) as total")
             ->whereBetween('entry_time', [$startDate, $endDate])
             ->groupBy('month')
             ->orderBy('month');
 
-        // Optional filters
         if ($centerId) {
             $query->where('center_id', $centerId);
         } elseif ($cityId) {
             $query->whereHas('center', fn ($q) => $q->where('city_id', $cityId));
         }
 
-        // Results
         $results = $query->pluck('total', 'month')->toArray();
 
-        // Generate all months in the range
         $months = [];
         $labels = [];
         $current = $startDate->copy();
@@ -66,6 +58,7 @@ class AllEntriesChart extends ChartWidget
         $data = array_map(fn ($month) => $results[$month] ?? 0, $months);
 
         return [
+            'labels' => $labels,
             'datasets' => [
                 [
                     'label' => 'Entries',
@@ -73,14 +66,12 @@ class AllEntriesChart extends ChartWidget
                     'fill' => 'start',
                 ],
             ],
-            'labels' => $labels,
         ];
     }
 
-    // Method to handle export
     public function export(): BinaryFileResponse
     {
-        $data = $this->getData();
+        $data = $this->data();
         $rows = [];
 
         foreach ($data['labels'] as $i => $label) {

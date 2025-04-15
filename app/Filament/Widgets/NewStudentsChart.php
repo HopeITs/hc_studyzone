@@ -4,10 +4,10 @@ namespace App\Filament\Widgets;
 
 use App\Models\Student;
 use Carbon\Carbon;
-use Filament\Widgets\ChartWidget;
+use Filament\Widgets\Widget;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
 
-class NewStudentsChart extends ChartWidget
+class NewStudentsChart extends Widget
 {
     use InteractsWithPageFilters;
 
@@ -15,12 +15,14 @@ class NewStudentsChart extends ChartWidget
 
     protected static ?int $sort = 2;
 
+    protected static string $view = 'exports.new-students-chart';
+
     protected function getType(): string
     {
         return 'line';
     }
 
-    protected function getData(): array
+    protected function data(): array
     {
         $startDate = !is_null($this->filters['startDate'] ?? null)
             ? Carbon::parse($this->filters['startDate'])->startOfMonth()
@@ -72,5 +74,26 @@ class NewStudentsChart extends ChartWidget
             ],
             'labels' => $labels,
         ];
+    }
+
+    public function export(): \Symfony\Component\HttpFoundation\BinaryFileResponse
+    {
+        $data = $this->data();
+        $rows = [];
+
+        foreach ($data['labels'] as $i => $label) {
+            $rows[] = [
+                'Month' => $label,
+                'New Students' => $data['datasets'][0]['data'][$i],
+            ];
+        }
+
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new \App\Exports\ArrayExport($rows, [
+                'Month' => 'Month',
+                'New Students' => 'New Students',
+            ], 'exports.new-students-chart'),
+            'new_students_per_month.xlsx'
+        );
     }
 }

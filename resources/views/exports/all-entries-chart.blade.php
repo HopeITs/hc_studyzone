@@ -14,10 +14,9 @@
             x-data="{
                 chart: null,
                 init() {
-                    const chartData = @js($this->getData());
                     this.chart = new Chart($refs.canvas, {
                         type: 'line',
-                        data: chartData,
+                        data: @js($this->data()),
                         options: {
                             responsive: true,
                             maintainAspectRatio: false,
@@ -26,8 +25,8 @@
                                     beginAtZero: true
                                 }
                             }
-                        });
-                    }
+                        }
+                    });
                 }
             }"
             x-ref="canvas"

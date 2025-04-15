@@ -4,23 +4,24 @@ namespace App\Filament\Widgets;
 
 use App\Models\StudentEntry;
 use Carbon\Carbon;
-use Filament\Widgets\ChartWidget;
+use Filament\Widgets\Widget;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Illuminate\Support\Facades\DB;
 
-class HourlyAverageChart extends ChartWidget
+class HourlyAverageChart extends Widget
 {
     use InteractsWithPageFilters;
 
     protected static ?string $heading = 'Percentage of Entries per Hour (Only Active Days)';
     protected static ?int $sort = 4;
+    protected static string $view = 'exports.hourly-average-chart';
 
     protected function getType(): string
     {
         return 'bar';
     }
 
-    protected function getData(): array
+    protected function data(): array
     {
         $startDate = !is_null($this->filters['startDate'] ?? null)
             ? Carbon::parse($this->filters['startDate'])->startOfDay()
@@ -100,5 +101,26 @@ class HourlyAverageChart extends ChartWidget
             ],
             'labels' => $labels,
         ];
+    }
+
+    public function export(): \Symfony\Component\HttpFoundation\BinaryFileResponse
+    {
+        $data = $this->data();
+        $rows = [];
+
+        foreach ($data['labels'] as $i => $label) {
+            $rows[] = [
+                'Hour' => $label,
+                'Average Entries' => $data['datasets'][0]['data'][$i],
+            ];
+        }
+
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new \App\Exports\ArrayExport($rows, [
+                'Hour' => 'Hour',
+                'Average Entries' => 'Average Entries',
+            ], 'exports.hourly-average-chart'),
+            'hourly_average_entries.xlsx'
+        );
     }
 }

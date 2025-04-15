@@ -4,22 +4,23 @@ namespace App\Filament\Widgets;
 
 use App\Models\StudentEntry;
 use Carbon\Carbon;
-use Filament\Widgets\ChartWidget;
+use Filament\Widgets\Widget;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
 
-class EntryToolsChart extends ChartWidget
+class EntryToolsChart extends Widget
 {
     use InteractsWithPageFilters;
 
     protected static ?string $heading = 'Entry Tool Usage Overview';
     protected static ?int $sort = 5;
+    protected static string $view = 'exports.entry-tools-chart';
 
     protected function getType(): string
     {
         return 'bar';
     }
 
-    protected function getData(): array
+    protected function data(): array
     {
         $startDate = $this->filters['startDate'] ?? null;
         $endDate = $this->filters['endDate'] ?? null;
@@ -69,5 +70,26 @@ class EntryToolsChart extends ChartWidget
             ],
             'labels' => ['Total Entries', 'Used Mecrator', 'Used Printer', 'Used Drawer'],
         ];
+    }
+
+    public function export(): \Symfony\Component\HttpFoundation\BinaryFileResponse
+    {
+        $data = $this->data();
+        $rows = [];
+
+        foreach ($data['labels'] as $i => $label) {
+            $rows[] = [
+                'Tool' => $label,
+                'Count' => $data['datasets'][0]['data'][$i],
+            ];
+        }
+
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new \App\Exports\ArrayExport($rows, [
+                'Tool' => 'Tool',
+                'Count' => 'Count',
+            ], 'exports.entry-tools-chart'),
+            'entry_tool_usage.xlsx'
+        );
     }
 }
