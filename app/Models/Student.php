@@ -18,7 +18,8 @@ class Student extends Model
     protected $guarded = [];
     protected $primaryKey = 'id';
 
-    public function entries(): HasMany
+
+    public function entries(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(StudentEntry::class);
     }
@@ -30,14 +31,16 @@ class Student extends Model
             ->withTimestamps();
     }
 
+
     public function street(): BelongsTo
     {
         return $this->belongsTo(Street::class);
     }
 
     public function studentEducations(): HasMany
+
     {
-        return $this->hasMany(StudentEducation::class);
+        return $this->hasMany(StudentEducation::class, 'student_id');
     }
 
     // Method to get the QR code path
@@ -46,3 +49,4 @@ class Student extends Model
         return $this->qr_code ?? '';
     }
 }
+

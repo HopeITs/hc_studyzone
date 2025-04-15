@@ -7,6 +7,7 @@ use App\Filament\Resources\StudentResource\Widgets\StudentCountOverTime;
 use App\Filament\Resources\StudentResource\Widgets\StudentEducationStats;
 use App\Filament\Resources\StudentResource\Widgets\StudentEntryTypeStats;
 use App\Filament\Resources\StudentResource\Widgets\StudentStats;
+use App\Models\User;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -30,6 +31,7 @@ class AdminPanelProvider extends PanelProvider
         return $panel
             ->default()
             ->id('admin')
+            ->authGuard('web')
             ->path('admin')
             ->login()
             ->brandLogo(asset('images/logo.png'))
@@ -38,6 +40,7 @@ class AdminPanelProvider extends PanelProvider
             ->brandName('Study Zone')
             ->colors([
                 'primary' => Color::Amber,
+                'secondary' => '#063c54'
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
@@ -47,6 +50,7 @@ class AdminPanelProvider extends PanelProvider
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([])
             ->middleware([
+                'web',
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
                 StartSession::class,
@@ -72,4 +76,6 @@ class AdminPanelProvider extends PanelProvider
             ->viteTheme('resources/css/filament/admin/theme.css') // If you use Vite
             ->renderHook('panels::body.start', fn() => view('filament.hooks.qr-code-script'));
     }
+
+
 }

@@ -21,6 +21,7 @@ return new class extends Migration {
             $table->timestamps();
         });
 
+        // Streets Table
         Schema::create('streets', function (Blueprint $table) {
             $table->id();
             $table->json('name');
@@ -39,7 +40,7 @@ return new class extends Migration {
             $table->boolean('is_active')->default(true);
             $table->timestamp('synced_at')->nullable()->default(null);
             $table->timestamps();
-            $table->index(['synced_at'],'idx_centers');
+            $table->index(['synced_at'], 'idx_centers');
         });
 
         // Users Table Modifications
@@ -48,7 +49,7 @@ return new class extends Migration {
             $table->foreignId('city_id')->nullable()->constrained()->onDelete('set null');
             $table->boolean('is_active')->default(true);
             $table->timestamp('synced_at')->nullable()->default(null);
-            $table->index(['synced_at' , 'city_id' , 'is_active' , 'center_id'],'idx_users');
+            $table->index(['synced_at', 'city_id', 'is_active', 'center_id'], 'idx_users');
         });
 
         // Students Table
@@ -72,24 +73,21 @@ return new class extends Migration {
             $table->boolean('is_employed')->default(false);
             $table->boolean('is_active')->default(true);
             $table->timestamp('synced_at')->nullable()->default(null);
-
             $table->timestamps();
-
-            $table->index(['synced_at' , 'street_id' , 'is_active' , 'gender'],'idx_students');
-
+            $table->index(['synced_at', 'street_id', 'is_active', 'gender'], 'idx_students');
         });
 
+        // Educations Table
         Schema::create('educations', function (Blueprint $table) {
             $table->id();
             $table->json('name');
             $table->tinyInteger('degree')->default(0);
             $table->timestamp('synced_at')->nullable()->default(null);
             $table->timestamps();
-
-            $table->index(['synced_at' , 'degree' ],'idx_educations');
-
+            $table->index(['synced_at', 'degree'], 'idx_educations');
         });
 
+        // Student Educations Table
         Schema::create('student_educations', function (Blueprint $table) {
             $table->uuid('id')->primary()->default(Str::uuid());
             $table->foreignId('education_id')->constrained('educations')->onDelete('cascade');
@@ -98,11 +96,8 @@ return new class extends Migration {
             $table->tinyInteger('type')->default(0);
             $table->timestamp('synced_at')->nullable()->default(null);
             $table->timestamps();
-            $table->index(['id', 'education_id', 'student_id' , 'level' , 'type' , 'synced_at'],
-                'idx_student_edu');
-
+            $table->index(['id', 'education_id', 'student_id', 'level', 'type', 'synced_at'], 'idx_student_edu');
         });
-
 
         // Student Entries Table
         Schema::create('student_entries', function (Blueprint $table) {
@@ -117,9 +112,7 @@ return new class extends Migration {
             $table->dateTime('entry_time')->default(now());
             $table->timestamp('synced_at')->nullable()->default(null);
             $table->timestamps();
-
-            // Indexes for performance
-            $table->index(['student_id', 'center_id', 'entry_time','synced_at'],'idx_student_entry');
+            $table->index(['student_id', 'center_id', 'entry_time', 'synced_at'], 'idx_student_entry');
         });
     }
 
@@ -140,6 +133,5 @@ return new class extends Migration {
         Schema::dropIfExists('centers');
         Schema::dropIfExists('streets');
         Schema::dropIfExists('cities');
-
     }
 };

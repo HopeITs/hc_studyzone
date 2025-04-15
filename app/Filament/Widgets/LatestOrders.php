@@ -2,18 +2,21 @@
 
 namespace App\Filament\Widgets;
 
+use Filament\Tables\Actions\Action;
+use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use App\Enums\Gender;
 use App\Models\StudentEducation;
 use Carbon\Carbon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Filament\Widgets\TableWidget as BaseWidget;
 use Illuminate\Support\Facades\DB;
 
 class LatestOrders extends BaseWidget
 {
-    protected int|string|array $columnSpan = 'full';
-
+    use InteractsWithPageFilters;
     protected static ?int $sort = 7;
 
     public function table(Table $table): Table
@@ -34,8 +37,7 @@ class LatestOrders extends BaseWidget
                     ->whereColumn('student_entries.student_id', 'students.id')
                     ->whereIn('student_entries.center_id', (array)$centerIds);
             }))
-            ->select('student_educations.level', DB::raw('COUNT(*) as students_count'))
-            ->groupBy('student_educations.level');
+            ->select('student_educations.level');
 
         return $table
             ->query($query)
@@ -46,7 +48,9 @@ class LatestOrders extends BaseWidget
 
                 TextColumn::make('students_count')
                     ->label('عدد الطلاب')
-                    ->getStateUsing(fn($record) => $record->students_count),
+                    ->getStateUsing(fn($record) =>
+                    StudentEducation::where('level', $record->level)->count()
+                    ),
 
                 TextColumn::make('male_students')
                     ->label('عدد الذكور')
@@ -63,6 +67,53 @@ class LatestOrders extends BaseWidget
                         ->whereHas('student', fn($q) => $q->where('gender', Gender::Female))
                         ->count()
                     ),
+            ])
+            ->paginated(false)
+            ->headerActions([
+                Action::make('export_excel')
+                    ->label('Export to Excel')
+                    ->action(function () {
+                        $startDate = $this->filters['startDate'] ?? null;
+                        $endDate = $this->filters['endDate'] ?? null;
+                        $cityIds = $this->filters['city'] ?? null;
+                        $centerIds = $this->filters['center'] ?? null;
+
+                        $data = StudentEducation::query()
+                            ->join('students', 'students.id', '=', 'student_educations.student_id')
+                            ->when($startDate, fn($q) => $q->whereDate('students.created_at', '>=', \Carbon\Carbon::parse($startDate)))
+                            ->when($endDate, fn($q) => $q->whereDate('students.created_at', '<=', \Carbon\Carbon::parse($endDate)))
+                            ->when($cityIds, fn($q) => $q->whereIn('students.city_id', (array)$cityIds))
+                            ->when($centerIds, fn($q) => $q->whereExists(function ($sub) use ($centerIds) {
+                                $sub->select(\DB::raw(1))
+                                    ->from('student_entries')
+                                    ->whereColumn('student_entries.student_id', 'students.id')
+                                    ->whereIn('student_entries.center_id', (array)$centerIds);
+                            }))
+                            ->select('student_educations.level')
+                            ->get();
+
+                        $rows = $data->map(function ($record) {
+                            return [
+                                'Level' => __('general.edu-levels.' . $record->level),
+                                'Total Students' => StudentEducation::where('level', $record->level)->count(),
+                                'Males' => StudentEducation::where('level', $record->level)->whereHas('student', fn($q) => $q->where('gender', Gender::Male))->count(),
+                                'Females' => StudentEducation::where('level', $record->level)->whereHas('student', fn($q) => $q->where('gender', Gender::Female))->count(),
+                            ];
+                        });
+
+                        $callback = function () use ($rows) {
+                            $file = fopen('php://output', 'w');
+                            fputcsv($file, ['Level', 'Total Students', 'Males', 'Females']);
+                            foreach ($rows as $row) {
+                                fputcsv($file, $row);
+                            }
+                            fclose($file);
+                        };
+
+                        return response()->streamDownload($callback, 'education_levels_summary.csv', [
+                            'Content-Type' => 'text/csv',
+                        ]);
+                    })
             ]);
     }
 
