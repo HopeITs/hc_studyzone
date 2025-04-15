@@ -11,7 +11,6 @@ use Filament\Tables\Table;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Filament\Widgets\TableWidget;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\DB;
 
 
 class TopLevels extends TableWidget
@@ -19,12 +18,12 @@ class TopLevels extends TableWidget
 //    protected int|string|array $columnSpan = 'full';
     use InteractsWithPageFilters;
 
-    protected static ?int $sort = 1;
+    protected static ?int $sort = 7;
     protected static ?string $heading = 'Top 10 Levels by Students';
 
     public function table(Table $table): Table
     {
-//        dd($this->getQuery()->get());
+//   dd($this->getQuery()->get());
         return $table
             ->query($this->getQuery())
             ->columns([
@@ -59,29 +58,26 @@ class TopLevels extends TableWidget
         return
 
             StudentEducation::query()
-            ->selectRaw('
+                ->selectRaw('
+            ROW_NUMBER() OVER (ORDER BY COUNT(*) DESC) as id,
             level,
             COUNT(*) as total,
             SUM(CASE WHEN gender = ? THEN 1 ELSE 0 END) as males,
             SUM(CASE WHEN gender = ? THEN 1 ELSE 0 END) as females
         ', [Gender::Male->value, Gender::Female->value])
-            ->join('students', 'student_educations.student_id', '=', 'students.id')
-            ->when($startDate, fn($query) => $query->where('students.created_at', '>=', $startDate))
-            ->when($endDate, fn($query) => $query->where('students.created_at', '<=', $endDate))
-            ->when($cityIds, fn($query) => $query->whereHas('student', function ($sQuery) use ($cityIds) {
-                $sQuery->whereHas('street', fn($q) => $q->whereIn('city_id', $cityIds));
-            }))
-            ->when($centerIds, fn($query) => $query->whereHas('student', function ($sQuery) use ($centerIds) {
-                $sQuery->whereHas('entries', fn($q) => $q->whereIn('center_id', $centerIds));
-            }))
-            ->groupBy('level')
-            ->having('total', '>', 0)
-            ->orderByDesc('total')
-            ->limit(10);
+                ->join('students', 'student_educations.student_id', '=', 'students.id')
+                ->when($startDate, fn($query) => $query->where('students.created_at', '>=', $startDate))
+                ->when($endDate, fn($query) => $query->where('students.created_at', '<=', $endDate))
+                ->when($cityIds, fn($query) => $query->whereHas('student', function ($sQuery) use ($cityIds) {
+                    $sQuery->whereHas('street', fn($q) => $q->whereIn('city_id', $cityIds));
+                }))
+                ->when($centerIds, fn($query) => $query->whereHas('student', function ($sQuery) use ($centerIds) {
+                    $sQuery->whereHas('entries', fn($q) => $q->whereIn('center_id', $centerIds));
+                }))
+                ->groupBy('level')
+                ->having('total', '>', 0)
+                ->orderByDesc('total')
+                ->limit(10);
     }
 
-    public function getTableRecordKey(mixed $record): string
-    {
-        return uniqid();
-    }
 }
