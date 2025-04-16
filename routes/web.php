@@ -12,6 +12,7 @@ use App\Filament\Widgets\EntryToolsChart;
 use App\Filament\Widgets\HourlyAverageChart;
 use App\Filament\Widgets\StudentGenderChart;
 use App\Filament\Widgets\FrequentStudentsChart;
+use App\Filament\Resources\StudentResource;
 
 
 Route::get('/', function () {
@@ -73,3 +74,8 @@ Route::post('/filament/widgets/frequent-students/export', function () {
     $widget = new FrequentStudentsChart();
     return $widget->export();
 })->name('filament.widgets.export-frequent-students');
+
+
+Route::get('/admin/students/scan', function () {
+    return view('filament.qr-code-scanner');
+})->name('filament.admin.resources.students.scan')->middleware('auth');

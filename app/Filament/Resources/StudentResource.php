@@ -228,7 +228,8 @@ class StudentResource extends Resource
                 ->modalHeading('Scan QR Code')
                 ->modalContent(fn() => view('filament.qr-code-scanner'))
                 ->modalSubmitAction(false)
-                ->modalCancelActionLabel('Close'),
+                ->modalCancelActionLabel('Close')
+                ->modalId('scan-qr-code'),
         ];
     }
 

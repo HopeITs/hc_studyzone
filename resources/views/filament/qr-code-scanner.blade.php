@@ -1,7 +1,3 @@
-
-
-
-{{--             ALPINE.JS                --}}
 <div
     x-data="{
         html5QrCode: null,
