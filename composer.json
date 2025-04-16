@@ -8,6 +8,7 @@
     "require": {
         "php": "^8.2",
         "archtechx/enums": "^1.1",
+        "blade-ui-kit/blade-icons": "^1.8",
         "eightynine/filament-advanced-widgets": "^3.0",
         "filament/filament": "^3.2",
         "filament/spatie-laravel-translatable-plugin": "^3.2",

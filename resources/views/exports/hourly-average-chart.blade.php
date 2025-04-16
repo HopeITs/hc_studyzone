@@ -4,7 +4,13 @@
         <form method="POST" action="{{ route('filament.widgets.export-hourly-average') }}">
             @csrf
             <x-filament::button type="submit" color="warning">
-                Export to Excel
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path d="M4 4a2 2 0 0 1 2-2h7l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4z" />
+                    <path d="M14 2v5h5" />
+                    <path d="M8 16l2-2-2-2 2-2" />
+                    <path d="M12 14l-2-2 2-2" />
+                </svg>
             </x-filament::button>
         </form>
     </div>

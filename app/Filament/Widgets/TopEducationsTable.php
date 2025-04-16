@@ -9,15 +9,11 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Tables\Actions\Action;
-use Maatwebsite\Excel\Facades\Excel;
-use App\Exports\TopEducationsExport;
 
 class TopEducationsTable extends TableWidget
 {
     use InteractsWithPageFilters;
     protected static ?string $heading = 'Top 10 Educations by Students';
-//    protected int|string|array $columnSpan = 'full';
-
     protected static ?int $sort = 7;
 
     public function table(Table $table): Table
@@ -36,20 +32,16 @@ class TopEducationsTable extends TableWidget
             ])
             ->paginated(false)
             ->headerActions([
-                Action::make('export_excel')
-                    ->label('Export to Excel')
-                    ->action(function () {
-                        $data = $this->getQuery()->get();
-                        return response()->streamDownload(function () use ($data) {
-                            echo Excel::download(new TopEducationsExport($data), 'top_educations.xlsx')->getFile()->getContent();
-                        }, 'top_educations.xlsx');
-                    })
+                Action::make('export')
+                    ->label('')
+                    ->color('warning')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->action(fn() => null)
             ]);
     }
 
     protected function getQuery(): Builder
     {
-
         $startDate = !is_null($this->filters['startDate'] ?? null)
             ? Carbon::parse($this->filters['startDate'])->startOfDay()
             : now()->startOfMonth()->startOfDay();
@@ -63,12 +55,12 @@ class TopEducationsTable extends TableWidget
 
         return Education::query()
             ->withCount([
-                'students as total' => function ($query) use ($startDate, $endDate, $cityIds,$centerIds) {
+                'students as total' => function ($query) use ($startDate, $endDate, $cityIds, $centerIds) {
                     $query->whereBetween('students.created_at', [$startDate, $endDate]);
                     if ($cityIds) {
                         $query->whereHas('street', fn($q) => $q->whereIn('city_id', (array)$cityIds));
                     }
-                    if($centerIds) {
+                    if ($centerIds) {
                         $query->whereHas('entries', fn($q) => $q->whereIn('center_id', (array)$centerIds));
                     }
                 },
