@@ -27,6 +27,10 @@ class CenterResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-building-office-2';
     protected static ?int $navigationSort = 4;
 
+    public static function canViewAny(): bool
+    {
+        return auth()->user()->hasRole('general_admin');
+    }
     public static function form(Form $form): Form
     {
         return $form->schema([

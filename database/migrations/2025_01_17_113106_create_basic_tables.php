@@ -63,7 +63,7 @@ return new class extends Migration {
             $table->string('national_number')->unique()->nullable();
             $table->string('phone')->unique()->nullable();
             $table->string('whatsapp')->unique()->nullable();
-            $table->date('dob')->nullable();
+            $table->date('year_of_birth')->nullable();
             $table->string('email')->nullable()->unique();
             $table->tinyInteger('gender')->default(0);
             $table->tinyInteger('religion')->default(0);
