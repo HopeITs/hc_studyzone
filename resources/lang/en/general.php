@@ -43,6 +43,7 @@ return [
         EntryType::Monthly() => 'Monthly',
     ],
     'genders' => [
+        Gender::Unknown() => 'Unknown',
         Gender::Male() => 'Male',
         Gender::Female() => 'Female',
     ],

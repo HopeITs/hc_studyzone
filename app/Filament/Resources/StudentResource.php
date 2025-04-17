@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Enums\Gender;
 use App\Filament\Resources\StudentResource\Pages;
 use App\Filament\Resources\StudentResource\RelationManagers;
 use App\Models\{City, Education, Street, Student, StudentEntry};
@@ -107,15 +108,26 @@ class StudentResource extends Resource
     protected static function tableColumns(): array
     {
         return [
-            TextColumn::make('firstname')->label('First Name')->sortable()->searchable(),
-            TextColumn::make('lastname')->label('Last Name')->sortable()->searchable(),
+            TextColumn::make('firstname')->label('Full Name')
+//                ->formatStateUsing(fn(Model $record) => $record->firstname . ' ' . $record->lastname)
+                ->sortable()->searchable(),
+            TextColumn::make('lastname')->label('Full Name')
+//                ->formatStateUsing(fn(Model $record) => $record->firstname . ' ' . $record->lastname)
+                ->sortable()->searchable(),
+
             TextColumn::make('phone')->label('Phone')->sortable()->searchable(),
             TextColumn::make('street.city.name')->label('City')->sortable()->searchable(),
             TextColumn::make('gender')
                 ->label('Gender')
                 ->badge()
                 ->formatStateUsing(fn(string $state) => __("general.genders.{$state}"))
-                ->color(fn(string $state) => $state === '1' ? 'info' : 'danger'),
+                ->color(fn(int $state): string => match ($state) {
+                    Gender::Unknown() => 'warning',
+                    Gender::Male() => 'info',
+                    Gender::Female() => 'danger',
+                }),
+
+
             CheckboxColumn::make('is_student'),
 
         ];

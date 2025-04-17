@@ -38,6 +38,8 @@ class TopLevels extends TableWidget
                     ->label('Males'),
                 TextColumn::make('females')
                     ->label('Females'),
+                TextColumn::make('unknown')
+                    ->label('unknown'),
             ])
             ->paginated(false);
     }
@@ -63,8 +65,9 @@ class TopLevels extends TableWidget
             level,
             COUNT(*) as total,
             SUM(CASE WHEN gender = ? THEN 1 ELSE 0 END) as males,
-            SUM(CASE WHEN gender = ? THEN 1 ELSE 0 END) as females
-        ', [Gender::Male->value, Gender::Female->value])
+            SUM(CASE WHEN gender = ? THEN 1 ELSE 0 END) as females,
+            SUM(CASE WHEN gender = ? THEN 1 ELSE 0 END) as unknown
+        ', [Gender::Male(), Gender::Female() , Gender::Unknown()])
                 ->join('students', 'student_educations.student_id', '=', 'students.id')
                 ->when($startDate, fn($query) => $query->where('students.created_at', '>=', $startDate))
                 ->when($endDate, fn($query) => $query->where('students.created_at', '<=', $endDate))

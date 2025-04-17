@@ -35,11 +35,13 @@ class StudentGenderChart extends ChartWidget
             ->toArray();
 
 
-        $query[0] = collect($query)->sum();
+        $query[3] = collect($query)->sum();
         $genderLabels = [
-            0 => 'Total',
+            3 => 'Total',
             1 => 'Male',
             2 => 'Female',
+            0 => 'Unknown',
+
         ];
 
         $labels = [];
@@ -59,12 +61,14 @@ class StudentGenderChart extends ChartWidget
                         'rgba(255, 159, 64, 0.2)',
                         'rgba(54, 162, 235, 0.2)',
                         'rgba(255, 99, 132, 0.2)',
+                        'rgba(255, 205, 86, 0.2)',
 
                     ],
                     'borderColor' => [
                         'rgb(255, 159, 64)',
                         'rgb(54, 162, 235)',
                         'rgb(255, 99, 132)',
+                        'rgb(255, 205, 86)',
 
                     ],
                 ],
