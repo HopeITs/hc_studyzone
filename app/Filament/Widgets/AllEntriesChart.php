@@ -4,21 +4,17 @@ namespace App\Filament\Widgets;
 
 use App\Models\StudentEntry;
 use Carbon\Carbon;
-use Filament\Widgets\Widget;
+use Filament\Widgets\ChartWidget;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
-use Maatwebsite\Excel\Facades\Excel;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
-use App\Exports\ArrayExport;
 
-class AllEntriesChart extends Widget
+class AllEntriesChart extends ChartWidget
 {
     use InteractsWithPageFilters;
 
     protected static ?string $heading = 'Entries per month';
     protected static ?int $sort = 1;
-    protected static string $view = 'exports.all-entries-chart';
 
-    public function data(): array
+    public function getData(): array
     {
         $startDate = !is_null($this->filters['startDate'] ?? null)
             ? Carbon::parse($this->filters['startDate'])->startOfMonth()
@@ -68,22 +64,8 @@ class AllEntriesChart extends Widget
             ],
         ];
     }
-
-    public function export(): BinaryFileResponse
+    protected function getType(): string
     {
-        $data = $this->data();
-        $rows = [];
-
-        foreach ($data['labels'] as $i => $label) {
-            $rows[] = [
-                'Month' => $label,
-                'Entries' => $data['datasets'][0]['data'][$i],
-            ];
-        }
-
-        return Excel::download(new ArrayExport($rows, [
-            'Month' => 'Month',
-            'Entries' => 'Entries',
-        ], 'exports.entries-per-month'), 'entries_per_month.xlsx');
+        return 'line';
     }
 }

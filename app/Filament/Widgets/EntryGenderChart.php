@@ -4,20 +4,17 @@ namespace App\Filament\Widgets;
 
 use App\Models\StudentEntry;
 use Carbon\Carbon;
-use Filament\Widgets\Widget;
+use Filament\Widgets\ChartWidget;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
-use Maatwebsite\Excel\Facades\Excel;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
-class EntryGenderChart extends Widget
+class EntryGenderChart extends ChartWidget
 {
     use InteractsWithPageFilters;
 
     protected static ?string $heading = 'Gender Distribution (Entries)';
     protected static ?int $sort = 6;
-    protected static string $view = 'exports.entry-gender-chart';
 
-    public function data(): array
+    public function getData(): array
     {
         $query = StudentEntry::query()
             ->with('student')
@@ -77,21 +74,9 @@ class EntryGenderChart extends Widget
         ];
     }
 
-    public function export(): BinaryFileResponse
+    protected function getType(): string
     {
-        $data = $this->data();
-        $rows = [];
-
-        foreach ($data['labels'] as $i => $label) {
-            $rows[] = [
-                'Gender' => $label,
-                'Entries' => $data['datasets'][0]['data'][$i],
-            ];
-        }
-
-        return Excel::download(new \App\Exports\ArrayExport($rows, [
-            'Gender' => 'Gender',
-            'Entries' => 'Entries',
-        ], 'exports.gender-distribution-entries'), 'entry_gender_distribution.xlsx');
+        return 'bar';
     }
+
 }

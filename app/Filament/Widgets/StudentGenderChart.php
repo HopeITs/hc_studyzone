@@ -4,24 +4,23 @@ namespace App\Filament\Widgets;
 
 use App\Models\Student;
 use Carbon\Carbon;
-use Filament\Widgets\Widget;
+use Filament\Widgets\ChartWidget;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
 
-class StudentGenderChart extends Widget
+class StudentGenderChart extends ChartWidget
 {
     use InteractsWithPageFilters;
 
     protected static ?string $heading = 'Gender Distribution (Students)';
     protected static ?int $sort = 5;
     protected static string $color = 'primary';
-    protected static string $view = 'exports.student-gender-chart';
 
     protected function getType(): string
     {
         return 'bar'; // or 'bar'
     }
 
-    protected function data(): array
+    protected function getData(): array
     {
         $query = Student::query()
             ->when($this->filters['startDate'] ?? null, fn($q) => $q->whereDate('created_at', '>=', Carbon::parse($this->filters['startDate']))
@@ -72,26 +71,5 @@ class StudentGenderChart extends Widget
             ],
             'labels' => $labels,
         ];
-    }
-
-    public function export(): \Symfony\Component\HttpFoundation\BinaryFileResponse
-    {
-        $data = $this->data();
-        $rows = [];
-
-        foreach ($data['labels'] as $i => $label) {
-            $rows[] = [
-                'Gender' => $label,
-                'Students' => $data['datasets'][0]['data'][$i],
-            ];
-        }
-
-        return \Maatwebsite\Excel\Facades\Excel::download(
-            new \App\Exports\ArrayExport($rows, [
-                'Gender' => 'Gender',
-                'Students' => 'Students',
-            ], 'exports.student-gender-chart'),
-            'student_gender_distribution.xlsx'
-        );
     }
 }
