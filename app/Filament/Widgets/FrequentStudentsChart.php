@@ -4,25 +4,23 @@ namespace App\Filament\Widgets;
 
 use App\Models\StudentEntry;
 use Carbon\Carbon;
-use Filament\Forms\Components\TextInput;
-use Filament\Widgets\Widget;
+use Filament\Widgets\ChartWidget;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
 
-class FrequentStudentsChart extends Widget
+class FrequentStudentsChart extends ChartWidget
 {
     use InteractsWithPageFilters;
 
     protected static ?string $heading = 'Frequent Students (More than X Visits)';
     protected int|string|array $columnSpan = 'full';
     protected static ?int $sort = 3;
-    protected static string $view = 'exports.frequent-students-chart';
 
     protected function getType(): string
     {
         return 'bar';
     }
 
-    protected function data(): array
+    protected function getData(): array
     {
         $startDate = !is_null($this->filters['startDate'] ?? null)
             ? Carbon::parse($this->filters['startDate'])->startOfMonth()
@@ -128,26 +126,5 @@ class FrequentStudentsChart extends Widget
             '500000'   => '500000',
 
         ];
-    }
-
-    public function export(): \Symfony\Component\HttpFoundation\BinaryFileResponse
-    {
-        $data = $this->data();
-        $rows = [];
-
-        foreach ($data['labels'] as $i => $label) {
-            $rows[] = [
-                'Month' => $label,
-                'Frequent Students' => $data['datasets'][0]['data'][$i],
-            ];
-        }
-
-        return \Maatwebsite\Excel\Facades\Excel::download(
-            new \App\Exports\ArrayExport($rows, [
-                'Month' => 'Month',
-                'Frequent Students' => 'Frequent Students',
-            ], 'exports.frequent-students-chart'),
-            'frequent_students_per_month.xlsx'
-        );
     }
 }
