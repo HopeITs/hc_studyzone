@@ -6,6 +6,7 @@ namespace App\Filament\Widgets;
 use App\Enums\Gender;
 use App\Models\StudentEducation;
 use Carbon\Carbon;
+use Filament\Tables\Actions\Action;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
@@ -41,7 +42,14 @@ class TopLevels extends TableWidget
                 TextColumn::make('unknown')
                     ->label('unknown'),
             ])
-            ->paginated(false);
+            ->paginated(false)
+            ->headerActions([
+                Action::make('export')
+                    ->label('')
+                    ->color('warning')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->action(fn() => null)
+            ]);
     }
 
     protected function getQuery(): Builder
