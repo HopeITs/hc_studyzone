@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Enums\Gender;
 use App\Filament\Resources\StudentResource\Pages;
 use App\Filament\Resources\StudentResource\RelationManagers;
 use App\Models\{City, Education, Street, Student, StudentEntry};
@@ -40,18 +41,18 @@ class StudentResource extends Resource
     {
         return Wizard\Step::make('Personal Information')
             ->schema([
-                TextInput::make('firstname')->label('First Name')->required()->maxLength(255),
-                TextInput::make('lastname')->label('Last Name')->required()->maxLength(255),
-                TextInput::make('father_name')->label("Father's Name")->required()->maxLength(255),
-                TextInput::make('national_number')->label('National Number')->required()->unique(ignoreRecord: true),
-                Select::make('gender')->label('Gender')->options(__('general.genders'))->required(),
-                Select::make('religion')->label('Religion')->options(__('general.religions'))->default(0),
-                DatePicker::make('dob')->label('Date of Birth'),
-                Toggle::make('is_student'),
-                Toggle::make('is_employed')->label('Is Employee'),
-                Textarea::make('notes')->label('Notes')->maxLength(500)->columnSpan(2),
+                TextInput::make('firstname')->label('First Name')->required()->maxLength(255)->columnSpan(2),
+                TextInput::make('lastname')->label('Last Name')->required()->maxLength(255)->columnSpan(2),
+                TextInput::make('father_name')->label("Father's Name")->required()->maxLength(255)->columnSpan(2),
+                TextInput::make('national_number')->label('National Number')->required()->unique(ignoreRecord: true)->columnSpan(2),
+                Select::make('gender')->label('Gender')->options(__('general.genders'))->required()->columnSpan(2),
+                Select::make('religion')->label('Religion')->options(__('general.religions'))->default(0)->columnSpan(2),
+                DatePicker::make('year_of_birth')->label('Date of Birth')->columnSpan(2),
+                Toggle::make('is_student')->columnSpan(1),
+                Toggle::make('is_employed')->label('Is Employee')->columnSpan(1),
+                Textarea::make('notes')->label('Notes')->maxLength(500)->columnSpan(4),
             ])
-            ->columns(2);
+            ->columns(4);
     }
 
     protected static function contactInformationStep(): Wizard\Step
@@ -100,6 +101,11 @@ class StudentResource extends Resource
             ->modifyQueryUsing(fn(Builder $query) => self::filterQueryByRole($query))
             ->columns(self::tableColumns())
             ->filters(self::tableFilters())
+            ->toggleColumnsTriggerAction(
+                fn(Action $action) => $action
+                    ->button()
+                    ->label('Toggle columns'),
+            )
             ->actions(self::tableActions())
             ->bulkActions([Tables\Actions\BulkActionGroup::make([Tables\Actions\DeleteBulkAction::make()])]);
     }
@@ -107,16 +113,35 @@ class StudentResource extends Resource
     protected static function tableColumns(): array
     {
         return [
-            TextColumn::make('firstname')->label('First Name')->sortable()->searchable(),
-            TextColumn::make('lastname')->label('Last Name')->sortable()->searchable(),
-            TextColumn::make('phone')->label('Phone')->sortable()->searchable(),
-            TextColumn::make('street.city.name')->label('City')->sortable()->searchable(),
+            TextColumn::make('firstname')->label('Full name')
+                ->formatStateUsing(fn(Model $record) => $record->firstname . ' ' . $record->father_name . ' ' . $record->lastname)
+                ->sortable(['first_name', 'last_name'])
+                ->searchable(query: function (Builder $query, string $search): Builder {
+                    return $query
+                        ->where('firstname', 'like', "%{$search}%")
+                        ->orWhere('lastname', 'like', "%{$search}%")
+                        ->orWhere('father_name', 'like', "%{$search}%");
+                }),
+            TextColumn::make('year_of_birth')->label('Date of Birth') ->sortable()->toggleable(),
+            TextColumn::make('phone')->label('Phone')->sortable()->searchable()->toggleable(),
+            TextColumn::make('street.name')->label('Street')
+                ->toggleable()
+                ->sortable()->searchable(),
+            TextColumn::make('street.city.name')->label('City')
+                ->visible(auth()->user()->hasRole('general_admin'))
+                ->sortable()->searchable(),
             TextColumn::make('gender')
                 ->label('Gender')
                 ->badge()
                 ->formatStateUsing(fn(string $state) => __("general.genders.{$state}"))
-                ->color(fn(string $state) => $state === '1' ? 'info' : 'danger'),
-            CheckboxColumn::make('is_student'),
+                ->color(fn(int $state): string => match ($state) {
+                    Gender::Unknown() => 'warning',
+                    Gender::Male() => 'info',
+                    Gender::Female() => 'danger',
+                })->toggleable(),
+
+
+            CheckboxColumn::make('is_student')->toggleable(),
 
         ];
     }
@@ -205,8 +230,9 @@ class StudentResource extends Resource
     public static function getRelations(): array
     {
         return [
-            RelationManagers\EducationsRelationManager::class,
             RelationManagers\EntriesRelationManager::class,
+            RelationManagers\EducationsRelationManager::class,
+
         ];
     }
 

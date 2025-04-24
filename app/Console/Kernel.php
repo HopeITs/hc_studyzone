@@ -8,7 +8,7 @@ use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 class Kernel extends ConsoleKernel
 {
     protected $commands = [
-        Commands\SyncDataToOnlineServer::class,
+        Commands\SyncData::class,
     ];
 
     protected function schedule(Schedule $schedule): void

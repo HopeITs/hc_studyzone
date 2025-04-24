@@ -3,17 +3,24 @@
 namespace App\Console\Commands;
 
 use App\Helpers\SyncHelper;
+use Filament\Notifications\Notification;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
 
-class SyncDataToOnlineServer extends Command
+class SyncData extends Command
 {
     protected $signature = 'sync:data';
     protected $description = 'Bidirectional sync between local and online database using async jobs';
 
     public function handle(): void
     {
+
+        if (!SyncHelper::isInternetAvailable()) {
+            $this->error('No internet connection is available...');
+
+            return;
+        }
         $this->info('Starting data synchronization...');
 
         $tables = [
@@ -28,6 +35,7 @@ class SyncDataToOnlineServer extends Command
             SyncHelper::syncTable($table);
             $this->output->progressAdvance();
         }
+
         $this->output->progressFinish();
 
 //        DB::transaction(function () use ($tables) {

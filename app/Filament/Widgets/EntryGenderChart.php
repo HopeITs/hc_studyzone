@@ -36,15 +36,18 @@ class EntryGenderChart extends Widget
                 )
             )
             ->get()
-            ->groupBy(fn($entry) => $entry->student->gender ?? -1)
+            ->groupBy(fn($entry) => $entry->student->gender ?? 0)
             ->map(fn($group) => $group->count());
 
-        $query[0] = collect($query)->sum();
 
+
+        $query[3] = collect($query)->sum();
         $genderLabels = [
-            0 => 'Total',
+            0 => 'Unknown',
+            3 => 'Total',
             1 => 'Male',
             2 => 'Female',
+
         ];
 
         $labels = [];
@@ -65,11 +68,15 @@ class EntryGenderChart extends Widget
                         'rgba(255, 159, 64, 0.2)',
                         'rgba(54, 162, 235, 0.2)',
                         'rgba(255, 99, 132, 0.2)',
+                        'rgba(255, 205, 86, 0.2)',
+
                     ],
                     'borderColor' => [
                         'rgb(255, 159, 64)',
                         'rgb(54, 162, 235)',
                         'rgb(255, 99, 132)',
+                        'rgb(255, 205, 86)',
+
                     ],
                     'borderWidth' => 1,
                 ],

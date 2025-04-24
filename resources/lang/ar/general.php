@@ -43,6 +43,7 @@ return [
         EntryType::Monthly() => 'شهري',
     ],
     'genders' => [
+        Gender::Unknown() => 'Unknown',
         Gender::Male() => 'ذكر',
         Gender::Female() => 'أنثى',
     ],

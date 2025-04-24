@@ -31,7 +31,7 @@ class StudentFactory extends Factory
             'national_number' => $this->faker->unique()->numerify('##########'),
             'phone' => $this->faker->unique()->phoneNumber(),
             'email' => $this->faker->unique()->safeEmail(),
-            'dob' => $this->faker->dateTimeBetween('-50 years', '-15 years'),
+            'year_of_birth' => $this->faker->dateTimeBetween('-50 years', '-15 years'),
             'gender' =>  rand(1, 2),
             'religion' => rand(0, 2),
             'address' => $this->faker->address(),

@@ -46,6 +46,7 @@ class AdminPanelProvider extends PanelProvider
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
                 Pages\Dashboard::class,
+                Pages\SyncData::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([])
@@ -73,7 +74,7 @@ class AdminPanelProvider extends PanelProvider
                 SpatieLaravelTranslatablePlugin::make()
                     ->defaultLocales(['en', 'ar'])
             )
-            ->viteTheme('resources/css/filament/admin/theme.css') // If you use Vite
+//            ->viteTheme('resources/css/filament/admin/theme.css') // If you use Vite
             ->renderHook('panels::body.start', fn() => view('filament.hooks.qr-code-script'));
     }
 

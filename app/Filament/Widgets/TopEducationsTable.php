@@ -29,6 +29,8 @@ class TopEducationsTable extends TableWidget
                     ->label('Males'),
                 Tables\Columns\TextColumn::make('females')
                     ->label('Females'),
+                Tables\Columns\TextColumn::make('unknown')
+                    ->label('Unknown'),
             ])
             ->paginated(false)
             ->headerActions([
@@ -74,6 +76,13 @@ class TopEducationsTable extends TableWidget
                 'students as females' => function ($query) use ($startDate, $endDate, $cityIds) {
                     $query->where('students.gender', 2)
                           ->whereBetween('students.created_at', [$startDate, $endDate]);
+                    if ($cityIds) {
+                        $query->whereHas('street', fn($q) => $q->whereIn('city_id', (array)$cityIds));
+                    }
+                },
+                'students as unknown' => function ($query) use ($startDate, $endDate, $cityIds) {
+                    $query->where('students.gender', 0)
+                        ->whereBetween('students.created_at', [$startDate, $endDate]);
                     if ($cityIds) {
                         $query->whereHas('street', fn($q) => $q->whereIn('city_id', (array)$cityIds));
                     }
