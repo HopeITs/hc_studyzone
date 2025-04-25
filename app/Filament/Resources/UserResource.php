@@ -28,6 +28,13 @@ class UserResource extends Resource
     protected static ?string $model = User::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-user';
+    protected static ?string $label = 'مستخدم';
+
+    protected static ?string $modelLabel = 'مستخدم';
+
+    protected static ?string $navigationLabel = 'المستخدمون';
+
+    protected static ?string $pluralModelLabel = 'المستخدمون';
     protected static ?int $navigationSort = 7;
     public static function query(Builder $query): Builder
     {

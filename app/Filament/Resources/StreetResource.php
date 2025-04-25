@@ -21,6 +21,14 @@ class StreetResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
+    protected static ?string $label = 'شارع';
+
+    protected static ?string $modelLabel = 'شارع';
+
+    protected static ?string $navigationLabel = 'الشوارع';
+
+    protected static ?string $pluralModelLabel = 'الشوارع';
+
     protected static ?int $navigationSort = 3;
 
     public static function canViewAny(): bool

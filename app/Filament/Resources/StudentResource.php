@@ -26,6 +26,14 @@ class StudentResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
     protected static ?int $navigationSort = 6;
 
+    protected static ?string $label = 'طالب';
+
+    protected static ?string $modelLabel = 'طالب';
+
+    protected static ?string $navigationLabel = 'الطلاب';
+
+    protected static ?string $pluralModelLabel = 'الطلاب';
+
     public static function form(Form $form): Form
     {
         return $form->schema([
@@ -39,61 +47,128 @@ class StudentResource extends Resource
 
     protected static function personalInformationStep(): Wizard\Step
     {
-        return Wizard\Step::make('Personal Information')
+        return Wizard\Step::make(__('general.labels.personal_information'))
             ->schema([
-                TextInput::make('firstname')->label('First Name')->required()->maxLength(255)->columnSpan(2),
-                TextInput::make('lastname')->label('Last Name')->required()->maxLength(255)->columnSpan(2),
-                TextInput::make('father_name')->label("Father's Name")->required()->maxLength(255)->columnSpan(2),
-                TextInput::make('national_number')->label('National Number')->required()->unique(ignoreRecord: true)->columnSpan(2),
-                Select::make('gender')->label('Gender')->options(__('general.genders'))->required()->columnSpan(2),
-                Select::make('religion')->label('Religion')->options(__('general.religions'))->default(0)->columnSpan(2),
-                DatePicker::make('year_of_birth')->label('Date of Birth')->columnSpan(2),
-                Toggle::make('is_student')->columnSpan(1),
-                Toggle::make('is_employed')->label('Is Employee')->columnSpan(1),
-                Textarea::make('notes')->label('Notes')->maxLength(500)->columnSpan(4),
+                TextInput::make('firstname')
+                    ->label(__('general.labels.firstname'))
+                    ->required()
+                    ->maxLength(255)
+                    ->columnSpan(2),
+
+                TextInput::make('lastname')
+                    ->label(__('general.labels.lastname'))
+                    ->required()
+                    ->maxLength(255)
+                    ->columnSpan(2),
+
+                TextInput::make('father_name')
+                    ->label(__('general.labels.father_name'))
+                    ->required()
+                    ->maxLength(255)
+                    ->columnSpan(2),
+
+                TextInput::make('national_number')
+                    ->label(__('general.labels.national_number'))
+                    ->required()
+                    ->unique(ignoreRecord: true)
+                    ->columnSpan(2),
+
+                Select::make('gender')
+                    ->label(__('general.labels.gender'))
+                    ->options(__('general.genders'))
+                    ->required()
+                    ->columnSpan(2),
+
+                Select::make('religion')
+                    ->label(__('general.labels.religion'))
+                    ->options(__('general.religions'))
+                    ->default(0)
+                    ->columnSpan(2),
+
+                DatePicker::make('year_of_birth')
+                    ->label(__('general.labels.date_of_birth'))
+                    ->columnSpan(2),
+
+                Toggle::make('is_student')
+                    ->label(__('general.labels.is_student'))
+                    ->columnSpan(1),
+
+                Toggle::make('is_employed')
+                    ->label(__('general.labels.is_employed'))
+                    ->columnSpan(1),
+
+                Textarea::make('notes')
+                    ->label(__('general.labels.notes'))
+                    ->maxLength(500)
+                    ->columnSpan(4),
             ])
             ->columns(4);
     }
 
     protected static function contactInformationStep(): Wizard\Step
     {
-        return Wizard\Step::make('Contact Information')
+        return Wizard\Step::make(__('general.labels.contact_information'))
             ->schema([
                 Select::make('street_id')
-                    ->label('Street')
+                    ->label(__('general.labels.street'))
                     ->options(fn() => Street::where('city_id', auth()->user()->city_id)->pluck('name', 'id'))
                     ->searchable()
                     ->required(),
-                TextInput::make('phone')->label('Phone')->required()->unique(ignoreRecord: true),
-                TextInput::make('whatsapp')->label('Whatsapp')->unique(ignoreRecord: true),
-                TextInput::make('email')->label('Email')->required()->unique(ignoreRecord: true),
-                TextInput::make('address')->label('Address')->maxLength(255)->columnSpanFull(),
+
+                TextInput::make('phone')
+                    ->label(__('general.labels.phone'))
+                    ->required()
+                    ->unique(ignoreRecord: true),
+
+                TextInput::make('whatsapp')
+                    ->label(__('general.labels.whatsapp'))
+                    ->unique(ignoreRecord: true),
+
+                TextInput::make('email')
+                    ->label(__('general.labels.email'))
+                    ->required()
+                    ->unique(ignoreRecord: true),
+
+                TextInput::make('address')
+                    ->label(__('general.labels.address'))
+                    ->maxLength(255)
+                    ->columnSpanFull(),
             ])
             ->columns(2);
+
     }
 
     protected static function educationStep(): Wizard\Step
     {
-        return Wizard\Step::make('Education')
+        return Wizard\Step::make(__('general.labels.education'))
             ->schema([
                 \Filament\Forms\Components\Repeater::make('educations')
-                    ->relationship('studentEducations')
+                    ->relationship('studentEducations')->label(__('general.labels.educations'))
                     ->schema([
                         Select::make('education_id')
-                            ->label('Education')
+                            ->label(__('general.labels.education'))
                             ->options(Education::all()->pluck('name', 'id'))
                             ->searchable()
                             ->required(),
-                        Select::make('level')->label('Education Level')->options(__('general.edu-levels'))->required(),
-                        Select::make('type')->label('Education Type')->options(__('general.edu-types'))->required(),
+
+                        Select::make('level')
+                            ->label(__('general.labels.education_level'))
+                            ->options(__('general.edu-levels'))
+                            ->required(),
+
+                        Select::make('type')
+                            ->label(__('general.labels.education_type'))
+                            ->options(__('general.edu-types'))
+                            ->required(),
                     ])
                     ->columns(2)
                     ->minItems(1)
-                    ->addActionLabel('Add Education')
+                    ->addActionLabel(__('general.labels.add_education'))
                     ->columnSpanFull(),
             ])
             ->columns(1);
     }
+
 
     public static function table(Table $table): Table
     {
@@ -122,7 +197,7 @@ class StudentResource extends Resource
                         ->orWhere('lastname', 'like', "%{$search}%")
                         ->orWhere('father_name', 'like', "%{$search}%");
                 }),
-            TextColumn::make('year_of_birth')->label('Date of Birth') ->sortable()->toggleable(),
+            TextColumn::make('year_of_birth')->label('Date of Birth')->sortable()->toggleable(),
             TextColumn::make('phone')->label('Phone')->sortable()->searchable()->toggleable(),
             TextColumn::make('street.name')->label('Street')
                 ->toggleable()
@@ -198,17 +273,24 @@ class StudentResource extends Resource
     {
         return [
             Tables\Actions\Action::make('view_qr_code')
-                ->label('View QR Code')
+                ->label(__('general.labels.view_qr_code'))
                 ->icon('heroicon-o-qr-code')
-                ->modalHeading('Student QR Code Details')
+                ->modalHeading(__('general.labels.qr_code_modal_heading'))
                 ->modalContent(fn(Student $record) => self::qrCodeModalContent($record))
+                ->modalCancelAction(false)
                 ->modalSubmitAction(false),
-            Action::make('entry')
-                ->label('Entry')
+
+            Tables\Actions\Action::make('entry')
+                ->label(__('general.labels.entry'))
                 ->icon('heroicon-o-document-text')
-                ->form([Select::make('entry_type')->label('Entry Type')->options(__('general.entry-types'))->required()])
-                ->modalHeading('Record Student Entry')
-                ->modalButton('Save Entry')
+                ->form([
+                    Select::make('entry_type')
+                        ->label(__('general.labels.entry_type'))
+                        ->options(__('general.entry-types'))
+                        ->required(),
+                ])
+                ->modalHeading(__('general.labels.record_student_entry'))
+                ->modalButton(__('general.labels.save_entry'))
                 ->action(
                     fn(array $data, Student $record) => StudentEntry::create([
                         'student_id' => $record->id,
@@ -218,7 +300,8 @@ class StudentResource extends Resource
                         'entry_time' => now(),
                     ])
                 )
-                ->successNotificationTitle('Entry Recorded Successfully'),
+                ->successNotificationTitle(__('general.labels.entry_recorded_successfully')),
+
             ActionGroup::make([
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
