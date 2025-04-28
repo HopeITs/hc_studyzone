@@ -81,6 +81,7 @@ return [
         'qr_code_modal_heading' => 'Student QR Code Details',
         'entry' => 'Entry',
         'entry_type' => 'Entry Type',
+        'entry_time' => 'Entry Day',
         'record_student_entry' => 'Record Student Entry',
         'save_entry' => 'Save Entry',
         'entry_recorded_successfully' => 'Entry Recorded Successfully',

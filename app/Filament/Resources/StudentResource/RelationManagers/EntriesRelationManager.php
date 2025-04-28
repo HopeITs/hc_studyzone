@@ -25,9 +25,7 @@ class EntriesRelationManager extends RelationManager
         $user = Auth::user();
         $isCenterAdmin = $user->hasRole('center_admin');
         return $form->schema([
-            Forms\Components\Hidden::make('center_id')
-                ->default(fn () => $isCenterAdmin ? $user->center_id : null) // ✅ Always set center_id
-                ->dehydrated($isCenterAdmin), // ✅ Ensures it gets submitted
+
 
             Forms\Components\Hidden::make('user_id')
                 ->default($user->id), // ✅ Always set center_id
@@ -36,8 +34,7 @@ class EntriesRelationManager extends RelationManager
             Forms\Components\Select::make('center_id')
                 ->relationship('center', 'name')
                 ->default($isCenterAdmin ? $user->center_id : null)
-                ->hidden($isCenterAdmin) // Hide for center admins
-                ->required(!$isCenterAdmin), // Required only for admins who must select it
+                ->required(), // Required only for admins who must select it
 
             Forms\Components\Select::make('entry_type')
                 ->options(__('general.entry-types'))

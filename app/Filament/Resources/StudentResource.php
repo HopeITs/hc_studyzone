@@ -6,7 +6,7 @@ use App\Enums\Gender;
 use App\Filament\Resources\StudentResource\Pages;
 use App\Filament\Resources\StudentResource\RelationManagers;
 use App\Models\{City, Education, Street, Student, StudentEntry};
-use Filament\Forms\Components\{DatePicker, Select, Textarea, TextInput, Toggle, Wizard};
+use Filament\Forms\Components\{DatePicker, DateTimePicker, Select, Textarea, TextInput, Toggle, Wizard};
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -172,6 +172,7 @@ class StudentResource extends Resource
 
     public static function table(Table $table): Table
     {
+
         return $table
             ->modifyQueryUsing(fn(Builder $query) => self::filterQueryByRole($query))
             ->columns(self::tableColumns())
@@ -284,10 +285,16 @@ class StudentResource extends Resource
                 ->label(__('general.labels.entry'))
                 ->icon('heroicon-o-document-text')
                 ->form([
+
+
                     Select::make('entry_type')
                         ->label(__('general.labels.entry_type'))
-                        ->options(__('general.entry-types'))
+                        ->options(__('general.entry-types'))->columnSpan(1)
                         ->required(),
+                    DateTimePicker::make('entry_time')->label(__('general.labels.entry_time'))
+                        ->default(now())->columnSpan(1)
+                        ->required(),
+
                 ])
                 ->modalHeading(__('general.labels.record_student_entry'))
                 ->modalButton(__('general.labels.save_entry'))

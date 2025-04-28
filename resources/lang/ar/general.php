@@ -80,6 +80,7 @@ return [
         'qr_code_modal_heading' => 'تفاصيل رمز الاستجابة السريعة للطالب',
         'entry' => 'تسجيل الدخول',
         'entry_type' => 'نوع الدخول',
+        'entry_time' => 'يوم الدخول',
         'record_student_entry' => 'تسجيل دخول الطالب',
         'save_entry' => 'حفظ الدخول',
         'entry_recorded_successfully' => 'تم تسجيل الدخول بنجاح',
