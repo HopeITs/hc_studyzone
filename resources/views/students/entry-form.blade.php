@@ -1,78 +1,132 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ar" dir="rtl">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Record Student Entry</title>
+    <title>تسجيل دخول الطالب</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 </head>
 
 <body class="bg-gray-100" x-data="scannerApp">
-    <div class="min-h-screen flex items-center justify-center">
-        <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
-            <h2 class="text-xl font-bold mb-6 text-gray-900">
-                Record Entry for: {{ $student->firstname }} {{ $student->lastname }}
-            </h2>
+<div class="min-h-screen flex items-center justify-center p-24">
+    <div class="bg-white p-6 rounded-lg shadow-xl w-full ">
+        <h2 class="text-xl font-bold mb-6 text-gray-900">
+            تسجيل دخول: {{ $student->firstname }} {{ $student->lastname }}
+        </h2>
 
-            @if (session('success'))
-                <div class="mb-6 text-sm font-medium text-green-600">
-                    {{ session('success') }}
+        @if (session('success'))
+            <div class="mb-6 text-sm font-medium text-green-600">
+                {{ session('success') }}
+            </div>
+        @endif
+        @if($errors->any())
+            <ul class="mb-6 text-sm font-medium text-red-600">
+                @foreach($errors as $error)
+                    <li>{{$error}}</li>
+                @endforeach
+
+            </ul>
+        @endif
+
+        <form method="POST" action="{{ route('student.entry.store', $student->id) }}">
+            @csrf
+            <input type="hidden" name="user_id" value="{{ Auth::id() }}">
+
+            <div class="gap-8 grid grid-cols-3">
+
+                <div class="col-span-1">
+                    <label for="center_id" class="block text-sm font-medium text-gray-700 mb-1">
+                        المركز
+                    </label>
+                    <select id="center_id" name="center_id" required
+                            class="block h-10 w-full rounded-md  border border-gray-400 shadow-sm focus:border-primary-500 focus:ring focus:ring-primary-500 focus:ring-opacity-50 text-sm">
+                        @foreach ($centers as  $center)
+                            <option
+                                value="{{ $center->id }}" {{ $center->id == Auth::user()->center_id ? 'selected' : '' }}>
+                                {{ $center->name }}
+                            </option>
+                        @endforeach
+                    </select>
                 </div>
-            @endif
 
-            <form method="POST" action="{{ route('student.entry.store', $student->id) }}">
-                @csrf
-                <div class="space-y-4">
-                    <div>
-                        <label for="entry_type" class="block text-sm font-medium text-gray-700 mb-1">
-                            Entry Type
+                <div class="col-span-1">
+                    <label for="entry_type" class="block text-sm font-medium text-gray-700 mb-1">
+                        نوع الدخول
+                    </label>
+                    <select id="entry_type" name="entry_type" required
+                            class="block h-10 w-full rounded-md  border border-gray-300 shadow-sm focus:border-primary-500 focus:ring focus:ring-primary-500 focus:ring-opacity-50 text-sm">
+                        @foreach (__('general.entry-types') as $value => $label)
+                            <option value="{{ $value }}">{{ $label }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="col-span-1">
+                    <label for="entry_time" class="block text-sm font-medium text-gray-700 mb-1">
+                        وقت الدخول
+                    </label>
+                    <input type="datetime-local" name="entry_time" id="entry_time"
+                           value="{{ now()->format('Y-m-d\TH:i') }}"
+                           class="block h-10 w-full rounded-md  border border-gray-300 shadow-sm focus:border-primary-500 focus:ring focus:ring-primary-500 focus:ring-opacity-50 text-sm"
+                           required>
+                </div>
+
+                <fieldset class="border border-gray-300 p-4 rounded-md col-span-3">
+                    <legend class="text-sm font-medium text-gray-700 mb-2">الخدمات</legend>
+                    <div class="grid grid-cols-3 gap-2">
+                        <label class="flex items-center space-x-6">
+                            <input type="checkbox" name="use_printer" class="size-4 me-3" value="1">
+                            <span>خدمة طباعة</span>
                         </label>
-                        <select id="entry_type" name="entry_type" required
-                            class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring focus:ring-primary-500 focus:ring-opacity-50 text-sm hover:border-orange-600">
-                            @foreach ($entryTypes as $value => $label)
-                                <option value="{{ $value }}">{{ $label }}</option>
-                            @endforeach
-                        </select>
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" name="use_drawer" class="size-4 me-3" value="1">
+                            <span>خدمة مرسم</span>
+                        </label>
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" name="use_mecrator" class="size-4 me-3" value="1">
+                            <span>خدمة ميكراتور</span>
+                        </label>
                     </div>
+                </fieldset>
 
-                    <div class="flex justify-between gap-4">
-                        <a href="{{ route('filament.admin.resources.students.index') }}"
+                <div class="flex justify-between gap-4 mt-4 col-span-3">
+                    <a href="{{ route('filament.admin.resources.students.index') }}"
+                       class="inline-flex items-center px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-md hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2">
+                        رجوع
+                    </a>
+
+                    <button type="button" @click="startScanner()"
                             class="inline-flex items-center px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-md hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2">
-                            Back
-                        </a>
+                        فتح الكاميرا
+                    </button>
 
-                        <button type="button" @click="startScanner()"
-                            class="inline-flex items-center px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-md hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2">
-                            Open Camera
-                        </button>
-
-                        <button type="submit"
+                    <button type="submit"
                             class="inline-flex items-center px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-md hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2">
-                            Submit
-                        </button>
-                    </div>
+                        إرسال
+                    </button>
                 </div>
-            </form>
+            </div>
+        </form>
 
-            <div id="scanner" class="w-full h-64 bg-gray-100 rounded-lg mt-6"></div>
-        </div>
+        <div id="scanner" class="w-full h-64 bg-gray-100 rounded-lg mt-6"></div>
     </div>
+</div>
 
-    <script>
-        document.addEventListener('alpine:init', () => {
-            Alpine.data('scannerApp', () => ({
-                html5QrCode: null,
-                startScanner() {
-                    if (!this.html5QrCode) {
-                        this.html5QrCode = new Html5Qrcode('scanner');
-                    }
-                    Html5Qrcode.getCameras().then(devices => {
-                        if (devices.length) {
-                            const cameraId = devices[0].id;
-                            this.html5QrCode.start(cameraId, {
+<script>
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('scannerApp', () => ({
+            html5QrCode: null,
+            startScanner() {
+                if (!this.html5QrCode) {
+                    this.html5QrCode = new Html5Qrcode('scanner');
+                }
+                Html5Qrcode.getCameras().then(devices => {
+                    if (devices.length) {
+                        const cameraId = devices[0].id;
+                        this.html5QrCode.start(cameraId, {
                                 fps: 10,
                                 qrbox: 250
                             },
@@ -83,12 +137,12 @@
                             errorMessage => {
                                 console.warn(errorMessage);
                             });
-                        }
-                    }).catch(err => console.error('Camera init error', err));
-                }
-            }));
-        });
-    </script>
+                    }
+                }).catch(err => console.error('Camera init error', err));
+            }
+        }));
+    });
+</script>
 </body>
 
 </html>

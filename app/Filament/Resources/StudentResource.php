@@ -7,7 +7,16 @@ use App\Filament\Resources\StudentResource\Pages;
 use App\Filament\Resources\StudentResource\RelationManagers;
 use App\Models\{City, Education, Street, Student, StudentEntry};
 
-use Filament\Forms\Components\{Checkbox, DatePicker, DateTimePicker, Select, Textarea, TextInput, Toggle, Wizard};
+use Filament\Forms\Components\{Checkbox,
+    DatePicker,
+    DateTimePicker,
+    Fieldset,
+    Select,
+    Textarea,
+    TextInput,
+    Toggle,
+    Wizard
+};
 use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Resources\Resource;
@@ -79,7 +88,7 @@ class StudentResource extends Resource
                 Checkbox::make('is_child')->reactive()
                     ->label('قاصر')
                     ->default(false)
-                   ,
+                ,
 
                 Select::make('gender')
                     ->label(__('general.labels.gender'))
@@ -131,11 +140,11 @@ class StudentResource extends Resource
                 Select::make('street_id')
                     ->label(__('general.labels.street'))
                     ->options(fn(Get $get): \Illuminate\Support\Collection => Street::query()
-                        ->where('city_id',   $get('city_id'))
+                        ->where('city_id', $get('city_id'))
                         ->pluck('name', 'id'))
                     ->searchable()  // Make streets searchable
                     ->required()  // Make street selection mandatory
-                    ,
+                ,
 
                 TextInput::make('phone')
                     ->label(__('general.labels.phone'))
@@ -143,7 +152,7 @@ class StudentResource extends Resource
 
                 TextInput::make('whatsapp')
                     ->label(__('general.labels.whatsapp'))
-                    ,
+                ,
 
                 TextInput::make('email')
                     ->label(__('general.labels.email'))
@@ -152,7 +161,7 @@ class StudentResource extends Resource
                 TextInput::make('address')
                     ->label(__('general.labels.address'))
                     ->maxLength(255)
-                  ,
+                ,
             ])
             ->columns(2);
 
@@ -314,6 +323,21 @@ class StudentResource extends Resource
                     DateTimePicker::make('entry_time')->label(__('general.labels.entry_time'))
                         ->default(now())->columnSpan(1)
                         ->required(),
+                    Fieldset::make('Services')->label('خدمات')
+                        ->schema([
+                            Checkbox::make('use_printer')->reactive()
+                                ->label('خدمة طباعة')
+                                ->default(false)
+                            ,
+                            Checkbox::make('use_drawer')->reactive()
+                                ->label('خدمة مرسم')
+                                ->default(false)
+                            ,
+                            Checkbox::make('use_mecrator')->reactive()
+                                ->label('خدمة ميكراتور')
+                                ->default(false)
+                            ,
+                        ])->columns(3)
 
                 ])
                 ->modalHeading(__('general.labels.record_student_entry'))
@@ -324,7 +348,11 @@ class StudentResource extends Resource
                         'user_id' => Auth::id(),
                         'center_id' => Auth::user()->center_id ?? 1,
                         'entry_type' => $data['entry_type'],
-                        'entry_time' => now(),
+                        'entry_time' => $data['entry_time'],
+                        'use_drawer' => $data['use_drawer'],
+                        'use_printer' => $data['use_printer'],
+                        'use_mecrator' => $data['use_mecrator'],
+
                     ])
                 )
                 ->successNotificationTitle(__('general.labels.entry_recorded_successfully')),
