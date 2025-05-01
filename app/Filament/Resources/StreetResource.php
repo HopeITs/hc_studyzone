@@ -7,13 +7,17 @@ use App\Filament\Resources\StreetResource\RelationManagers;
 use App\Models\City;
 use App\Models\Street;
 use Filament\Forms;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Form;
+use Filament\Resources\Concerns\Translatable;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Mvenghaus\FilamentPluginTranslatableInline\Forms\Components\TranslatableContainer;
 
 class StreetResource extends Resource
 {
@@ -30,16 +34,30 @@ class StreetResource extends Resource
     protected static ?string $pluralModelLabel = 'الشوارع';
 
     protected static ?int $navigationSort = 3;
+    use Translatable;
 
+    public static function getTranslatableLocales(): array
+    {
+        return ['en', 'ar'];
+    }
     public static function canViewAny(): bool
     {
         return auth()->user()->hasRole('general_admin');
     }
+
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                //
+                Select::make('city_id')->relationship('city', 'name')->required(),
+                TranslatableContainer::make(
+                    Forms\Components\TextInput::make('name')
+                        ->maxLength(255)
+                        ->required()
+                )
+                    ->onlyMainLocaleRequired() // optional
+                    ->requiredLocales(['en', 'ar']) // optional
+                ,
             ]);
     }
 
@@ -47,7 +65,9 @@ class StreetResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('name')->sortable()->searchable(),
+
+                Tables\Columns\TextColumn::make('name')->label('Name')
+                    ->formatStateUsing(fn(Model $record) => $record->getTranslation('name' , 'ar') . ' - '.$record->getTranslation('name','en'))->sortable()->searchable(),
                 Tables\Columns\TextColumn::make('city.name')->sortable()->searchable(),
             ])
             ->filters([
@@ -77,8 +97,7 @@ class StreetResource extends Resource
     {
         return [
             'index' => Pages\ListStreets::route('/'),
-            'create' => Pages\CreateStreet::route('/create'),
-            'edit' => Pages\EditStreet::route('/{record}/edit'),
+
         ];
     }
 }
