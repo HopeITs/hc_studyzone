@@ -68,6 +68,7 @@ return [
         'personal_information' => 'Personal Information',
         'contact_information' => 'Contact Information',
         'street' => 'Street',
+        'city' => 'City',
         'phone' => 'Phone',
         'whatsapp' => 'Whatsapp',
         'email' => 'Email',

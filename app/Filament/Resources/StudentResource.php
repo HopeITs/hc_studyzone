@@ -7,7 +7,7 @@ use App\Filament\Resources\StudentResource\Pages;
 use App\Filament\Resources\StudentResource\RelationManagers;
 use App\Models\{City, Education, Street, Student, StudentEntry};
 
-use Filament\Forms\Components\{DatePicker, DateTimePicker, Select, Textarea, TextInput, Toggle, Wizard};
+use Filament\Forms\Components\{Checkbox, DatePicker, DateTimePicker, Select, Textarea, TextInput, Toggle, Wizard};
 use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Resources\Resource;
@@ -56,41 +56,46 @@ class StudentResource extends Resource
                     ->label(__('general.labels.firstname'))
                     ->required()
                     ->maxLength(255)
-                    ->columnSpan(2),
+                    ->columnSpan(1),
 
                 TextInput::make('lastname')
                     ->label(__('general.labels.lastname'))
                     ->required()
                     ->maxLength(255)
-                    ->columnSpan(2),
+                    ->columnSpan(1),
 
                 TextInput::make('father_name')
                     ->label(__('general.labels.father_name'))
                     ->required()
                     ->maxLength(255)
-                    ->columnSpan(2),
+                    ->columnSpan(1),
 
                 TextInput::make('national_number')
                     ->label(__('general.labels.national_number'))
-                    ->required()
+                    ->required(fn(Get $get) => !$get('is_child'))
+                    ->disabled(fn(Get $get) => $get('is_child'))
                     ->unique(ignoreRecord: true)
                     ->columnSpan(2),
+                Checkbox::make('is_child')->reactive()
+                    ->label('قاصر')
+                    ->default(false)
+                   ,
 
                 Select::make('gender')
                     ->label(__('general.labels.gender'))
                     ->options(__('general.genders'))
                     ->required()
-                    ->columnSpan(2),
+                    ->columnSpan(1),
 
                 Select::make('religion')
                     ->label(__('general.labels.religion'))
                     ->options(__('general.religions'))
                     ->default(0)
-                    ->columnSpan(2),
+                    ->columnSpan(1),
 
                 DatePicker::make('year_of_birth')
                     ->label(__('general.labels.date_of_birth'))
-                    ->columnSpan(2),
+                    ->columnSpan(1),
 
                 Toggle::make('is_student')
                     ->label(__('general.labels.is_student'))
@@ -103,9 +108,9 @@ class StudentResource extends Resource
                 Textarea::make('notes')
                     ->label(__('general.labels.notes'))
                     ->maxLength(500)
-                    ->columnSpan(4),
+                    ->columnSpan(3),
             ])
-            ->columns(4);
+            ->columns(3);
     }
 
     protected static function contactInformationStep(): Wizard\Step
@@ -114,21 +119,20 @@ class StudentResource extends Resource
             ->schema([
                 Select::make('city_id')
                     ->label(__('general.labels.city'))
-                    ->relationship('city', 'name')
-//                    ->options(fn() => City::pluck('name', 'id'))  // List all cities
-                    ->searchable()  // Make it searchable
-                    ->required()  // Make city selection mandatory
+                    ->relationship('street.city', 'name')
+                    ->searchable()
+                    ->required()
                     ->preload()
                     ->live()
-                    ->default(auth()->user()->city_id)  // Set default city to user's city
-                ,
+                    ->default(auth()->user()->city_id) // Set default to the user's city
+                    ->reactive()  // Make city_id reactive
+                    ->afterStateUpdated(fn($state, callable $set) => $set('street_id', null)), // Reset street_id when city changes
+
                 Select::make('street_id')
                     ->label(__('general.labels.street'))
                     ->options(fn(Get $get): \Illuminate\Support\Collection => Street::query()
-                        ->where('city_id', auth()->user()->city_id)
-                        ->orWhere('city_id' ,   $get('city_id'))
+                        ->where('city_id',   $get('city_id'))
                         ->pluck('name', 'id'))
-
                     ->searchable()  // Make streets searchable
                     ->required()  // Make street selection mandatory
                     ,
@@ -148,7 +152,7 @@ class StudentResource extends Resource
                 TextInput::make('address')
                     ->label(__('general.labels.address'))
                     ->maxLength(255)
-                    ->columnSpanFull(),
+                  ,
             ])
             ->columns(2);
 

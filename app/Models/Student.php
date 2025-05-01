@@ -17,7 +17,7 @@ class Student extends Model implements  HasName
 
     public $incrementing = false; // Disable auto-increment
     protected $keyType = 'string'; // UUIDs are stored as strings
-    protected $guarded = [];
+    protected $guarded = ['is_child' , 'city_id'];
     protected $primaryKey = 'id';
 
 

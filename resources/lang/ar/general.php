@@ -67,6 +67,7 @@ return [
         'personal_information' => 'المعلومات الشخصية',
         'contact_information' =>  'معلومات الاتصال',
         'street' => 'الشارع',
+        'city' => 'المدينة',
         'phone' => 'الهاتف',
         'whatsapp' => 'واتساب',
         'email' => 'البريد الإلكتروني',
