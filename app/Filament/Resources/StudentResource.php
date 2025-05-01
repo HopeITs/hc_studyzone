@@ -6,8 +6,10 @@ use App\Enums\Gender;
 use App\Filament\Resources\StudentResource\Pages;
 use App\Filament\Resources\StudentResource\RelationManagers;
 use App\Models\{City, Education, Street, Student, StudentEntry};
+
 use Filament\Forms\Components\{DatePicker, DateTimePicker, Select, Textarea, TextInput, Toggle, Wizard};
 use Filament\Forms\Form;
+use Filament\Forms\Get;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Actions\{Action, ActionGroup};
@@ -15,6 +17,7 @@ use Filament\Tables\Columns\{CheckboxColumn, TextColumn};
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
@@ -109,24 +112,37 @@ class StudentResource extends Resource
     {
         return Wizard\Step::make(__('general.labels.contact_information'))
             ->schema([
+                Select::make('city_id')
+                    ->label(__('general.labels.city'))
+                    ->relationship('city', 'name')
+//                    ->options(fn() => City::pluck('name', 'id'))  // List all cities
+                    ->searchable()  // Make it searchable
+                    ->required()  // Make city selection mandatory
+                    ->preload()
+                    ->live()
+                    ->default(auth()->user()->city_id)  // Set default city to user's city
+                ,
                 Select::make('street_id')
                     ->label(__('general.labels.street'))
-                    ->options(fn() => Street::where('city_id', auth()->user()->city_id)->pluck('name', 'id'))
-                    ->searchable()
-                    ->required(),
+                    ->options(fn(Get $get): \Illuminate\Support\Collection => Street::query()
+                        ->where('city_id', auth()->user()->city_id)
+                        ->orWhere('city_id' ,   $get('city_id'))
+                        ->pluck('name', 'id'))
+
+                    ->searchable()  // Make streets searchable
+                    ->required()  // Make street selection mandatory
+                    ,
 
                 TextInput::make('phone')
                     ->label(__('general.labels.phone'))
-                    ->required()
-                    ->unique(ignoreRecord: true),
+                    ->required(),
 
                 TextInput::make('whatsapp')
                     ->label(__('general.labels.whatsapp'))
-                    ->unique(ignoreRecord: true),
+                    ,
 
                 TextInput::make('email')
                     ->label(__('general.labels.email'))
-                    ->required()
                     ->unique(ignoreRecord: true),
 
                 TextInput::make('address')
@@ -288,7 +304,7 @@ class StudentResource extends Resource
 
 
                     Select::make('entry_type')
-                        ->label(__('general.labels.entry_type'))
+                        ->label(__('general.labels.entry_type'))->default(1)
                         ->options(__('general.entry-types'))->columnSpan(1)
                         ->required(),
                     DateTimePicker::make('entry_time')->label(__('general.labels.entry_time'))
