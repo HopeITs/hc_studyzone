@@ -121,33 +121,7 @@ class StudentResource extends Resource
             ->filters(self::tableFilters())
 
 
-            ->headerActions([
-                Tables\Actions\Action::make('export_all')
-                    ->label(__('Export to Excel'))
-                    ->icon('heroicon-o-arrow-down-tray')
-                    ->action(function () {
-                        $fileName = 'students-' . now()->format('Y-m-d_H-i-s') . '.csv';
-                        $students = Student::with(['street.city'])->get();
 
-                        $writer = SimpleExcelWriter::create(storage_path("app/public/{$fileName}"))
-                            ->addHeader(['Full Name', 'Gender', 'Phone', 'Street', 'City', 'Year of Birth']);
-
-                        foreach ($students as $student) {
-                            $writer->addRow([
-                                $student->firstname . ' ' . $student->father_name . ' ' . $student->lastname,
-                                __('general.genders.' . $student->gender),
-                                $student->phone,
-                                optional($student->street)->name,
-                                optional($student->street->city)->name,
-                                $student->year_of_birth,
-                            ]);
-                        }
-
-                        $writer->close();
-
-                        return response()->download(storage_path("app/public/{$fileName}"))->deleteFileAfterSend(true);
-                    }),
-            ])
 
             ->actions(self::tableActions())
 
