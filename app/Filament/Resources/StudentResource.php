@@ -219,8 +219,8 @@ class StudentResource extends Resource
     protected static function tableActions(): array
     {
         return [
-            Tables\Actions\Action::make('view_qr_code')->label(__('general.labels.view_qr_code'))->icon('heroicon-o-qr-code')->modalHeading(__('general.labels.qr_code_modal_heading'))->modalContent(fn(Student $record) => self::qrCodeModalContent($record))->modalCancelAction(false)->modalSubmitAction(false),
-            Tables\Actions\Action::make('entry')->label(__('general.labels.entry'))->icon('heroicon-o-document-text')
+            Tables\Actions\Action::make('view_qr_code')->label(__('view_qr_code'))->icon('heroicon-o-qr-code')->modalHeading(__('general.labels.qr_code_modal_heading'))->modalContent(fn(Student $record) => self::qrCodeModalContent($record))->modalCancelAction(false)->modalSubmitAction(false),
+            Tables\Actions\Action::make('entry')->label(__('entry'))->icon('heroicon-o-document-text')
                 ->form([
                     Select::make('entry_type')->label(__('general.labels.entry_type'))->default(1)->options(__('general.entry-types'))->columnSpan(1)->required(),
                     DateTimePicker::make('entry_time')->label(__('general.labels.entry_time'))->default(now())->columnSpan(1)->required(),
