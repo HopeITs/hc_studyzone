@@ -9,6 +9,8 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Tables\Actions\Action;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\EducationExport;
 
 class TopEducationsTable extends TableWidget
 {
@@ -35,10 +37,12 @@ class TopEducationsTable extends TableWidget
             ->paginated(false)
             ->headerActions([
                 Action::make('export')
-                    ->label('')
-                    ->color('warning')
+                    ->label('Export to Excel')
+                    ->color('success')
                     ->icon('heroicon-o-document-arrow-down')
-                    ->action(fn() => null)
+                    ->action(function () {
+                        return Excel::download(new EducationExport, 'educations.xlsx');
+                    }),
             ]);
     }
 
