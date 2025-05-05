@@ -72,7 +72,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->plugin(
                 SpatieLaravelTranslatablePlugin::make()
-                    ->defaultLocales(['en', 'ar'])
+                    ->defaultLocales(['ar'])
             )
 //            ->viteTheme('resources/css/filament/admin/theme.css') // If you use Vite
             ->renderHook('panels::body.start', fn() => view('filament.hooks.qr-code-script'));

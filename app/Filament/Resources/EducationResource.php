@@ -24,6 +24,13 @@ class EducationResource extends Resource
     protected static ?string $model = Education::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-academic-cap';
+    protected static ?string $label = 'تعليم';
+
+    protected static ?string $modelLabel = 'تعليم';
+
+    protected static ?string $navigationLabel = 'تعليم';
+
+    protected static ?string $pluralModelLabel = 'تعليم';
     protected static ?int $navigationSort = 5;
 
     public static function canViewAny(): bool

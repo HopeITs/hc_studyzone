@@ -16,7 +16,7 @@ class User extends Authenticatable implements FilamentUser
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable , HasRoles;
 
-    // protected $table = 'hcsz_users';
+
 
     /**
      * The attributes that are mass assignable.

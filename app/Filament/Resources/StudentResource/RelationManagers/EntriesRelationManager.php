@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\StudentResource\RelationManagers;
 
+use Filament\Forms\Components\Checkbox;
+use Filament\Forms\Components\Fieldset;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
@@ -25,28 +27,36 @@ class EntriesRelationManager extends RelationManager
         $user = Auth::user();
         $isCenterAdmin = $user->hasRole('center_admin');
         return $form->schema([
-            Forms\Components\Hidden::make('center_id')
-                ->default(fn () => $isCenterAdmin ? $user->center_id : null) // ✅ Always set center_id
-                ->dehydrated($isCenterAdmin), // ✅ Ensures it gets submitted
 
             Forms\Components\Hidden::make('user_id')
                 ->default($user->id), // ✅ Always set center_id
 
-
             Forms\Components\Select::make('center_id')
                 ->relationship('center', 'name')
                 ->default($isCenterAdmin ? $user->center_id : null)
-                ->hidden($isCenterAdmin) // Hide for center admins
-                ->required(!$isCenterAdmin), // Required only for admins who must select it
-
+                ->required()->columnSpanFull(),
             Forms\Components\Select::make('entry_type')
                 ->options(__('general.entry-types'))
                 ->default(0)
-                ->required(),
-
+                ->required()->columnSpanFull(),
             Forms\Components\DateTimePicker::make('entry_time')
                 ->default(now())
-                ->required(),
+                ->required()->columnSpanFull(),
+            Fieldset::make('Services')->label('خدمات')
+                ->schema([
+                    Checkbox::make('use_printer')->reactive()
+                        ->label('خدمة طباعة')
+                        ->default(false)
+                    ,
+                    Checkbox::make('use_drawer')->reactive()
+                        ->label('خدمة مرسم')
+                        ->default(false)
+                    ,
+                    Checkbox::make('use_mecrator')->reactive()
+                        ->label('خدمة ميكراتور')
+                        ->default(false)
+                    ,
+                ])->columns(3)
         ]);
     }
 
