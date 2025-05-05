@@ -408,10 +408,7 @@ class StudentResource extends Resource
         return auth()->user()->hasRole('center_admin');
     }
 
-    public static function canEdit(Model $record): bool
-    {
-        return auth()->user()->hasRole('center_admin');
-    }
+
 
     public static function canViewAny(): bool
     {
