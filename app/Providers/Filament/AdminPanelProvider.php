@@ -38,6 +38,7 @@ class AdminPanelProvider extends PanelProvider
             ->brandLogoHeight('2.5rem')
             ->favicon(asset('images/logo.png'))
             ->brandName('Study Zone')
+            ->databaseNotifications()
             ->colors([
                 'primary' => Color::Amber,
                 'secondary' => '#063c54'

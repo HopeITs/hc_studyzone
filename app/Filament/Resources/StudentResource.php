@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Enums\Gender;
+use App\Filament\Exports\StudentExporter;
 use App\Filament\Resources\StudentResource\Pages;
 use App\Filament\Resources\StudentResource\RelationManagers;
 use App\Models\{City, Education, Street, Student, StudentEntry};
@@ -17,11 +18,12 @@ use Filament\Forms\Components\{Checkbox,
     Toggle,
     Wizard
 };
+use Filament\Actions\Exports\Enums\ExportFormat;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Resources\Resource;
 use Filament\Tables;
-use Filament\Tables\Actions\{Action, ActionGroup};
+use Filament\Tables\Actions\{Action, ActionGroup, ExportAction, ExportBulkAction};
 use Filament\Tables\Columns\{CheckboxColumn, TextColumn};
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -30,6 +32,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
+use PhpOffice\PhpSpreadsheet\Calculation\TextData\Format;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class StudentResource extends Resource
@@ -211,8 +214,21 @@ class StudentResource extends Resource
                     ->button()
                     ->label('Toggle columns'),
             )
+            ->headerActions([
+                ExportAction::make()
+                    ->exporter(StudentExporter::class)
+                ->formats([
+                    ExportFormat::Xlsx
+                ])
+            ])
             ->actions(self::tableActions())
-            ->bulkActions([Tables\Actions\BulkActionGroup::make([Tables\Actions\DeleteBulkAction::make()])]);
+            ->bulkActions([
+                Tables\Actions\BulkActionGroup::make([Tables\Actions\DeleteBulkAction::make(),
+                        ExportBulkAction::make()
+                            ->exporter(StudentExporter::class)
+
+                    ]
+                )]);
     }
 
     protected static function tableColumns(): array
