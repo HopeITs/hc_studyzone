@@ -243,7 +243,7 @@ class StudentResource extends Resource
                 }),
             TextColumn::make('year_of_birth')->label('Date of Birth')->sortable()->toggleable(),
             TextColumn::make('phone')->label('Phone')->sortable()->searchable()->toggleable(),
-            TextColumn::make('entries_count')->counts('entries')->label('Entries')->sortable()->searchable()->toggleable(),
+            TextColumn::make('entries_count')->counts('entries')->label('Entries')->sortable()->toggleable(),
             TextColumn::make('whatsapp')->label('Whatsapp')->sortable()->searchable()->toggleable(),
             TextColumn::make('street.name')->label('Street')
                 ->toggleable()
