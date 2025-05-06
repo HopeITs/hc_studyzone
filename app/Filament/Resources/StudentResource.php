@@ -25,6 +25,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Actions\{Action, ActionGroup, ExportAction, ExportBulkAction};
 use Filament\Tables\Columns\{CheckboxColumn, TextColumn};
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -214,18 +215,15 @@ class StudentResource extends Resource
                     ->button()
                     ->label('Toggle columns'),
             )
-            ->headerActions([
-                ExportAction::make()
-                    ->exporter(StudentExporter::class)
-                ->formats([
-                    ExportFormat::Xlsx
-                ])
-            ])
             ->actions(self::tableActions())
             ->bulkActions([
+                ExportBulkAction::make()
+                    ->exporter(StudentExporter::class)
+                    ->formats([
+                        ExportFormat::Xlsx
+                    ]),
                 Tables\Actions\BulkActionGroup::make([Tables\Actions\DeleteBulkAction::make(),
-                        ExportBulkAction::make()
-                            ->exporter(StudentExporter::class)
+
 
                     ]
                 )]);
@@ -245,6 +243,8 @@ class StudentResource extends Resource
                 }),
             TextColumn::make('year_of_birth')->label('Date of Birth')->sortable()->toggleable(),
             TextColumn::make('phone')->label('Phone')->sortable()->searchable()->toggleable(),
+            TextColumn::make('entries_count')->counts('entries')->label('Entries')->sortable()->searchable()->toggleable(),
+            TextColumn::make('whatsapp')->label('Whatsapp')->sortable()->searchable()->toggleable(),
             TextColumn::make('street.name')->label('Street')
                 ->toggleable()
                 ->sortable()->searchable(),
@@ -263,6 +263,9 @@ class StudentResource extends Resource
 
 
             CheckboxColumn::make('is_student')->toggleable(),
+            TextColumn::make('created_at')->label('Created at')
+                ->formatStateUsing(fn(Model $record) => $record->created_at->format('Y-m-d'))
+                ->sortable()->searchable()->toggleable(),
 
         ];
     }
@@ -292,17 +295,37 @@ class StudentResource extends Resource
     protected static function tableFilters(): array
     {
         return [
-            SelectFilter::make('city')
+            SelectFilter::make('city_id')
                 ->relationship('street.city', 'name')
                 ->label('Filter by City')
-                ->preload()
-                ->options(City::all()->pluck('name', 'id'))
+                ->options(fn() => City::pluck('name', 'id')->toArray())
                 ->searchable()
-                ->visible(auth()->user()->hasRole('general_admin')),
+                ->preload()
+                ->visible(fn() => auth()->user()->hasRole('general_admin')),
+
             SelectFilter::make('street_id')
                 ->label('Filter by Street')
+                ->relationship('street', 'name')
+                ->preload()
                 ->options(Street::whereIn('city_id', [auth()->user()->city_id] ?? City::all()->keys()->toArray())->pluck('name', 'id'))
-                ->searchable(),
+                ->searchable()
+            ,
+            Filter::make('created_at')
+                ->form([
+                    DatePicker::make('created_from'),
+                    DatePicker::make('created_until'),
+                ])
+                ->query(function (Builder $query, array $data): Builder {
+                    return $query
+                        ->when(
+                            $data['created_from'],
+                            fn(Builder $query, $date): Builder => $query->whereDate('created_at', '>=', $date),
+                        )
+                        ->when(
+                            $data['created_until'],
+                            fn(Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
+                        );
+                }),
             SelectFilter::make('educations')
                 ->label('Filter by Educations')
                 ->relationship('educations', 'name')
@@ -423,7 +446,6 @@ class StudentResource extends Resource
     {
         return auth()->user()->hasRole('center_admin');
     }
-
 
 
     public static function canViewAny(): bool

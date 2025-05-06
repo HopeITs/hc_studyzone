@@ -27,7 +27,7 @@ return [
     ],
 
     'edu-levels' => [
-
+        EduLevel::Unknown() => ' Unknown',
         EduLevel::First() => 'First Year',
         EduLevel::Second() => 'Second Year',
         EduLevel::Third() => 'Third Year',

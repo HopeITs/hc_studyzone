@@ -10,7 +10,7 @@ enum EduLevel: int
     use InvokableCases, Values;
 
     // Define enum cases with associated integer values
-
+    case Unknown = 0;
     case First = 1;
     case Second = 2;
     case Third = 3;

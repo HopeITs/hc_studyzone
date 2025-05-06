@@ -27,7 +27,7 @@ return [
     ],
 
     'edu-levels' => [
-
+        EduLevel::Unknown() => 'غير معرف',
         EduLevel::First() => 'السنة الأولى',
         EduLevel::Second() => 'السنة الثانية',
         EduLevel::Third() => 'السنة الثالثة',
@@ -43,7 +43,7 @@ return [
         EntryType::Monthly() => 'شهري',
     ],
     'genders' => [
-        Gender::Unknown() => 'Unknown',
+        Gender::Unknown() => 'غير معرف',
         Gender::Male() => 'ذكر',
         Gender::Female() => 'أنثى',
     ],
@@ -65,7 +65,7 @@ return [
         'is_employed' => 'موظف',
         'notes' => 'ملاحظات',
         'personal_information' => 'المعلومات الشخصية',
-        'contact_information' =>  'معلومات الاتصال',
+        'contact_information' => 'معلومات الاتصال',
         'street' => 'الشارع',
         'city' => 'المدينة',
         'phone' => 'الهاتف',
