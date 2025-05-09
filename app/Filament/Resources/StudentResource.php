@@ -236,7 +236,7 @@ class StudentResource extends Resource
         return [
             TextColumn::make('firstname')->label('Full name')
                 ->formatStateUsing(fn(Model $record) => $record->firstname . ' ' . $record->father_name . ' ' . $record->lastname)
-                ->sortable(['first_name', 'last_name'])
+                ->sortable(['firstname', 'lastname'])
                 ->searchable(query: function (Builder $query, string $search): Builder {
                     return $query
                         ->where('firstname', 'like', "%{$search}%")
@@ -248,6 +248,16 @@ class StudentResource extends Resource
             TextColumn::make('street.name')->label('Street')
                 ->toggleable()
                 ->sortable()->searchable(),
+            TextColumn::make('educations')
+                ->label('Educations')
+                ->formatStateUsing(function ($record) {
+                    return $record->educations->take(3)->pluck('name')->implode(', ');
+                }) ->searchable(query: function (Builder $query, string $search): Builder {
+                    return $query->whereHas('educations', function (Builder $studentQuery) use ($search) {
+                        $studentQuery->where('name', 'like', "%{$search}%");
+
+                    });
+                }) ->toggleable(),
             TextColumn::make('street.city.name')->label('City')
                 ->visible(auth()->user()->hasRole('general_admin'))
                 ->sortable()->searchable(),
