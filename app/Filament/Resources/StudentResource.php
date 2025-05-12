@@ -28,6 +28,7 @@ use Filament\Tables\Columns\{CheckboxColumn, TextColumn};
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Illuminate\Database\Eloquent\Builder;
 
 use Illuminate\Database\Eloquent\Model;
@@ -38,6 +39,7 @@ use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class StudentResource extends Resource
 {
+    use InteractsWithPageFilters;
     protected static ?string $model = Student::class;
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
     protected static ?int $navigationSort = 6;
@@ -215,6 +217,13 @@ class StudentResource extends Resource
                     ->button()
                     ->label('Toggle columns'),
             )
+            ->headerActions([
+                ExportAction::make()
+                    ->exporter(StudentExporter::class)
+                ->formats([
+                    ExportFormat::Xlsx
+                ])
+            ])
             ->actions(self::tableActions())
             ->bulkActions([
                 ExportBulkAction::make()
@@ -234,7 +243,7 @@ class StudentResource extends Resource
         return [
             TextColumn::make('firstname')->label('Full name')
                 ->formatStateUsing(fn(Model $record) => $record->firstname . ' ' . $record->father_name . ' ' . $record->lastname)
-                ->sortable(['first_name', 'last_name'])
+                ->sortable(['firstname', 'lastname'])
                 ->searchable(query: function (Builder $query, string $search): Builder {
                     return $query
                         ->where('firstname', 'like', "%{$search}%")
@@ -248,6 +257,16 @@ class StudentResource extends Resource
             TextColumn::make('street.name')->label('Street')
                 ->toggleable()
                 ->sortable()->searchable(),
+            TextColumn::make('educations')
+                ->label('Educations')
+                ->formatStateUsing(function ($record) {
+                    return $record->educations->take(3)->pluck('name')->implode(', ');
+                })->searchable(query: function (Builder $query, string $search): Builder {
+                    return $query->whereHas('educations', function (Builder $studentQuery) use ($search) {
+                        $studentQuery->where('name', 'like', "%{$search}%");
+
+                    });
+                })->toggleable(),
             TextColumn::make('street.city.name')->label('City')
                 ->visible(auth()->user()->hasRole('general_admin'))
                 ->sortable()->searchable(),
@@ -294,22 +313,33 @@ class StudentResource extends Resource
 
     protected static function tableFilters(): array
     {
+
+        if (isset(auth()->user()->city_id)) {
+            $streets = Street::where('city_id', auth()->user()->city_id)->get()->pluck('name', 'id')->toArray();
+        } else {
+
+            if(isset(request()->query()['tableFilters']['city']['value'])){
+                $streets = Street::where('city_id', request()->query()['tableFilters']['city']['value'])->get()->pluck('name', 'id')->toArray();
+            }else{
+                $streets = Street::all()->pluck('name', 'id')->toArray();
+            }
+
+        }
+
         return [
-            SelectFilter::make('city_id')
+            SelectFilter::make('city')
                 ->relationship('street.city', 'name')
                 ->label('Filter by City')
-                ->options(fn() => City::pluck('name', 'id')->toArray())
-                ->searchable()
                 ->preload()
-                ->visible(fn() => auth()->user()->hasRole('general_admin')),
-
+                ->options(City::all()->pluck('name', 'id'))
+                ->searchable()
+                ->visible(auth()->user()->hasRole('general_admin')),
             SelectFilter::make('street_id')
                 ->label('Filter by Street')
-                ->relationship('street', 'name')
                 ->preload()
-                ->options(Street::whereIn('city_id', [auth()->user()->city_id] ?? City::all()->keys()->toArray())->pluck('name', 'id'))
-                ->searchable()
-            ,
+                ->options($streets)
+                ->searchable(),
+
             Filter::make('created_at')
                 ->form([
                     DatePicker::make('created_from'),
@@ -446,6 +476,7 @@ class StudentResource extends Resource
     {
         return auth()->user()->hasRole('center_admin');
     }
+
 
 
     public static function canViewAny(): bool

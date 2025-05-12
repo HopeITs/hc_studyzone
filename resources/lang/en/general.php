@@ -91,5 +91,8 @@ return [
         'url' => 'URL',
         'qr_code' => 'QR Code',
         'download_qr_code' => 'Download QR Code',
+        'print-service' => 'Print Service',
+        'mecrator-service' => 'Micro motor service',
+        'drawer-service' => 'Drafting table service',
     ]
 ];

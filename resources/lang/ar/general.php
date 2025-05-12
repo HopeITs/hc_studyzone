@@ -90,5 +90,8 @@ return [
         'url' => 'الرابط',
         'qr_code' => 'رمز الاستجابة السريعة',
         'download_qr_code' => 'تحميل رمز الاستجابة السريعة',
+        'print-service' => 'خدمة الطباعة',
+        'mecrator-service' => 'خدمة المكراتور',
+        'drawer-service' => 'خدمة المرسم',
     ]
 ];
