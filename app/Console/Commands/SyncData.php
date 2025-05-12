@@ -25,7 +25,6 @@ class SyncData extends Command
 
         $tables = [
             'cities' , 'centers' , 'streets' , 'users' , 'educations',
-            'permissions' , 'roles' , 'model_has_permissions' , 'model_has_roles' , 'role_has_permissions',
             'students' , 'student_educations' , 'student_entries'
         ];
         $this->info('Starting bidirectional sync...');

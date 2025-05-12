@@ -9,11 +9,7 @@ use Illuminate\Support\Facades\Schema;
 
 class SyncHelper
 {
-    private static array $pivotKeys = [
-        'model_has_roles' => ['role_id', 'model_type', 'model_id'],
-        'role_has_permissions' => ['role_id', 'permission_id'],
-        'model_has_permissions' => ['permission_id', 'model_type', 'model_id'],
-    ];
+
 
     private static array $foreignKeyDependencies = [
         'students' => [
@@ -35,29 +31,18 @@ class SyncHelper
         Log::info("🔁 Starting sync loop for table: {$table}");
 
         try {
-            DB::transaction(function () use ($table) {
-                $maxRetries = 10;
-                $retries = 0;
 
-                do {
-                    $localUnsynced = self::syncLocalToOnline($table);
-                    $onlineUnsynced = self::syncOnlineToLocal($table);
-                    $retries++;
+            $onlineUnsynced = self::syncOnlineToLocal($table);
+            $localUnsynced = self::syncLocalToOnline($table);
 
-                    if ($retries >= $maxRetries) {
-                        Log::warning("⚠️ Max retries reached for syncing table: {$table}");
-                        break;
-                    }
-                } while ($localUnsynced > 0 || $onlineUnsynced > 0);
+            Log::info("✅ Fully synced table: {$table}");
 
-                Log::info("✅ Fully synced table: {$table}");
-            });
         } catch (\Exception $e) {
             Log::error("❌ Sync error for {$table}: " . $e->getMessage());
         }
     }
 
-    private static function syncLocalToOnline(string $table): int
+    public static function syncLocalToOnline(string $table): int
     {
         Log::info("🔄 Syncing local to online: {$table}");
 
@@ -74,16 +59,11 @@ class SyncHelper
             $data['synced_at'] = now();
             $filteredData = array_intersect_key($data, array_flip($onlineColumns));
 
-            $pivotKeys = self::$pivotKeys[$table] ?? null;
+
             $onlineDb = DB::connection('online_mysql')->table($table);
 
             try {
-                if ($pivotKeys) {
-                    $matchKeys = array_intersect_key($filteredData, array_flip($pivotKeys));
-                    $onlineDb->updateOrInsert($matchKeys, $filteredData);
-                } else {
-                    $onlineDb->updateOrInsert(['id' => $data['id']], $filteredData);
-                }
+                $onlineDb->updateOrInsert(['id' => $data['id']], $filteredData);
 
                 DB::table($table)->where('id', $data['id'])->update(['synced_at' => $data['synced_at']]);
             } catch (\Exception $e) {
@@ -99,7 +79,7 @@ class SyncHelper
             ->count();
     }
 
-    private static function syncOnlineToLocal(string $table): int
+    public static function syncOnlineToLocal(string $table): int
     {
         Log::info("🔄 Syncing online to local: {$table}");
 
@@ -131,28 +111,19 @@ class SyncHelper
                 }
             }
 
-            $pivotKeys = self::$pivotKeys[$table] ?? null;
+
             $localDb = DB::connection('mysql')->table($table);
 
             try {
-                if ($pivotKeys) {
-                    $matchKeys = array_intersect_key($filteredData, array_flip($pivotKeys));
-                    $localDb->updateOrInsert($matchKeys, $filteredData);
-                } else {
-                    $localDb->updateOrInsert(['id' => $data['id']], $filteredData);
-                }
+
+                $localDb->updateOrInsert(['id' => $data['id']], $filteredData);
+
 
                 // Mark as synced
                 $onlineDb = DB::connection('online_mysql')->table($table);
-                if ($pivotKeys) {
-                    $query = $onlineDb;
-                    foreach ($pivotKeys as $key) {
-                        $query = $query->where($key, $data[$key]);
-                    }
-                    $query->update(['synced_at' => $data['synced_at']]);
-                } else {
-                    $onlineDb->where('id', $data['id'])->update(['synced_at' => $data['synced_at']]);
-                }
+
+                $onlineDb->where('id', $data['id'])->update(['synced_at' => $data['synced_at']]);
+
 
                 $syncedCount++;
             } catch (\Exception $e) {
