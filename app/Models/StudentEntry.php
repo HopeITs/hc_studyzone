@@ -25,5 +25,6 @@ class StudentEntry extends Model
     {
         return $this->belongsTo(Center::class);
     }
+
 }
 
