@@ -10,6 +10,8 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Columns\{CheckboxColumn, TextColumn};
+use Filament\Tables\Actions\Action;
+use Filament\Tables\Filters\BaseFilter;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -179,6 +181,11 @@ class EntryResource extends Resource
                     ->multiple()
                     ->preload(),
             ])
+            ->filtersTriggerAction(
+                fn (Action $action) => $action
+                    ->button()
+                    ->label('فلتر'),
+            )
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
@@ -203,10 +210,12 @@ class EntryResource extends Resource
         ];
     }
 
+
+
     public static function getWidgets(): array
     {
         return [
-          EntryStats::class,
+            EntryStats::class ,
         ];
     }
 }
