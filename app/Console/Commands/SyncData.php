@@ -25,7 +25,7 @@ class SyncData extends Command
 
         $tables = [
             'cities' , 'centers' , 'streets' , 'users' , 'educations',
-            'students' , 'student_educations' , 'student_entries'
+            'students', 'student_entries' , 'student_educations'
         ];
         $this->info('Starting bidirectional sync...');
         $this->output->progressStart(count($tables));

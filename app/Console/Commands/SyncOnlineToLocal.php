@@ -37,11 +37,6 @@ class SyncOnlineToLocal extends Command
 
         $this->output->progressFinish();
 
-//        DB::transaction(function () use ($tables) {
-//            foreach ($tables as $table) {
-//                SyncHelper::syncTable($table);
-//            }
-//        });
 
         $this->info('Sync completed.');
 
