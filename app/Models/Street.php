@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use App\Traits\ActivityLog;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Spatie\Translatable\HasTranslations;
 
 class Street extends Model
 {
-    use HasTranslations;
+    use HasTranslations,ActivityLog;
 
     protected $guarded = ['id'];
     protected $translatable = ['name'];

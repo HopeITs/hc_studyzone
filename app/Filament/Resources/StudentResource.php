@@ -139,7 +139,7 @@ class StudentResource extends Resource
                     ->required()
                     ->preload()
                     ->live()
-                    ->default(auth()->user()->city_id) // Set default to the user's city
+//                    ->default(auth()->user()->city_id) // Set default to the user's city
                     ->reactive()  // Make city_id reactive
                     ->afterStateUpdated(fn($state, callable $set) => $set('street_id', null)), // Reset street_id when city changes
 
