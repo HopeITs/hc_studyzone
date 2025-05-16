@@ -2,152 +2,90 @@
 
 namespace App\Helpers;
 
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Schema;
+use Spatie\Activitylog\Models\Activity;
 
 class SyncHelper
 {
-
-
-
-    public static function syncTable(string $table): void
+    public static function sync(): void
     {
-        Log::info("🔁 Starting sync loop for table: {$table}");
-        ini_set('max_execution_time', 0); // unlimited
-        ini_set('memory_limit', '1G');    // or more depending on server
+        Log::info("🔁 Starting sync loop");
+
+        ini_set('max_execution_time', 0); // No timeout
+        ini_set('memory_limit', '1024M'); // Adjust if needed
+
         try {
+            if (!self::isInternetAvailable()) {
+                Log::warning("🚫 No internet connection");
+                return;
+            }
 
-            $onlineUnsynced = self::syncOnlineToLocal($table);
-            $localUnsynced = self::syncLocalToOnline($table);
+            $syncedLocal = self::syncLocalToOnline();
+            // $syncedRemote = self::syncOnlineToLocal(); // Optional
 
-            Log::info("✅ Fully synced table: {$table}");
+            Log::info("✅ Sync completed. Local records synced: $syncedLocal");
 
-        } catch (\Exception $e) {
-            Log::error("❌ Sync error for {$table}: " . $e->getMessage());
+        } catch (\Throwable $e) {
+            Log::error("❌ Sync error: " . $e->getMessage());
         }
     }
 
-    public static function syncLocalToOnline(string $table): int
+    public static function syncLocalToOnline(): int
     {
+
+
         $syncedCount = 0;
-        $fetchLimit = 2000;
-        $chunkSize = 200;
 
-        Log::info("🔄 Starting sync: local ➜ online for [{$table}] (max: {$fetchLimit}, chunks: {$chunkSize})");
 
-        // Get columns that exist in the online DB
-        $onlineColumns = Schema::connection('online_mysql')->getColumnListing($table);
+            Activity::whereNull('synced_at')
+                ->orderBy('event')
+                ->orderBy('created_at')
+                ->chunk(50, function ($activities) use (&$syncedCount) {
+                    foreach ($activities as $activity) {
+                        try {
+                            $modelClass = $activity->subject_type;
+                            $attributes = $activity->properties['attributes'] ?? [];
+                            $query = $modelClass::on('online_mysql');
 
-        // Step 1: Fetch the top 2000 recently updated or unsynced rows from local DB
-        $rows = DB::table($table)
-            ->whereNull('synced_at')
-            ->orWhereColumn('updated_at', '>', 'synced_at')
-            ->orderByDesc('updated_at')
-            ->limit($fetchLimit)
-            ->get();
+                            match ($activity->event) {
+                                'created' => $query->create($attributes),
+                                'updated' => $query->find($activity->subject_id)?->update($attributes),
+                                'deleted' => $query->find($activity->subject_id)?->delete(),
+                                default => Log::warning("Unknown event type: {$activity->event}"),
+                            };
 
-        if ($rows->isEmpty()) {
-            Log::info("📭 No unsynced records found for [{$table}]");
-            return 0;
-        }
+                            $activity->update(['synced_at' => now()]);
+                            $syncedCount++;
 
-        // Step 2: Chunk the in-memory collection into 200-item chunks
-        $rows->chunk($chunkSize)->each(function ($chunk) use (&$syncedCount, $table, $onlineColumns) {
-            foreach ($chunk as $row) {
-                $data = (array)$row;
-                $data['synced_at'] = now();
+                        } catch (\Throwable $e) {
+                            Log::error("❌ Failed to sync [{$modelClass}] ID {$activity->id}: " . $e->getMessage());
 
-                $filteredData = array_intersect_key($data, array_flip($onlineColumns));
+                            if (!self::isInternetAvailable()) {
+                                Log::warning("🚫 Lost internet connection. Halting sync...");
+                                return false;
+                            }
+                        }
+                    }
+                });
 
-                try {
-                    DB::connection('online_mysql')
-                        ->table($table)
-                        ->updateOrInsert(['id' => $data['id']], $filteredData);
-
-                    DB::table($table)
-                        ->where('id', $data['id'])
-                        ->update(['synced_at' => $data['synced_at']]);
-
-                    $syncedCount++;
-                } catch (\Throwable $e) {
-                    Log::error("❌ Failed to sync record [{$data['id']}] to online for [{$table}]: {$e->getMessage()}");
-                }
-            }
-        });
-
-        Log::info("✅ Completed sync: {$syncedCount} records synced from local to online for [{$table}]");
 
         return $syncedCount;
     }
 
 
 
-    public static function syncOnlineToLocal(string $table): int
+    public static function syncOnlineToLocal(): int
     {
-        $syncedCount = 0;
-        $limit = 1000;
-        $chunkSize = 200;
-        Log::info("🔄 Starting sync: online ➜ local for [{$table}] (limit: {$limit} rows)");
-
-        // Get local table columns
-        $localColumns = Schema::getColumnListing($table);
-
-        // Step 1: Fetch top 2000 recently updated/unsynced rows from online
-        $onlineRows = DB::connection('online_mysql')
-            ->table($table)
-            ->whereNull('synced_at')
-            ->orWhereColumn('updated_at', '>', 'synced_at')
-            ->orderByDesc('updated_at')
-            ->limit($limit)
-            ->get();
-
-        if ($onlineRows->isEmpty()) {
-            Log::info("📭 No unsynced records found for [{$table}]");
-            return 0;
-        }
-
-        $onlineRows->chunk($chunkSize)->each(function ($chunk) use (&$syncedCount, $table, $localColumns) {
-            foreach ($chunk as $row) {
-                $data = (array)$row;
-                // Add synced_at timestamp
-                $data['synced_at'] = now();
-                // Filter only valid local columns
-                $filteredData = array_intersect_key($data, array_flip($localColumns));
-
-
-                try {
-                    // Step 3: Sync to local database
-                    DB::table($table)->updateOrInsert(
-                        ['id' => $data['id']],
-                        $filteredData
-                    );
-
-                    // Step 4: Mark record as synced in online DB
-                    DB::connection('online_mysql')
-                        ->table($table)
-                        ->where('id', $data['id'])
-                        ->update(['synced_at' => $data['synced_at']]);
-
-                    $syncedCount++;
-                } catch (\Throwable $e) {
-                    Log::error("❌ Error syncing record [{$data['id']}] in [{$table}]: {$e->getMessage()}");
-                }
-            }
-        });
-        Log::info("✅ Completed sync: {$syncedCount} records synced from online to local for [{$table}]");
-
-        return $syncedCount;
+        // Optional: You can implement fetching changes from the remote DB.
+        return 0;
     }
-
 
     public static function isInternetAvailable(): bool
     {
         try {
-            $response = Http::timeout(3)->get('https://www.google.com');
-            return $response->successful();
-        } catch (\Exception $e) {
+            return Http::timeout(3)->get('https://www.google.com')->successful();
+        } catch (\Throwable) {
             return false;
         }
     }
