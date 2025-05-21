@@ -6,8 +6,15 @@ use App\Enums\EduType;
 use App\Enums\EntryType;
 use App\Enums\Gender;
 use App\Enums\Religion;
+use App\Enums\Roles;
 
 return [
+    'roles' => [
+        Roles::Unknown() => 'unknown',
+        Roles::GeneralAdmin() => 'General Admin',
+        Roles::CenterAdmin() => 'City Admin',
+        Roles::CenterAdmin() => 'Center Admin',
+    ],
 
     'edu-degrees' => [
         EduDegree::MiddleSchool() => 'المرحلة الإعدادية',
@@ -35,8 +42,7 @@ return [
         EduLevel::Fifth() => 'السنة الخامسة',
         EduLevel::Sixth() => 'السنة السادسة',
         EduLevel::Graduate() => 'متخرج',
-    ]
-    ,
+    ],
     'entry-types' => [
         EntryType::Free() => 'مجاني',
         EntryType::Daily() => 'يومي',
@@ -50,10 +56,9 @@ return [
     'religions' => [
         Religion::Unknown() => 'غير معروف',
         Religion::Christian() => 'مسيحي',
-        Religion::Muslim() => 'مسلم'
+        Religion::Muslim() => 'مسلم',
     ],
     'labels' => [
-
         'firstname' => 'الاسم الأول',
         'lastname' => 'اسم العائلة',
         'father_name' => 'اسم الأب',
@@ -93,5 +98,5 @@ return [
         'print-service' => 'خدمة الطباعة',
         'mecrator-service' => 'خدمة المكراتور',
         'drawer-service' => 'خدمة المرسم',
-    ]
+    ],
 ];

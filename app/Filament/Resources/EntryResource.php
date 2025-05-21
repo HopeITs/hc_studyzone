@@ -136,7 +136,7 @@ class EntryResource extends Resource
                 TextColumn::make('center.name')
                     ->label('المركز')
                     ->sortable()
-                    ->hidden(auth()->user->role === Roles::CenterAdmin())
+                    ->hidden(auth()->user()->role === Roles::CenterAdmin())
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 CheckboxColumn::make('use_printer')->label('طباعة'),

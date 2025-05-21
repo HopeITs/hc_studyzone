@@ -30,7 +30,7 @@ class User extends Authenticatable implements FilamentUser
         'center_id',
         'role',
         'is_active',
-        'synced_at'
+        'synced_at',
     ];
 
     /**

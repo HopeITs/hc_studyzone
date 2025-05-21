@@ -60,9 +60,9 @@ class UserResource extends Resource
                 ->label('Name')
                 ->required(),
 
-            Select::make('roles')
+            Select::make('role')
                 ->label('User Role')
-                ->relationship('roles', 'name')
+                ->options(__('general.roles'))
                 ->disabled(fn () => !auth()->user()->role === Roles::GeneralAdmin())
 
                 ->required(),
@@ -85,7 +85,7 @@ class UserResource extends Resource
                 ->searchable()
                 ->preload()
                 ->live()
-                ->required(fn ($get) => in_array($get('roles'), ['city_admin', 'center_admin'])),
+                ->required(fn ($get) => in_array($get('role'), [Roles::CenterAdmin(), Roles::CityAdmin()])),
 
             // Center Selection (Filtered by Selected City)
             Select::make('center_id')
@@ -93,7 +93,7 @@ class UserResource extends Resource
                 ->searchable()
                 ->preload()
                 ->options(fn ($get) => Center::where('city_id', $get('city_id'))->pluck('name', 'id')) // 👈 Filters centers based on selected city
-                ->required(fn ($get) => $get('roles') === 'center_admin'),
+                ->required(fn ($get) => $get('role') === 'center_admin'),
 
             Toggle::make('is_active')
                 ->label('Active User')
@@ -115,8 +115,9 @@ class UserResource extends Resource
                     ->sortable()
                     ->searchable(),
 
-                BadgeColumn::make('roles.name')
-                    ->label('Role')
+                BadgeColumn::make('role')
+                ->formatStateUsing(fn ($state) => __('general.roles.'.$state))
+                ->label('Role')
                   ,
 
                 TextColumn::make('city.name')
@@ -140,8 +141,8 @@ class UserResource extends Resource
                     ->formatStateUsing(fn ($state) => $state ? 'Active' : 'Inactive'),
             ])
             ->filters([
-                SelectFilter::make('roles')
-                    ->relationship('roles', 'name')
+                SelectFilter::make('role')
+                    ->options(__('general.roles'))
                     ->label('Filter by Role')
                    ,
                 SelectFilter::make('city_id')
