@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Enums\Roles;
 use App\Filament\Resources\UserResource\Pages;
 use App\Models\Center;
 use App\Models\User;
@@ -40,11 +41,11 @@ class UserResource extends Resource
     {
         $user = auth()->user();
 
-        if ($user->hasRole('general_admin')) {
+        if ($user->role === Roles::GeneralAdmin()) {
             return $query; // See all users
-        } elseif ($user->hasRole('city_admin')) {
+        } elseif ($user->role === Roles::CityAdmin()) {
             return $query->where('city_id', $user->city_id);
-        } elseif ($user->hasRole('center_admin')) {
+        } elseif ($user->role === Roles::CenterAdmin()) {
             return $query->where('center_id', $user->center_id);
         }
 
@@ -62,7 +63,7 @@ class UserResource extends Resource
             Select::make('roles')
                 ->label('User Role')
                 ->relationship('roles', 'name')
-                ->disabled(fn () => !auth()->user()->hasRole('general_admin'))
+                ->disabled(fn () => !auth()->user()->role === Roles::GeneralAdmin())
 
                 ->required(),
 
@@ -187,20 +188,20 @@ class UserResource extends Resource
 
     public static function canCreate(): bool
     {
-        return auth()->user()->hasRole('general_admin') || auth()->user()->hasRole('city_admin');
+        return auth()->user()->role === Roles::GeneralAdmin();
     }
 
     public static function canEdit(Model $record): bool
     {
-        return auth()->user()->hasRole('general_admin');
+        return auth()->user()->role === Roles::GeneralAdmin();
     }
 
     public static function canDelete(Model $record): bool
     {
-        return auth()->user()->hasRole('general_admin');
+        return auth()->user()->role === Roles::GeneralAdmin();
     }
     public static function canViewAny(): bool
     {
-        return auth()->user()->can('manage_admins');
+        return auth()->user()->role === Roles::GeneralAdmin();
     }
 }
