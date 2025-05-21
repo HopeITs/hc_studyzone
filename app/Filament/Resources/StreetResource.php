@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Enums\Roles;
 use App\Filament\Resources\StreetResource\Pages;
 use App\Filament\Resources\StreetResource\RelationManagers;
 use App\Models\City;
@@ -42,7 +43,7 @@ class StreetResource extends Resource
     }
     public static function canViewAny(): bool
     {
-        return auth()->user()->hasRole('general_admin');
+        return auth()->user()->role === Roles::GeneralAdmin();
     }
 
     public static function form(Form $form): Form
