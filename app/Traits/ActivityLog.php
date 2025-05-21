@@ -16,9 +16,13 @@ trait ActivityLog
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logAll()
-            ->logOnlyDirty();
+            ->logAll();
         // Chain fluent methods for configuration options
     }
+    public function getLogNameToUse(string $eventName = ''): string
+    {
+        return config('activitylog.default_log_name');
+    }
+
 
 }

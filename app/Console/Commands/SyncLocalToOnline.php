@@ -15,37 +15,16 @@ class SyncLocalToOnline extends Command
 
     public function handle(): void
     {
+        $this->info('🔁 Starting synchronization...');
 
         if (!SyncHelper::isInternetAvailable()) {
-            $this->error('No internet connection is available...');
-
+            $this->error('❌ No internet connection available.');
             return;
         }
-        $this->info('Starting data synchronization...');
 
-        $tables = [
-            'cities' , 'centers' , 'streets' , 'users' , 'educations',
-            'students' , 'student_educations' , 'student_entries'
-        ];
-        $this->info('Starting bidirectional sync...');
-        $this->output->progressStart(count($tables));
-        foreach ($tables as $table) {
-            $this->info("➡️ Syncing table: {$table}");
-            SyncHelper::syncLocalToOnline($table);
-            $this->output->progressAdvance();
-        }
+        SyncHelper::syncLocalToOnline();
 
-        $this->output->progressFinish();
-
-//        DB::transaction(function () use ($tables) {
-//            foreach ($tables as $table) {
-//                SyncHelper::syncTable($table);
-//            }
-//        });
-
-        $this->info('Sync completed.');
-
-
+        $this->info('✅ Synchronization completed.');
     }
 }
 
