@@ -1,41 +1,153 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>StudyZone — {{ ucfirst($link->city) }}</title>
-    <link rel="icon" href="{{ asset('images/logo.png') }}" type="image/png">
-    <style>
-        body { font-family: sans-serif; max-width: 600px; margin: auto; padding: 1rem; }
-        header { text-align: center; margin-bottom: 2rem; }
-        header img { height: 80px; }
-        ul { list-style: none; padding: 0; }
-        li + li { margin-top: 0.5rem; }
-        a { text-decoration: none; color: #007bff; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Interactive Links — {{ strtoupper($link->city) }}</title>
+  <link rel="icon" href="{{ asset('images/new_logo.png') }}" type="image/png">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    @font-face {
+      font-family: 'Somar Sons';
+      src: url('{{ asset('fonts/SomarSons-Bold.woff2') }}') format('woff2');
+      font-weight: bold;
+      font-style: normal;
+    }
+
+    body {
+      font-family: 'Somar Sons', sans-serif;
+      font-weight: bold;
+      margin: 0;
+      padding: 0;
+      background-color: #003c54;
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+
+    .header {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 1rem 0.5rem 1rem 1rem;
+      box-sizing: border-box;
+    }
+    .left-logo {
+      height: 100px;
+    }
+    .right-block {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      margin-right: 0.5rem;
+    }
+    .right-logo {
+      height: 40px;
+    }
+    .city {
+      margin-top: 0.5rem;
+      font-size: 2.75rem;
+      text-transform: uppercase;
+      font-size: 150%;
+      text-align: right;
+    }
+
+
+    .content {
+      max-width: 600px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 8.5rem 1rem 1rem;
+      box-sizing: border-box;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+
+    .links {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+      margin-top: 5rem;
+      flex-grow: 1;
+    }
+    .links a {
+      padding: 0.75rem 1rem;
+      background: #fff;
+      color: #003c54;
+      text-align: center;
+      text-decoration: none;
+      border: 1px solid #fff;
+      border-radius: 30px;
+      font-size: 1rem;
+      transition: background .2s, color .2s;
+      width: 100%;
+      max-width: 300px;
+    }
+    .links a:hover {
+      background: #f59a24;
+      color: #fff;
+      border-color: #f59a24;
+    }
+
+    footer {
+      text-align: center;
+      font-size: 0.9rem;
+      padding-bottom: 1rem;
+      position: relative;
+      margin-bottom: 1rem;
+    }
+    footer::after {
+      content: '';
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 10px;
+      padding-bottom: 1.1%;
+      background: #f59a24;
+    }
+  </style>
 </head>
 <body>
-    <header>
-        <img src="{{ asset('images/logo.png') }}" alt="StudyZone Logo">
-        <h1>{{ ucfirst($link->city) }} — StudyZone</h1>
-    </header>
+  <header class="header">
+    <img src="{{ asset('images/new_logo.png') }}" alt="StudyZone Logo" class="left-logo">
+    <div class="right-block">
+      <img src="{{ asset('images/sz.png') }}" alt="Study Zone" class="right-logo">
+      <div class="city">{{ strtoupper($link->city) }}</div>
+    </div>
+  </header>
 
-    <ul>
-        @if($link->facebook)
-            <li><a href="{{ $link->facebook }}" target="_blank">Facebook</a></li>
-        @endif
-        @if($link->instagram)
-            <li><a href="{{ $link->instagram }}" target="_blank">Instagram</a></li>
-        @endif
-        @if($link->whatsapp)
-            <li><a href="{{ $link->whatsapp }}" target="_blank">WhatsApp</a></li>
-        @endif
-        @if($link->telegram)
-            <li><a href="{{ $link->telegram }}" target="_blank">Telegram</a></li>
-        @endif
-        @if($link->website)
-            <li><a href="{{ $link->website }}" target="_blank">Official Website</a></li>
-        @endif
-    </ul>
+  <div class="content">
+    <div class="links">
+      @if($link->facebook)
+        <a href="{{ $link->facebook }}" target="_blank">Facebook</a>
+      @endif
+      @if($link->instagram)
+        <a href="{{ $link->instagram }}" target="_blank">Instagram</a>
+      @endif
+      @if($link->whatsapp)
+        <a href="{{ $link->whatsapp }}" target="_blank">WhatsApp</a>
+      @endif
+      @if($link->telegram)
+        <a href="{{ $link->telegram }}" target="_blank">Telegram</a>
+      @endif
+      @if($link->website)
+        <a href="{{ $link->website }}" target="_blank">Official Website</a>
+      @endif
+    </div>
+
+    <footer>
+      A Project by:<br>Christian Hope Center
+    </footer>
+  </div>
 </body>
 </html>
