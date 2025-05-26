@@ -3,21 +3,13 @@
 namespace App\Filament\Resources;
 
 use App\Enums\Gender;
+use App\Enums\Roles;
 use App\Filament\Exports\StudentExporter;
 use App\Filament\Resources\StudentResource\Pages;
 use App\Filament\Resources\StudentResource\RelationManagers;
 use App\Models\{City, Education, Street, Student, StudentEntry};
 
-use Filament\Forms\Components\{Checkbox,
-    DatePicker,
-    DateTimePicker,
-    Fieldset,
-    Select,
-    Textarea,
-    TextInput,
-    Toggle,
-    Wizard
-};
+use Filament\Forms\Components\{Checkbox, DatePicker, DateTimePicker, Fieldset, Select, Textarea, TextInput, Toggle, Wizard};
 use Filament\Actions\Exports\Enums\ExportFormat;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
@@ -54,13 +46,7 @@ class StudentResource extends Resource
 
     public static function form(Form $form): Form
     {
-        return $form->schema([
-            Wizard::make([
-                self::personalInformationStep(),
-                self::contactInformationStep(),
-                self::educationStep(),
-            ])->columnSpanFull(),
-        ]);
+        return $form->schema([Wizard::make([self::personalInformationStep(), self::contactInformationStep(), self::educationStep()])->columnSpanFull()]);
     }
 
     protected static function personalInformationStep(): Wizard\Step
@@ -139,7 +125,7 @@ class StudentResource extends Resource
                     ->required()
                     ->preload()
                     ->live()
-//                    ->default(auth()->user()->city_id) // Set default to the user's city
+                    ->default(auth()->user()->city_id) // Set default to the user's city
                     ->reactive()  // Make city_id reactive
                     ->afterStateUpdated(fn($state, callable $set) => $set('street_id', null)), // Reset street_id when city changes
 
@@ -178,7 +164,8 @@ class StudentResource extends Resource
         return Wizard\Step::make(__('general.labels.education'))
             ->schema([
                 \Filament\Forms\Components\Repeater::make('educations')
-                    ->relationship('studentEducations')->label(__('general.labels.educations'))
+                    ->relationship('studentEducations')
+                    ->label(__('general.labels.educations'))
                     ->schema([
                         Select::make('education_id')
                             ->label(__('general.labels.education'))
@@ -212,36 +199,21 @@ class StudentResource extends Resource
             ->modifyQueryUsing(fn(Builder $query) => self::filterQueryByRole($query))
             ->columns(self::tableColumns())
             ->filters(self::tableFilters())
-            ->toggleColumnsTriggerAction(
-                fn(Action $action) => $action
-                    ->button()
-                    ->label('Toggle columns'),
-            )
-            ->headerActions([
-                ExportAction::make()
-                    ->exporter(StudentExporter::class)
-                ->formats([
-                    ExportFormat::Xlsx
-                ])
-            ])
+            ->toggleColumnsTriggerAction(fn(Action $action) => $action->button()->label('Toggle columns'))
             ->actions(self::tableActions())
             ->bulkActions([
                 ExportBulkAction::make()
                     ->exporter(StudentExporter::class)
-                    ->formats([
-                        ExportFormat::Xlsx
-                    ]),
-                Tables\Actions\BulkActionGroup::make([Tables\Actions\DeleteBulkAction::make(),
-
-
-                    ]
-                )]);
+                    ->formats([ExportFormat::Xlsx]),
+                Tables\Actions\BulkActionGroup::make([Tables\Actions\DeleteBulkAction::make()]),
+            ]);
     }
 
     protected static function tableColumns(): array
     {
         return [
-            TextColumn::make('firstname')->label('Full name')
+            TextColumn::make('firstname')
+                ->label('Full name')
                 ->formatStateUsing(fn(Model $record) => $record->firstname . ' ' . $record->father_name . ' ' . $record->lastname)
                 ->sortable(['firstname', 'lastname'])
                 ->searchable(query: function (Builder $query, string $search): Builder {
@@ -254,38 +226,40 @@ class StudentResource extends Resource
             TextColumn::make('phone')->label('Phone')->sortable()->searchable()->toggleable(),
             TextColumn::make('entries_count')->counts('entries')->label('Entries')->sortable()->toggleable(),
             TextColumn::make('whatsapp')->label('Whatsapp')->sortable()->searchable()->toggleable(),
-            TextColumn::make('street.name')->label('Street')
-                ->toggleable()
-                ->sortable()->searchable(),
+            TextColumn::make('street.name')->label('Street')->toggleable()->sortable()->searchable(),
             TextColumn::make('educations')
                 ->label('Educations')
                 ->formatStateUsing(function ($record) {
                     return $record->educations->take(3)->pluck('name')->implode(', ');
-                })->searchable(query: function (Builder $query, string $search): Builder {
-                    return $query->whereHas('educations', function (Builder $studentQuery) use ($search) {
-                        $studentQuery->where('name', 'like', "%{$search}%");
-
-                    });
-                })->toggleable(),
-            TextColumn::make('street.city.name')->label('City')
-                ->visible(auth()->user()->hasRole('general_admin'))
-                ->sortable()->searchable(),
+                })
+                ->searchable(
+                    query: function (Builder $query, string $search): Builder {
+                        return $query->whereHas('educations', function (Builder $studentQuery) use ($search) {
+                            $studentQuery->where('name', 'like', "%{$search}%");
+                        });
+                    },
+                )
+                ->toggleable(),
+            TextColumn::make('street.city.name')
+                ->label('City')
+                ->visible(auth()->user()->role === Roles::GeneralAdmin())
+                ->sortable()
+                ->searchable(),
             TextColumn::make('gender')
                 ->label('Gender')
                 ->badge()
                 ->formatStateUsing(fn(string $state) => __("general.genders.{$state}"))
-                ->color(fn(int $state): string => match ($state) {
-                    Gender::Unknown() => 'warning',
-                    Gender::Male() => 'info',
-                    Gender::Female() => 'danger',
-                })->toggleable(),
-
+                ->color(
+                    fn(int $state): string => match ($state) {
+                        Gender::Unknown() => 'warning',
+                        Gender::Male() => 'info',
+                        Gender::Female() => 'danger',
+                    },
+                )
+                ->toggleable(),
 
             CheckboxColumn::make('is_student')->toggleable(),
-            TextColumn::make('created_at')->label('Created at')
-                ->formatStateUsing(fn(Model $record) => $record->created_at->format('Y-m-d'))
-                ->sortable()->searchable()->toggleable(),
-
+            TextColumn::make('created_at')->label('Created at')->formatStateUsing(fn(Model $record) => $record->created_at->format('Y-m-d'))->sortable()->searchable()->toggleable(),
         ];
     }
 
@@ -304,23 +278,24 @@ class StudentResource extends Resource
     protected static function filterQueryByRole(Builder $query): Builder
     {
         $user = Auth::user();
-        return $user->hasRole('general_admin')
-            ? $query
-            : ($user->hasRole(['city_admin', 'center_admin'])
-                ? $query->whereIn('street_id', $user->city->streets->pluck('id')->toArray())
-                : $query->whereRaw('1 = 0'));
+        return $user->role === Roles::GeneralAdmin() ? $query : ($user->role === Roles::CenterAdmin() || $user->role === Roles::CityAdmin() ? $query->whereIn('street_id', $user->city->streets->pluck('id')->toArray()) : $query->whereRaw('1 = 0'));
     }
 
     protected static function tableFilters(): array
     {
 
         if (isset(auth()->user()->city_id)) {
-            $streets = Street::where('city_id', auth()->user()->city_id)->get()->pluck('name', 'id')->toArray();
+            $streets = Street::where('city_id', auth()->user()->city_id)
+                ->get()
+                ->pluck('name', 'id')
+                ->toArray();
         } else {
-
-            if(isset(request()->query()['tableFilters']['city']['value'])){
-                $streets = Street::where('city_id', request()->query()['tableFilters']['city']['value'])->get()->pluck('name', 'id')->toArray();
-            }else{
+            if (isset(request()->query()['tableFilters']['city']['value'])) {
+                $streets = Street::where('city_id', request()->query()['tableFilters']['city']['value'])
+                    ->get()
+                    ->pluck('name', 'id')
+                    ->toArray();
+            } else {
                 $streets = Street::all()->pluck('name', 'id')->toArray();
             }
 
@@ -333,38 +308,19 @@ class StudentResource extends Resource
                 ->preload()
                 ->options(City::all()->pluck('name', 'id'))
                 ->searchable()
-                ->visible(auth()->user()->hasRole('general_admin')),
-            SelectFilter::make('street_id')
-                ->label('Filter by Street')
-                ->preload()
-                ->options($streets)
-                ->searchable(),
+                ->visible(auth()->user()->role === Roles::GeneralAdmin),
+
+            SelectFilter::make('street_id')->label('Filter by Street')->preload()->options($streets)->searchable(),
 
             Filter::make('created_at')
-                ->form([
-                    DatePicker::make('created_from'),
-                    DatePicker::make('created_until'),
-                ])
+                ->form([DatePicker::make('created_from'), DatePicker::make('created_until')])
                 ->query(function (Builder $query, array $data): Builder {
-                    return $query
-                        ->when(
-                            $data['created_from'],
-                            fn(Builder $query, $date): Builder => $query->whereDate('created_at', '>=', $date),
-                        )
-                        ->when(
-                            $data['created_until'],
-                            fn(Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
-                        );
+                    return $query->when($data['created_from'], fn(Builder $query, $date): Builder => $query->whereDate('created_at', '>=', $date))->when($data['created_until'], fn(Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date));
                 }),
-            SelectFilter::make('educations')
-                ->label('Filter by Educations')
-                ->relationship('educations', 'name')
-                ->searchable()
-                ->multiple()
-                ->preload(),
-            SelectFilter::make('gender')
-                ->label('Filter by Gender')
-                ->options(__('general.genders')),
+
+            SelectFilter::make('educations')->label('Filter by Educations')->relationship('educations', 'name')->searchable()->multiple()->preload(),
+
+            SelectFilter::make('gender')->label('Filter by Gender')->options(__('general.genders')),
         ];
     }
 
@@ -474,18 +430,11 @@ class StudentResource extends Resource
 
     public static function canCreate(): bool
     {
-        return auth()->user()->hasRole('center_admin');
-    }
-
-
-
-    public static function canViewAny(): bool
-    {
-        return auth()->user()->can('manage_students');
+        return auth()->user()->role === Roles::CenterAdmin();
     }
 
     public static function canDelete(Model $record): bool
     {
-        return auth()->user()->hasRole('center_admin');
+        return auth()->user()->role === Roles::CenterAdmin();
     }
 }

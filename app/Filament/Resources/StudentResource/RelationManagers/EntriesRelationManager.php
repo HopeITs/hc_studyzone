@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\StudentResource\RelationManagers;
 
+use App\Enums\Roles;
 use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\Fieldset;
 use Filament\Forms\Components\Select;
@@ -25,7 +26,7 @@ class EntriesRelationManager extends RelationManager
     public function form(Form $form): Form
     {
         $user = Auth::user();
-        $isCenterAdmin = $user->hasRole('center_admin');
+        $isCenterAdmin = $user->role === Roles::CenterAdmin();
         return $form->schema([
 
             Forms\Components\Hidden::make('user_id')
