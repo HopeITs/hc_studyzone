@@ -53,6 +53,7 @@ class SyncHelper
 
     public static function syncOnlineToLocal(): int
     {
+
         $lastSync = Activity::max('synced_at') ?? now()->subYear();
         $syncedCount = 0;
 
@@ -72,6 +73,7 @@ class SyncHelper
                     array_diff($allModels, $modelOrder)
                 );
 
+                dd($grouped, $modelOrder,$orderedModels);
                 foreach ($orderedModels as $modelClass) {
                     if (!isset($grouped[$modelClass])) {
                         continue;
