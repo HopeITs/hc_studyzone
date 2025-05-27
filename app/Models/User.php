@@ -14,7 +14,7 @@ use Illuminate\Notifications\Notifiable;
 class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable ,ActivityLog;
+    use HasFactory, Notifiable,ActivityLog;
 
 
 

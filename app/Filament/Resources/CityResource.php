@@ -4,22 +4,19 @@ namespace App\Filament\Resources;
 
 use App\Enums\Roles;
 use App\Filament\Resources\CityResource\Pages;
-use App\Filament\Resources\CityResource\RelationManagers;
 use App\Models\City;
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Resources\Concerns\Translatable;
 use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Tables\Table;
+use Filament\Tables\Actions\Action;
 use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Actions\ViewAction;
-use Filament\Tables\Table;
 use Mvenghaus\FilamentPluginTranslatableInline\Forms\Components\TranslatableContainer;
 
 class CityResource extends Resource
 {
-    use Translatable;
-
     protected static ?string $model = City::class;
     protected static ?int $navigationSort = 2;
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
@@ -33,8 +30,14 @@ class CityResource extends Resource
     {
         return $form->schema([
             TranslatableContainer::make(
-                Forms\Components\TextInput::make('name')->required()),
+                Forms\Components\TextInput::make('name')->required()
+            ),
             Forms\Components\TextInput::make('code')->required(),
+            Forms\Components\TextInput::make('facebook')->label('Facebook URL')->url(),
+            Forms\Components\TextInput::make('instagram')->label('Instagram URL')->url(),
+            Forms\Components\TextInput::make('whatsapp')->label('WhatsApp URL')->url(),
+            Forms\Components\TextInput::make('telegram')->label('Telegram URL')->url(),
+            Forms\Components\TextInput::make('website')->label('Website URL')->url(),
         ]);
     }
 
@@ -45,13 +48,22 @@ class CityResource extends Resource
                 Tables\Columns\TextColumn::make('name')->sortable()->searchable(),
                 Tables\Columns\TextColumn::make('code')->sortable(),
             ])
-            ->filters([
-                //
-            ])
             ->actions([
                 ViewAction::make(),
                 EditAction::make(),
-
+                Action::make('Manage Social Links')
+                    ->label('Social Links')
+                    ->icon('heroicon-o-link')
+                    ->url(fn ($record) =>
+                        $record->socialLink
+                            ? route('filament.admin.resources.social-links.edit', ['record' => $record->socialLink->id])
+                            : route('info.show', ['city' => $record->code])
+                    )
+                    ->visible(fn ($record) =>
+                        auth()->user()->role === Roles::GeneralAdmin() ||
+                        auth()->user()->city === $record->name
+                    )
+                    ->color('info'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -62,9 +74,7 @@ class CityResource extends Resource
 
     public static function getRelations(): array
     {
-        return [
-            //
-        ];
+        return [];
     }
 
     public static function getPages(): array

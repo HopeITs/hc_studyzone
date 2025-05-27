@@ -9,10 +9,21 @@ use App\Filament\Resources\StudentResource\Pages;
 use App\Filament\Resources\StudentResource\RelationManagers;
 use App\Models\{City, Education, Street, Student, StudentEntry};
 
-use Filament\Forms\Components\{Checkbox, DatePicker, DateTimePicker, Fieldset, Select, Textarea, TextInput, Toggle, Wizard};
+use Filament\Forms\Components\{Checkbox,
+    DatePicker,
+    DateTimePicker,
+    Fieldset,
+    Select,
+    Textarea,
+    TextInput,
+    Toggle,
+    Wizard
+};
+use Closure;
 use Filament\Actions\Exports\Enums\ExportFormat;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
+use Filament\Forms\Set;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Actions\{Action, ActionGroup, ExportAction, ExportBulkAction};
@@ -26,12 +37,14 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
-use PhpOffice\PhpSpreadsheet\Calculation\TextData\Format;
+
+use Livewire\Component as Livewire;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class StudentResource extends Resource
 {
     use InteractsWithPageFilters;
+
     protected static ?string $model = Student::class;
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
     protected static ?int $navigationSort = 6;
@@ -53,55 +66,121 @@ class StudentResource extends Resource
     {
         return Wizard\Step::make(__('general.labels.personal_information'))
             ->schema([
-                TextInput::make('firstname')->label(__('general.labels.firstname'))->required()->maxLength(255)->columnSpan(1),
+                TextInput::make('firstname')
+                    ->label(__('general.labels.firstname'))
+                    ->required()
+                    ->maxLength(255)
+                    ->columnSpan(1),
 
-                TextInput::make('lastname')->label(__('general.labels.lastname'))->required()->maxLength(255)->columnSpan(1),
+                TextInput::make('lastname')
+                    ->label(__('general.labels.lastname'))
+                    ->required()
+                    ->maxLength(255)
+                    ->columnSpan(1),
 
-                TextInput::make('father_name')->label(__('general.labels.father_name'))->required()->maxLength(255)->columnSpan(1),
+                TextInput::make('father_name')
+                    ->label(__('general.labels.father_name'))
+                    ->required()
+                    ->maxLength(255)
+                    ->columnSpan(1),
 
-                TextInput::make('national_number')->label(__('general.labels.national_number'))->required(fn(Get $get) => !$get('is_child'))->disabled(fn(Get $get) => $get('is_child'))->unique(ignoreRecord: true)->columnSpan(2),
-                Checkbox::make('is_child')->reactive()->label('قاصر')->default(false),
-                Select::make('gender')->label(__('general.labels.gender'))->options(__('general.genders'))->required()->columnSpan(1),
+                TextInput::make('national_number')
+                    ->label(__('general.labels.national_number'))
+                    ->required(fn(Get $get) => !$get('is_child'))
+                    ->disabled(fn(Get $get) => $get('is_child'))
+                    ->unique(ignoreRecord: true)
+                    ->columnSpan(2),
 
-                Select::make('religion')->label(__('general.labels.religion'))->options(__('general.religions'))->default(0)->columnSpan(1),
+                Checkbox::make('is_child')
+                    ->label('قاصر')
+                    ->default(false)
+                    ->reactive()
+                    ->afterStateHydrated(function ($set, $get, $state, $livewire) {
+                        $record = $livewire->record ?? null;
+                        if ($record && is_null($record->national_number)) {
+                            $set('is_child', true);
+                        }
+                    }),
 
-                DatePicker::make('year_of_birth')->label(__('general.labels.date_of_birth'))->columnSpan(1),
+                Select::make('gender')
+                    ->label(__('general.labels.gender'))
+                    ->options(__('general.genders'))
+                    ->required()
+                    ->columnSpan(1),
 
-                Toggle::make('is_student')->label(__('general.labels.is_student'))->columnSpan(1),
+                Select::make('religion')
+                    ->label(__('general.labels.religion'))
+                    ->options(__('general.religions'))
+                    ->default(0)
+                    ->columnSpan(1),
 
-                Toggle::make('is_employed')->label(__('general.labels.is_employed'))->columnSpan(1),
+                DatePicker::make('year_of_birth')
+                    ->label(__('general.labels.date_of_birth'))
+                    ->columnSpan(1),
 
-                Textarea::make('notes')->label(__('general.labels.notes'))->maxLength(500)->columnSpan(3),
+                Toggle::make('is_student')
+                    ->label(__('general.labels.is_student'))
+                    ->columnSpan(1),
+
+                Toggle::make('is_employed')
+                    ->label(__('general.labels.is_employed'))
+                    ->columnSpan(1),
+
+                Textarea::make('notes')
+                    ->label(__('general.labels.notes'))
+                    ->maxLength(500)
+                    ->columnSpan(3),
             ])
             ->columns(3);
     }
 
     protected static function contactInformationStep(): Wizard\Step
     {
+
         return Wizard\Step::make(__('general.labels.contact_information'))
             ->schema([
+
                 Select::make('city_id')
-                    ->label(__('general.labels.city'))
-                    ->relationship('street.city', 'name')
-                    ->searchable()
-                    ->required()
-                    ->preload()
                     ->live()
-//                    ->default(auth()->user()->city_id) // Set default to the user's city
-                    ->reactive()  // Make city_id reactive
-                    ->afterStateUpdated(fn($state, callable $set) => $set('street_id', null)), // Reset street_id when city changes
-
+                    ->label(__('general.labels.city'))
+                    ->dehydrated(false)
+                    ->searchable()
+                    ->default(auth()->user()->city_id)
+                    ->preload()
+                    ->options(City::pluck('name', 'id'))
+                    ->afterStateUpdated(fn($state, callable $set) => $set('street_id', null)),
                 Select::make('street_id')
+                    ->required()
+                    ->searchable()
+                    ->preload()
                     ->label(__('general.labels.street'))
-                    ->options(fn(Get $get): \Illuminate\Support\Collection => Street::query()->where('city_id', $get('city_id'))->pluck('name', 'id'))
-                    ->searchable() // Make streets searchable
-                    ->required(), // Make street selection mandatory
-                TextInput::make('phone')->label(__('general.labels.phone'))->required(),
+                    ->placeholder(fn(Get $get): string => empty($get('city_id')) ? 'First select City' : 'Select an option')
+                    ->options(function (?Student $record, Get $get, Set $set) {
+                        if (!empty($record) && empty($get('city_id'))) {
+                            $set('city_id', $record->street->city_id);
+                            $set('street_id', $record->street_id);
+                        }
 
-                TextInput::make('whatsapp')->label(__('general.labels.whatsapp')),
-                TextInput::make('email')->label(__('general.labels.email'))->unique(ignoreRecord: true),
+                        return Street::where('city_id', $get('city_id'))->pluck('name', 'id');
+                    }),
 
-                TextInput::make('address')->label(__('general.labels.address'))->maxLength(255),
+
+                TextInput::make('phone')
+                    ->label(__('general.labels.phone'))
+                    ->required(),
+
+                TextInput::make('whatsapp')
+                    ->label(__('general.labels.whatsapp'))
+                ,
+
+                TextInput::make('email')
+                    ->label(__('general.labels.email'))
+                    ->unique(ignoreRecord: true),
+
+                TextInput::make('address')
+                    ->label(__('general.labels.address'))
+                    ->maxLength(255)
+                ,
             ])
             ->columns(2);
 
@@ -121,9 +200,15 @@ class StudentResource extends Resource
                             ->searchable()
                             ->required(),
 
-                        Select::make('level')->label(__('general.labels.education_level'))->options(__('general.edu-levels'))->required(),
+                        Select::make('level')
+                            ->label(__('general.labels.education_level'))
+                            ->options(__('general.edu-levels'))
+                            ->required(),
 
-                        Select::make('type')->label(__('general.labels.education_type'))->options(__('general.edu-types'))->required(),
+                        Select::make('type')
+                            ->label(__('general.labels.education_type'))
+                            ->options(__('general.edu-types'))
+                            ->required(),
                     ])
                     ->columns(2)
                     ->minItems(1)
@@ -142,11 +227,6 @@ class StudentResource extends Resource
             ->columns(self::tableColumns())
             ->filters(self::tableFilters())
             ->toggleColumnsTriggerAction(fn(Action $action) => $action->button()->label('Toggle columns'))
-            ->headerActions([
-                ExportAction::make()
-                    ->exporter(StudentExporter::class)
-                    ->formats([ExportFormat::Xlsx]),
-            ])
             ->actions(self::tableActions())
             ->bulkActions([
                 ExportBulkAction::make()
@@ -163,14 +243,12 @@ class StudentResource extends Resource
                 ->label('Full name')
                 ->formatStateUsing(fn(Model $record) => $record->firstname . ' ' . $record->father_name . ' ' . $record->lastname)
                 ->sortable(['firstname', 'lastname'])
-                ->searchable(
-                    query: function (Builder $query, string $search): Builder {
-                        return $query
-                            ->where('firstname', 'like', "%{$search}%")
-                            ->orWhere('lastname', 'like', "%{$search}%")
-                            ->orWhere('father_name', 'like', "%{$search}%");
-                    },
-                ),
+                ->searchable(query: function (Builder $query, string $search): Builder {
+                    return $query
+                        ->where('firstname', 'like', "%{$search}%")
+                        ->orWhere('lastname', 'like', "%{$search}%")
+                        ->orWhere('father_name', 'like', "%{$search}%");
+                }),
             TextColumn::make('year_of_birth')->label('Date of Birth')->sortable()->toggleable(),
             TextColumn::make('phone')->label('Phone')->sortable()->searchable()->toggleable(),
             TextColumn::make('entries_count')->counts('entries')->label('Entries')->sortable()->toggleable(),
@@ -208,9 +286,7 @@ class StudentResource extends Resource
                 ->toggleable(),
 
             CheckboxColumn::make('is_student')->toggleable(),
-            TextColumn::make('created_at')->label('Created at')
-                ->formatStateUsing(fn(Model $record) => $record->created_at->format('Y-m-d'))
-                ->sortable()->searchable()->toggleable(),
+            TextColumn::make('created_at')->label('Created at')->formatStateUsing(fn(Model $record) => $record->created_at->format('Y-m-d'))->sortable()->searchable()->toggleable(),
         ];
     }
 
@@ -278,18 +354,43 @@ class StudentResource extends Resource
     protected static function tableActions(): array
     {
         return [
-            Tables\Actions\Action::make('view_qr_code')->label(__('general.labels.view_qr_code'))->icon('heroicon-o-qr-code')->modalHeading(__('general.labels.qr_code_modal_heading'))->modalContent(fn(Student $record) => self::qrCodeModalContent($record))->modalCancelAction(false)->modalSubmitAction(false),
+            Tables\Actions\Action::make('view_qr_code')
+                ->label(__('general.labels.view_qr_code'))
+                ->icon('heroicon-o-qr-code')
+                ->modalHeading(__('general.labels.qr_code_modal_heading'))
+                ->modalContent(fn(Student $record) => self::qrCodeModalContent($record))
+                ->modalCancelAction(false)
+                ->modalSubmitAction(false),
 
             Tables\Actions\Action::make('entry')
                 ->label(__('general.labels.entry'))
                 ->icon('heroicon-o-document-text')
                 ->form([
-                    Select::make('entry_type')->label(__('general.labels.entry_type'))->default(1)->options(__('general.entry-types'))->columnSpan(1)->required(),
-                    DateTimePicker::make('entry_time')->label(__('general.labels.entry_time'))->default(now())->columnSpan(1)->required(),
-                    Fieldset::make('Services')
-                        ->label('خدمات')
-                        ->schema([Checkbox::make('use_printer')->reactive()->label('خدمة طباعة')->default(false), Checkbox::make('use_drawer')->reactive()->label('خدمة مرسم')->default(false), Checkbox::make('use_mecrator')->reactive()->label('خدمة ميكراتور')->default(false)])
-                        ->columns(3),
+
+
+                    Select::make('entry_type')
+                        ->label(__('general.labels.entry_type'))->default(1)
+                        ->options(__('general.entry-types'))->columnSpan(1)
+                        ->required(),
+                    DateTimePicker::make('entry_time')->label(__('general.labels.entry_time'))
+                        ->default(now())->columnSpan(1)
+                        ->required(),
+                    Fieldset::make('Services')->label('خدمات')
+                        ->schema([
+                            Checkbox::make('use_printer')->reactive()
+                                ->label('خدمة طباعة')
+                                ->default(false)
+                            ,
+                            Checkbox::make('use_drawer')->reactive()
+                                ->label('خدمة مرسم')
+                                ->default(false)
+                            ,
+                            Checkbox::make('use_mecrator')->reactive()
+                                ->label('خدمة ميكراتور')
+                                ->default(false)
+                            ,
+                        ])->columns(3)
+
                 ])
                 ->modalHeading(__('general.labels.record_student_entry'))
                 ->modalButton(__('general.labels.save_entry'))
@@ -303,17 +404,26 @@ class StudentResource extends Resource
                         'use_drawer' => $data['use_drawer'],
                         'use_printer' => $data['use_printer'],
                         'use_mecrator' => $data['use_mecrator'],
-                    ]),
+
+                    ])
                 )
                 ->successNotificationTitle(__('general.labels.entry_recorded_successfully')),
 
-            ActionGroup::make([Tables\Actions\ViewAction::make(), Tables\Actions\EditAction::make(), Tables\Actions\DeleteAction::make()])->icon('heroicon-m-ellipsis-horizontal'),
+            ActionGroup::make([
+                Tables\Actions\ViewAction::make(),
+                Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make(),
+            ])->icon('heroicon-m-ellipsis-horizontal'),
         ];
     }
 
     public static function getRelations(): array
     {
-        return [RelationManagers\EntriesRelationManager::class, RelationManagers\EducationsRelationManager::class];
+        return [
+            RelationManagers\EntriesRelationManager::class,
+            RelationManagers\EducationsRelationManager::class,
+
+        ];
     }
 
     public static function getPages(): array
@@ -327,7 +437,16 @@ class StudentResource extends Resource
 
     public static function getGlobalActions(): array
     {
-        return [Action::make('scan:qrcode')->label('Open Camera')->icon('heroicon-o-camera')->modalHeading('Scan QR Code')->modalContent(fn() => view('filament.qr-code-scanner'))->modalSubmitAction(false)->modalCancelActionLabel('Close')->modalId('scan-qr-code')];
+        return [
+            Action::make('scan:qrcode')
+                ->label('Open Camera')
+                ->icon('heroicon-o-camera')
+                ->modalHeading('Scan QR Code')
+                ->modalContent(fn() => view('filament.qr-code-scanner'))
+                ->modalSubmitAction(false)
+                ->modalCancelActionLabel('Close')
+                ->modalId('scan-qr-code'),
+        ];
     }
 
     public static function mutateFormDataBeforeCreate(array $data): array
