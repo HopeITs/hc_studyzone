@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Enums\Roles;
 use App\Filament\Resources\UserResource\Pages;
 use App\Models\Center;
 use App\Models\User;
@@ -40,11 +41,11 @@ class UserResource extends Resource
     {
         $user = auth()->user();
 
-        if ($user->hasRole('general_admin')) {
+        if ($user->role === Roles::GeneralAdmin()) {
             return $query; // See all users
-        } elseif ($user->hasRole('city_admin')) {
+        } elseif ($user->role === Roles::CityAdmin()) {
             return $query->where('city_id', $user->city_id);
-        } elseif ($user->hasRole('center_admin')) {
+        } elseif ($user->role === Roles::CenterAdmin()) {
             return $query->where('center_id', $user->center_id);
         }
 
@@ -59,10 +60,10 @@ class UserResource extends Resource
                 ->label('Name')
                 ->required(),
 
-            Select::make('roles')
+            Select::make('role')
                 ->label('User Role')
-                ->relationship('roles', 'name')
-                ->disabled(fn () => !auth()->user()->hasRole('general_admin'))
+                ->options(__('general.roles'))
+                ->disabled(fn () => !auth()->user()->role === Roles::GeneralAdmin())
 
                 ->required(),
 
@@ -84,7 +85,7 @@ class UserResource extends Resource
                 ->searchable()
                 ->preload()
                 ->live()
-                ->required(fn ($get) => in_array($get('roles'), ['city_admin', 'center_admin'])),
+                ->required(fn ($get) => in_array($get('role'), [Roles::CenterAdmin(), Roles::CityAdmin()])),
 
             // Center Selection (Filtered by Selected City)
             Select::make('center_id')
@@ -92,7 +93,7 @@ class UserResource extends Resource
                 ->searchable()
                 ->preload()
                 ->options(fn ($get) => Center::where('city_id', $get('city_id'))->pluck('name', 'id')) // 👈 Filters centers based on selected city
-                ->required(fn ($get) => $get('roles') === 'center_admin'),
+                ->required(fn ($get) => $get('role') === 'center_admin'),
 
             Toggle::make('is_active')
                 ->label('Active User')
@@ -114,8 +115,9 @@ class UserResource extends Resource
                     ->sortable()
                     ->searchable(),
 
-                BadgeColumn::make('roles.name')
-                    ->label('Role')
+                BadgeColumn::make('role')
+                ->formatStateUsing(fn ($state) => __('general.roles.'.$state))
+                ->label('Role')
                   ,
 
                 TextColumn::make('city.name')
@@ -139,8 +141,8 @@ class UserResource extends Resource
                     ->formatStateUsing(fn ($state) => $state ? 'Active' : 'Inactive'),
             ])
             ->filters([
-                SelectFilter::make('roles')
-                    ->relationship('roles', 'name')
+                SelectFilter::make('role')
+                    ->options(__('general.roles'))
                     ->label('Filter by Role')
                    ,
                 SelectFilter::make('city_id')
@@ -187,20 +189,20 @@ class UserResource extends Resource
 
     public static function canCreate(): bool
     {
-        return auth()->user()->hasRole('general_admin') || auth()->user()->hasRole('city_admin');
+        return auth()->user()->role === Roles::GeneralAdmin();
     }
 
     public static function canEdit(Model $record): bool
     {
-        return auth()->user()->hasRole('general_admin');
+        return auth()->user()->role === Roles::GeneralAdmin();
     }
 
     public static function canDelete(Model $record): bool
     {
-        return auth()->user()->hasRole('general_admin');
+        return auth()->user()->role === Roles::GeneralAdmin();
     }
     public static function canViewAny(): bool
     {
-        return auth()->user()->can('manage_admins');
+        return auth()->user()->role === Roles::GeneralAdmin();
     }
 }

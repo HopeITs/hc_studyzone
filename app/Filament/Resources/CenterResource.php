@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Enums\Roles;
 use App\Filament\Resources\CenterResource\Pages;
 use App\Filament\Resources\CenterResource\RelationManagers;
 use App\Models\Center;
@@ -29,7 +30,7 @@ class CenterResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->user()->hasRole('general_admin');
+        return auth()->user()->role === Roles::GeneralAdmin();
     }
     public static function form(Form $form): Form
     {

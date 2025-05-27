@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Enums\Roles;
 use App\Filament\Resources\EntryResource\Pages;
 use App\Filament\Resources\EntryResource\Widgets\EntryStats;
 use App\Models\StudentEntry;
@@ -32,17 +33,17 @@ class EntryResource extends Resource
     {
         $user = Auth::user();
 
-        if ($user->hasRole('general_admin')) {
+        if ($user->role === Roles::GeneralAdmin()) {
             return parent::getEloquentQuery();
         }
 
-        if ($user->hasRole('city_admin')) {
+        if ($user->role === Roles::GeneralAdmin()) {
             return parent::getEloquentQuery()->whereHas('center', function ($query) use ($user) {
                 $query->where('city_id', $user->city_id);
             });
         }
 
-        if ($user->hasRole('center_admin')) {
+        if ($user->role === Roles::GeneralAdmin()) {
             return parent::getEloquentQuery()->where('center_id', $user->center_id);
         }
 
@@ -129,13 +130,13 @@ class EntryResource extends Resource
                 TextColumn::make('center.city.name')
                     ->label('المدينة')
                     ->sortable()
-                    ->visible(auth()->user()->hasRole('general_admin'))
+                    ->visible(auth()->user()->role === Roles::GeneralAdmin())
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('center.name')
                     ->label('المركز')
                     ->sortable()
-                    ->hidden(auth()->user()->hasRole('center_admin'))
+                    ->hidden(auth()->user()->role === Roles::CenterAdmin())
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 CheckboxColumn::make('use_printer')->label('طباعة'),
@@ -170,14 +171,14 @@ class EntryResource extends Resource
                     ->label('المدينة')
                     ->relationship('center.city', 'name')
                     ->searchable()
-                    ->visible(auth()->user()->hasRole('general_admin'))
+                    ->visible(auth()->user()->role === Roles::GeneralAdmin())
                     ->multiple()
                     ->preload(),
                 SelectFilter::make('center_id')
                     ->label('المركز')
                     ->relationship('center', 'name')
                     ->searchable()
-                    ->hidden(auth()->user()->hasRole('center_admin'))
+                    ->hidden(auth()->user()->role === Roles::CenterAdmin())
                     ->multiple()
                     ->preload(),
             ])
@@ -209,8 +210,6 @@ class EntryResource extends Resource
 
         ];
     }
-
-
 
     public static function getWidgets(): array
     {

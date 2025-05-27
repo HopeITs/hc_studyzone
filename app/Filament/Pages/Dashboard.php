@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Enums\Roles;
 use App\Models\Center;
 use App\Models\City;
 use Filament\Forms\Components\DatePicker;
@@ -22,17 +23,15 @@ class Dashboard extends BaseDashboard
             ->schema([
                 Section::make()
                     ->schema([
-                        Select::make('city')->options(City::pluck('name', 'id'))->multiple()->visible(auth()->user()->hasRole('general_admin'))->columnSpanFull(),
-                        Select::make('center')->options(Center::pluck('name', 'id'))->multiple()->columnSpanFull()->visible(auth()->user()->hasRole('general_admin')),
-                        Select::make('center')->options(Center::where('city_id' , auth()->user()->city_id)->pluck('name', 'id'))->multiple()->columnSpanFull()->hidden(auth()->user()->hasRole('general_admin')),
+                        Select::make('city')->options(City::pluck('name', 'id'))->multiple()->visible(auth()->user()->role === Roles::GeneralAdmin())->columnSpanFull(),
+                        Select::make('center')->options(Center::pluck('name', 'id'))->multiple()->columnSpanFull()->visible(auth()->user()->role === Roles::GeneralAdmin()),
+                        Select::make('center')->options(Center::where('city_id' , auth()->user()->city_id)->pluck('name', 'id'))->multiple()->columnSpanFull()->hidden(auth()->user()->role === Roles::GeneralAdmin()),
 
                         DatePicker::make('startDate')
                             ->maxDate(fn (Get $get) => $get('endDate') ?: now()),
                         DatePicker::make('endDate')
                             ->minDate(fn (Get $get) => $get('startDate') ?: now())
                             ->maxDate(now()),
-
-
                     ])
                     ->columns(2),
             ]);

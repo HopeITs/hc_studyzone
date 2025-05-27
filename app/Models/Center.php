@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use App\Traits\ActivityLog;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\Translatable\HasTranslations;
 
 class Center extends Model
 {
-    use HasFactory , HasTranslations;
+    use HasFactory , HasTranslations ,ActivityLog;
 
     protected $translatable = ['name'];
 

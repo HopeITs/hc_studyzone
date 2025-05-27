@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Enums\Roles;
 use App\Filament\Resources\EducationResource\Pages;
 use App\Filament\Resources\EducationResource\RelationManagers;
 use App\Models\Education;
@@ -35,7 +36,7 @@ class EducationResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->user()->hasRole('general_admin');
+        return auth()->user()->role === Roles::GeneralAdmin();
     }
     public static function form(Form $form): Form
     {

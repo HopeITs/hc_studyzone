@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\ActivityLog;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Models\Contracts\HasName;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -11,9 +12,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+
 class Student extends Model implements  HasName
 {
-    use HasUuids, HasFactory;
+    use HasUuids, HasFactory, ActivityLog;
 
     public $incrementing = false; // Disable auto-increment
     protected $keyType = 'string'; // UUIDs are stored as strings

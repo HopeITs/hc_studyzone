@@ -1,10 +1,11 @@
 <?php
+
 namespace App\Filament\Pages;
 
-use App\Helpers\SyncHelper;
 use Filament\Pages\Page;
 use Illuminate\Support\Facades\Artisan;
 use Filament\Notifications\Notification;
+use App\Helpers\SyncHelper;
 
 class SyncData extends Page
 {
@@ -20,18 +21,15 @@ class SyncData extends Page
                 ->body('Please check your internet connection and try again.')
                 ->persistent()
                 ->send();
-
             return;
         }
-
 
         Artisan::call('sync:data');
 
         Notification::make()
-            ->title('Sync Completed')
+            ->title('✅ Sync Completed')
             ->success()
             ->body('Local data has been successfully synchronized with the online server.')
             ->send();
     }
 }
-
