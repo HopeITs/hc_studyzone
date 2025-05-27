@@ -32,6 +32,7 @@ use SimpleSoftwareIO\QrCode\Facades\QrCode;
 class StudentResource extends Resource
 {
     use InteractsWithPageFilters;
+
     protected static ?string $model = Student::class;
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
     protected static ?int $navigationSort = 6;
@@ -116,26 +117,28 @@ class StudentResource extends Resource
 
     protected static function contactInformationStep(): Wizard\Step
     {
+
         return Wizard\Step::make(__('general.labels.contact_information'))
             ->schema([
                 Select::make('city_id')
                     ->label(__('general.labels.city'))
-                    ->relationship('street.city', 'name')
+                    ->relationship( 'street.city','name')
                     ->searchable()
                     ->required()
                     ->preload()
-                    ->live()
-                    ->default(auth()->user()->city_id) // Set default to the user's city
-                    ->reactive()  // Make city_id reactive
-                    ->afterStateUpdated(fn($state, callable $set) => $set('street_id', null)), // Reset street_id when city changes
+                    ->default(auth()->user()->city_id)
+                    ->reactive()
+                    ->afterStateUpdated(fn($state, callable $set) => $set('street_id', null)),
 
+                // Street Select: Depends on city_id
                 Select::make('street_id')
                     ->label(__('general.labels.street'))
                     ->options(fn(Get $get): \Illuminate\Support\Collection => Street::query()
-                        ->where('city_id', $get('city_id'))
+                        ->when($get('city_id'), fn($query, $cityId) => $query->where('city_id', $cityId))
                         ->pluck('name', 'id'))
-                    ->searchable()  // Make streets searchable
-                    ->required()  // Make street selection mandatory
+                    ->searchable()
+                    ->preload()
+                    ->required()
                 ,
 
                 TextInput::make('phone')
