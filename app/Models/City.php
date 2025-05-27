@@ -6,6 +6,7 @@ use App\Traits\ActivityLog;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Spatie\Translatable\HasTranslations;
 
 class City extends Model
@@ -20,9 +21,9 @@ class City extends Model
         return $this->hasMany(Center::class);
     }
 
-    public function students(): HasMany
+    public function students(): HasManyThrough
     {
-        return $this->hasMany(Student::class);
+        return $this->hasManyThrough(Student::class , Street::class);
     }
 
     public function streets(): HasMany
