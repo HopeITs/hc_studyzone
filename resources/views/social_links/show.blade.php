@@ -35,8 +35,9 @@
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            padding: 1rem 0.5rem 1rem 1rem;
+            padding: 1rem 1.25rem;
             box-sizing: border-box;
+            flex-wrap: wrap;
         }
 
         .left-logo {
@@ -47,7 +48,7 @@
             display: flex;
             flex-direction: column;
             align-items: flex-end;
-            margin-right: 0.5rem;
+            margin-right: 1.25rem;
         }
 
         .right-logo {
@@ -56,9 +57,10 @@
 
         .city {
             margin-top: 0.5rem;
-            font-size: 2.75rem;
+            font-size: clamp(1.75rem, 5vw, 2.75rem);
             text-transform: uppercase;
             text-align: right;
+            padding-right: 0.5rem;
         }
 
         .content {
@@ -116,8 +118,48 @@
             right: 0;
             bottom: 0;
             height: 10px;
-            padding-bottom: 1.1%;
             background: #f59a24;
+        }
+
+        @media (max-width: 576px) {
+            .header {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+
+            .right-block {
+                align-items: center;
+                margin-right: 0;
+            }
+
+            .left-logo {
+                height: 80px;
+            }
+
+            .right-logo {
+                height: 30px;
+            }
+
+            .links a {
+                font-size: 1.1rem;
+                padding: 1rem;
+            }
+        }
+
+        @media (max-width: 350px) {
+            .city {
+                font-size: 1.5rem;
+            }
+
+            .links a {
+                font-size: 1rem;
+                padding: 0.75rem;
+            }
+
+            .content {
+                padding-top: 6rem;
+            }
         }
     </style>
 </head>
@@ -131,7 +173,7 @@
         </div>
     </header>
 
-    <div class="content">
+    <div class="content container">
         <div class="links">
             @if ($city->facebook)
                 <a href="{{ $city->facebook }}" target="_blank">Facebook</a>
