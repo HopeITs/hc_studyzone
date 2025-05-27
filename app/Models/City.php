@@ -10,8 +10,7 @@ use Spatie\Translatable\HasTranslations;
 
 class City extends Model
 {
-
-    use HasTranslations,ActivityLog;
+    use HasTranslations, ActivityLog;
 
     protected $translatable = ['name'];
     protected $guarded = ['id'];
@@ -26,7 +25,13 @@ class City extends Model
         return $this->hasMany(Student::class);
     }
 
-    public function streets():HasMany{
+    public function streets(): HasMany
+    {
         return $this->hasMany(Street::class);
+    }
+
+    public function socialLink()
+    {
+        return $this->hasOne(SocialLink::class, 'city', 'name');
     }
 }
