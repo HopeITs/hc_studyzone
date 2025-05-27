@@ -13,13 +13,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 
-class Student extends Model implements  HasName
+class Student extends Model implements HasName
 {
     use HasUuids, HasFactory, ActivityLog;
 
     public $incrementing = false; // Disable auto-increment
     protected $keyType = 'string'; // UUIDs are stored as strings
-    protected $guarded = ['is_child' , 'city_id'];
+    protected $guarded = ['is_child', 'city_id'];
     protected $primaryKey = 'id';
 
 
@@ -47,7 +47,10 @@ class Student extends Model implements  HasName
         return $this->hasMany(StudentEducation::class, 'student_id');
     }
 
-
+    public function city()
+    {
+        return $this->street()->withDefault()->city;
+    }
 
     // Method to get the QR code path
     public function getQrCodePath(): string
