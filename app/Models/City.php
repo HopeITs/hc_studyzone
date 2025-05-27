@@ -30,8 +30,4 @@ class City extends Model
         return $this->hasMany(Street::class);
     }
 
-    public function socialLink()
-    {
-        return $this->hasOne(SocialLink::class, 'city', 'name');
-    }
 }

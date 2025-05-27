@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\City;
 use App\Models\SocialLink;
 use Illuminate\Http\Request;
 
@@ -12,11 +13,12 @@ class SocialLinkController extends Controller
      */
     public function show($city)
     {
-        $link = SocialLink::where('city', $city)->firstOrFail();
+        $cityObj = City::where('code', $city)->firstOrFail();
 
         return view('social_links.show', [
-            'link' => $link
+            'city' => $cityObj
         ]);
     }
 }
+
 

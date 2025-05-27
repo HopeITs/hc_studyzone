@@ -33,6 +33,11 @@ class CityResource extends Resource
                 Forms\Components\TextInput::make('name')->required()
             ),
             Forms\Components\TextInput::make('code')->required(),
+            Forms\Components\TextInput::make('facebook')->label('Facebook URL')->url(),
+            Forms\Components\TextInput::make('instagram')->label('Instagram URL')->url(),
+            Forms\Components\TextInput::make('whatsapp')->label('WhatsApp URL')->url(),
+            Forms\Components\TextInput::make('telegram')->label('Telegram URL')->url(),
+            Forms\Components\TextInput::make('website')->label('Website URL')->url(),
         ]);
     }
 
@@ -52,7 +57,7 @@ class CityResource extends Resource
                     ->url(fn ($record) =>
                         $record->socialLink
                             ? route('filament.admin.resources.social-links.edit', ['record' => $record->socialLink->id])
-                            : route('filament.admin.resources.social-links.create', ['city' => $record->name])
+                            : route('info.show', ['city' => $record->code])
                     )
                     ->visible(fn ($record) =>
                         auth()->user()->role === Roles::GeneralAdmin() ||
