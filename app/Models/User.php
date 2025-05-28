@@ -3,20 +3,33 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
-use App\Traits\ActivityLog;
+
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable,ActivityLog;
+    use HasFactory, Notifiable,LogsActivity;
 
-
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logAll()
+            ->useLogName(config('activitylog.default_log_name'))
+            ->dontLogIfAttributesChangedOnly(['remember_token']);
+        // Chain fluent methods for configuration options
+    }
+    public function getLogNameToUse(string $eventName = ''): string
+    {
+        return config('activitylog.default_log_name');
+    }
 
     /**
      * The attributes that are mass assignable.

@@ -73,13 +73,10 @@ class SyncHelper
                     $modelOrder,
                     array_diff($allModels, $modelOrder)
                 );
-
-
                 foreach ($orderedModels as $modelClass) {
                     if (!isset($grouped[$modelClass])) {
                         continue;
                     }
-
                     foreach ($grouped[$modelClass] as $activity) {
 
                         try {
@@ -192,6 +189,7 @@ class SyncHelper
         $model->save();
 
         activity(config('activitylog.default_log_name'))
+            ->onConnection('online_mysql')
             ->performedOn($model)
             ->withProperties(['attributes' => $attributes])
             ->log('created');
@@ -208,6 +206,7 @@ class SyncHelper
             $model->update($attributes);
 
             activity(config('activitylog.default_log_name'))
+                ->onConnection('online_mysql')
                 ->performedOn($model)
                 ->withProperties(['attributes' => $attributes])
                 ->log('updated');
@@ -225,6 +224,7 @@ class SyncHelper
             $model->delete();
 
             activity(config('activitylog.default_log_name'))
+                ->onConnection('online_mysql')
                 ->performedOn($model)
                 ->log('deleted');
         }
