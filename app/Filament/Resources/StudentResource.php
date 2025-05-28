@@ -335,7 +335,7 @@ class StudentResource extends Resource
                 ->preload()
                 ->options(City::all()->pluck('name', 'id'))
                 ->searchable()
-                ->visible(auth()->user()->role === Roles::GeneralAdmin),
+                ->visible(auth()->user()->role === Roles::GeneralAdmin()),
 
             SelectFilter::make('street_id')->label('Filter by Street')->preload()->options($streets)->searchable(),
 
