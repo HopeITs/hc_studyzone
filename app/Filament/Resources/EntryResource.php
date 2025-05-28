@@ -37,13 +37,13 @@ class EntryResource extends Resource
             return parent::getEloquentQuery();
         }
 
-        if ($user->role === Roles::GeneralAdmin()) {
+        if ($user->role === Roles::CityAdmin()) {
             return parent::getEloquentQuery()->whereHas('center', function ($query) use ($user) {
                 $query->where('city_id', $user->city_id);
             });
         }
 
-        if ($user->role === Roles::GeneralAdmin()) {
+        if ($user->role === Roles::CenterAdmin()) {
             return parent::getEloquentQuery()->where('center_id', $user->center_id);
         }
 
