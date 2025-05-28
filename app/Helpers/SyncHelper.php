@@ -55,6 +55,7 @@ class SyncHelper
     {
 
         $lastSync = Activity::max('synced_at') ?? now()->subYear();
+
         $syncedCount = 0;
 
         Activity::on('online_mysql')
@@ -73,7 +74,7 @@ class SyncHelper
                     array_diff($allModels, $modelOrder)
                 );
 
-                dd($grouped, $modelOrder,$orderedModels);
+
                 foreach ($orderedModels as $modelClass) {
                     if (!isset($grouped[$modelClass])) {
                         continue;
@@ -86,10 +87,13 @@ class SyncHelper
                             $attributes = $activity->properties['attributes'] ?? [];
                             $attributes['synced_at'] = $synced_at;
                             $query = $modelClass::on('mysql');
-
-                            if ($activity->event === 'created' || $activity->event === 'updated') {
+                            if ($activity->event === 'created'){
                                 $attributes = Arr::except($attributes, ['created_at', 'updated_at']);
-                                $obj = $modelClass::upsert($attributes, [$activity->subject_id],$attributes);
+                                $obj = $modelClass::create($attributes);
+                            }
+                            if ($activity->event === 'updated') {
+                                $attributes = Arr::except($attributes, ['created_at', 'updated_at']);
+                                $obj = $modelClass::find($activity->subject_id)?->update($attributes);
 
                             }
 
@@ -103,7 +107,7 @@ class SyncHelper
 
                             $localActivity = Activity::on('mysql')->latest()->first();
                             $localActivity->update(['synced_at' => $synced_at]);
-                            dd($obj , $activity ,$localActivity);
+
                             $syncedCount++;
 
 
