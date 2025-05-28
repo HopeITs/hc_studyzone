@@ -145,7 +145,7 @@ class StudentResource extends Resource
                     ->label(__('general.labels.city'))
                     ->dehydrated(false)
                     ->searchable()
-                    ->default(auth()->user()->city_id)
+                    ->default(auth()->user()->city_id ?? '')
                     ->preload()
                     ->options(City::pluck('name', 'id'))
                     ->afterStateUpdated(fn($state, callable $set) => $set('street_id', null)),
@@ -157,7 +157,7 @@ class StudentResource extends Resource
                     ->placeholder(fn(Get $get): string => empty($get('city_id')) ? 'First select City' : 'Select an option')
                     ->options(function (?Student $record, Get $get, Set $set) {
                         if (!empty($record) && empty($get('city_id'))) {
-                            $set('city_id', $record->street->city_id);
+                            $set('city_id', $record->street->city_id ?? '');
                             $set('street_id', $record->street_id);
                         }
 
@@ -335,7 +335,7 @@ class StudentResource extends Resource
                 ->preload()
                 ->options(City::all()->pluck('name', 'id'))
                 ->searchable()
-                ->visible(auth()->user()->role === Roles::GeneralAdmin),
+                ->visible(auth()->user()->role === Roles::GeneralAdmin()),
 
             SelectFilter::make('street_id')->label('Filter by Street')->preload()->options($streets)->searchable(),
 
