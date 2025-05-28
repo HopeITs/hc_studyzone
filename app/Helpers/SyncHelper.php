@@ -146,7 +146,7 @@ class SyncHelper
                     if (!isset($grouped[$modelClass])) {
                         continue;
                     }
-
+                    dd($activities,$grouped);
                     foreach ($grouped[$modelClass] as $activity) {
                         try {
                             $attributes = $activity->properties['attributes'] ?? [];
