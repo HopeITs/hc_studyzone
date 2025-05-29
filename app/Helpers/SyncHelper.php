@@ -84,7 +84,7 @@ class SyncHelper
                             $attributes = $activity->properties['attributes'] ?? [];
                             $attributes['synced_at'] = $synced_at;
                             $query = $modelClass::on('mysql');
-                            if ($activity->event === 'created'){
+                            if ($activity->event === 'created') {
                                 $attributes = Arr::except($attributes, ['created_at', 'updated_at']);
                                 $obj = $modelClass::create($attributes);
                             }
@@ -98,8 +98,6 @@ class SyncHelper
                             if ($activity->event === 'deleted') {
                                 $obj = $modelClass::find($activity->subject_id)?->delete();
                             }
-
-
 
 
                             $localActivity = Activity::on('mysql')->latest()->first();
@@ -146,18 +144,25 @@ class SyncHelper
                     if (!isset($grouped[$modelClass])) {
                         continue;
                     }
-                    dd($activities,$grouped);
+
                     foreach ($grouped[$modelClass] as $activity) {
                         try {
                             $attributes = $activity->properties['attributes'] ?? [];
                             $query = $modelClass::on('online_mysql');
+                            if ($activity->event === 'created') {
+                                self::createAndLog($modelClass, $attributes);
+                            }
+                            if ($activity->event === 'updated') {
+                                self::updateAndLog($query, $activity, $attributes);
+                            }
+                            if ($activity->event === 'deleted') {
+                                self::deleteAndLog($query, $activity);
+                            }
+                            Activity::on('online_mysql')->where('event' , $activity->event)->get()->last()->update(([
+                                'synced_at' => null,
+                                'log_name' => config('activitylog.default_log_name')
+                            ]));
 
-                            match ($activity->event) {
-                                'created' => fn() => self::createAndLog($modelClass, $attributes),
-                                'updated' => fn() => self::updateAndLog($query, $activity, $attributes),
-                                'deleted' => fn() => self::deleteAndLog($query, $activity),
-                                default => Log::warning("⚠️ Unknown event type: {$activity->event} (ID: {$activity->id})"),
-                            };
 
                             $activity->update(['synced_at' => now()]);
                             $syncedCount++;
@@ -179,6 +184,7 @@ class SyncHelper
 
     protected static function createAndLog(string $modelClass, array $attributes): void
     {
+
         $model = new $modelClass($attributes);
         $model->setConnection('online_mysql');
 
@@ -188,11 +194,6 @@ class SyncHelper
 
         $model->save();
 
-        activity(config('activitylog.default_log_name'))
-            ->onConnection('online_mysql')
-            ->performedOn($model)
-            ->withProperties(['attributes' => $attributes])
-            ->log('created');
     }
 
     protected static function updateAndLog($query, $activity, array $attributes): void
@@ -205,11 +206,7 @@ class SyncHelper
 
             $model->update($attributes);
 
-            activity(config('activitylog.default_log_name'))
-                ->onConnection('online_mysql')
-                ->performedOn($model)
-                ->withProperties(['attributes' => $attributes])
-                ->log('updated');
+
         }
     }
 
@@ -217,16 +214,8 @@ class SyncHelper
     {
         $model = $query->find($activity->subject_id);
         if ($model) {
-            if (method_exists($model, 'disableLogging')) {
-                $model->disableLogging();
-            }
-
             $model->delete();
 
-            activity(config('activitylog.default_log_name'))
-                ->onConnection('online_mysql')
-                ->performedOn($model)
-                ->log('deleted');
         }
     }
 
