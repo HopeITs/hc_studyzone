@@ -13,7 +13,7 @@ use App\Filament\Widgets\HourlyAverageChart;
 use App\Filament\Widgets\StudentGenderChart;
 use App\Filament\Widgets\FrequentStudentsChart;
 use App\Filament\Resources\StudentResource;
-
+use App\Http\Controllers\SocialLinkController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -79,3 +79,8 @@ Route::post('/filament/widgets/frequent-students/export', function () {
 Route::get('/admin/students/scan', function () {
     return view('filament.qr-code-scanner');
 })->name('filament.admin.resources.students.scan')->middleware('auth');
+
+
+Route::get('/info/{city}', [SocialLinkController::class, 'show'])
+     ->where('city', 'homs|damascus|aleppo|latakia|mouzeina|tartus')
+     ->name('info.show');
