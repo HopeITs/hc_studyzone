@@ -15,46 +15,52 @@ class MultiToolUsage extends BaseWidget
 
     protected function getCards(): array
     {
-        $startDate = $this->filters['startDate'] ?? null;
-        $endDate = $this->filters['endDate'] ?? null;
+        $startDate = isset($this->filters['startDate'])
+            ? Carbon::parse($this->filters['startDate'])
+            : Carbon::now()->startOfYear();
+
+        $endDate = isset($this->filters['endDate'])
+            ? Carbon::parse($this->filters['endDate'])
+            : Carbon::now();
+
         $centerIds = $this->filters['center'] ?? null;
         $cityIds = $this->filters['city'] ?? null;
 
-        $query = StudentEntry::query()
-            ->when($startDate, fn($q) => $q->whereDate('entry_time', '>=', Carbon::parse($startDate)))
-            ->when($endDate, fn($q) => $q->whereDate('entry_time', '<=', Carbon::parse($endDate)))
+        // Base query with applied filters
+        $baseQuery = StudentEntry::query()
+            ->whereBetween('entry_time', [$startDate, $endDate])
             ->when($centerIds, fn($q) => $q->whereIn('center_id', (array)$centerIds))
-            ->when($cityIds, fn($q) => $q->whereHas('center', fn($q) => $q->whereIn('city_id', (array)$cityIds))
-            );
+            ->when($cityIds, fn($q) => $q->whereHas('center', fn($q) => $q->whereIn('city_id', (array)$cityIds)));
 
-        $total = (clone $query)->count();
+        $totalEntries = (clone $baseQuery)->count();
 
-        $multiTool = (clone $query)
+        $multiToolUsers = (clone $baseQuery)
             ->whereRaw('(use_printer + use_drawer + use_mecrator) >= 2')
             ->count();
 
-        $percentage = $total > 0 ? round(($multiTool / $total) * 100, 2) : 0;
+        $multiToolPercentage = $totalEntries > 0
+            ? round(($multiToolUsers / $totalEntries) * 100, 2)
+            : 0;
 
         $studentsWithMultipleCenters = StudentEntry::query()
-            ->when($startDate, fn ($q) => $q->whereDate('entry_time', '>=', Carbon::parse($startDate)))
-            ->when($endDate, fn ($q) => $q->whereDate('entry_time', '<=', Carbon::parse($endDate)))
-            ->when($cityIds, fn ($q) =>
-            $q->whereHas('center', fn ($q) => $q->whereIn('city_id', (array) $cityIds))
-            )
+            ->whereBetween('entry_time', [$startDate, $endDate])
+            ->when($cityIds, fn($q) => $q->whereHas('center', fn($q) => $q->whereIn('city_id', (array)$cityIds)))
             ->select('student_id', DB::raw('COUNT(DISTINCT center_id) as center_count'))
             ->groupBy('student_id')
             ->having('center_count', '>', 1)
+            ->get()
             ->count();
 
         return [
-            Card::make('استخدام أكثر من خدمة', $percentage . '%')
-                ->description("من الطلاب استخدموا أكثر من خدمة في الزيارة")
-                ->color($percentage >= 50 ? 'success' : 'warning')
+            Card::make('استخدام أكثر من خدمة', "{$multiToolPercentage}%")
+                ->description('من الطلاب استخدموا أكثر من خدمة في الزيارة')
+                ->color($multiToolPercentage >= 50 ? 'success' : 'warning')
                 ->icon('heroicon-o-adjustments-horizontal'),
+
             Card::make('طلاب زاروا أكثر من مركز', $studentsWithMultipleCenters)
                 ->description('عدد الطلاب الذين زاروا أكثر من مركز في المدينة المحددة')
-                ->icon('heroicon-o-map-pin')
-                ->color('info'),
+                ->color('info')
+                ->icon('heroicon-o-map-pin'),
         ];
     }
 }
