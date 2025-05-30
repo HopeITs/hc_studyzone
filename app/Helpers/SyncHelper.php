@@ -158,10 +158,13 @@ class SyncHelper
                             if ($activity->event === 'deleted') {
                                 self::deleteAndLog($query, $activity);
                             }
-                            Activity::on('online_mysql')->where('event' , $activity->event)->get()->last()->update(([
-                                'synced_at' => null,
-                                'log_name' => config('activitylog.default_log_name')
-                            ]));
+                            $onlineActivityData = $activity->toArray();
+                            $onlineActivity['synced_at'] = null;
+                            $onlineActivityData['log_name'] = config('activitylog.default_log_name');
+                            $onlineActivity = Activity::on('online_mysql')
+                                ->create($onlineActivityData);
+
+
 
 
                             $activity->update(['synced_at' => now()]);
