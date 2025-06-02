@@ -33,8 +33,6 @@
         .header {
             position: absolute;
             top: 0;
-            left: 0;
-            right: 0;
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
@@ -187,6 +185,7 @@
 </head>
 
 <body>
+<div class="content container">
     <header class="header">
         <img src="{{ asset('images/new_logo.png') }}" alt="StudyZone Logo" class="left-logo">
         <div class="right-block">
@@ -197,29 +196,29 @@
         </div>
     </header>
 
-    <div class="content container">
-        <div class="links">
-            @if ($city->facebook)
-                <a href="{{ $city->facebook }}" target="_blank">Facebook</a>
-            @endif
-            @if ($city->instagram)
-                <a href="{{ $city->instagram }}" target="_blank">Instagram</a>
-            @endif
-            @if ($city->whatsapp)
-                <a href="{{ $city->whatsapp }}" target="_blank">WhatsApp</a>
-            @endif
-            @if ($city->telegram)
-                <a href="{{ $city->telegram }}" target="_blank">Telegram</a>
-            @endif
-            @if ($city->website)
-                <a href="{{ $city->website }}" target="_blank">HCSYRIA.ORG</a>
-            @endif
-        </div>
 
-        <footer>
-            A Project by:<br>CHRISTIAN HOPE CENTER
-        </footer>
+    <div class="links">
+        @if ($city->facebook)
+            <a href="{{ $city->facebook }}" target="_blank">Facebook</a>
+        @endif
+        @if ($city->instagram)
+            <a href="{{ $city->instagram }}" target="_blank">Instagram</a>
+        @endif
+        @if ($city->whatsapp)
+            <a href="{{ $city->whatsapp }}" target="_blank">WhatsApp</a>
+        @endif
+        @if ($city->telegram)
+            <a href="{{ $city->telegram }}" target="_blank">Telegram</a>
+        @endif
+        @if ($city->website)
+            <a href="{{ $city->website }}" target="_blank">HCSYRIA.ORG</a>
+        @endif
     </div>
+
+    <footer>
+        A Project by:<br>CHRISTIAN HOPE CENTER
+    </footer>
+</div>
 </body>
 
 </html>
