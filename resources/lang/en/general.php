@@ -13,7 +13,7 @@ return [
     'roles' => [
         Roles::Unknown() => 'unknown',
         Roles::GeneralAdmin() => 'General Admin',
-        Roles::CenterAdmin() => 'City Admin',
+        Roles::CityAdmin() => 'City Admin',
         Roles::CenterAdmin() => 'Center Admin',
     ],
 

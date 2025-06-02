@@ -1,3 +1,4 @@
+Rit, [5/28/2025 3:22 PM]
 <?php
 
 use Illuminate\Database\Migrations\Migration;
@@ -7,9 +8,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 return new class extends Migration {
-    /**
-     * Run the migrations.
-     */
+
     public function up(): void
     {
         // Cities Table
@@ -25,7 +24,7 @@ return new class extends Migration {
         Schema::create('streets', function (Blueprint $table) {
             $table->id();
             $table->json('name');
-            $table->foreignId('city_id')->constrained()->onDelete('cascade');
+            $table->foreignId('city_id')->constrained()->restrictOnDelete()->cascadeOnUpdate();
             $table->timestamp('synced_at')->nullable()->default(null);
             $table->timestamps();
         });
@@ -33,7 +32,7 @@ return new class extends Migration {
         // Centers Table
         Schema::create('centers', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('city_id')->constrained()->onDelete('cascade');
+            $table->foreignId('city_id')->constrained()->restrictOnDelete()->cascadeOnUpdate();
             $table->json('name');
             $table->string('phone')->nullable();
             $table->string('address')->nullable();
@@ -45,8 +44,8 @@ return new class extends Migration {
 
         // Users Table Modifications
         Schema::table('users', function (Blueprint $table) {
-            $table->foreignId('center_id')->nullable()->constrained()->onDelete('set null');
-            $table->foreignId('city_id')->nullable()->constrained()->onDelete('set null');
+            $table->foreignId('center_id')->nullable()->constrained()->restrictOnDelete()->cascadeOnUpdate();
+            $table->foreignId('city_id')->nullable()->constrained()->restrictOnDelete()->cascadeOnUpdate();
             $table->boolean('is_active')->default(true);
             $table->timestamp('synced_at')->nullable()->default(null);
             $table->index(['synced_at', 'city_id', 'is_active', 'center_id'], 'idx_users');
@@ -56,7 +55,7 @@ return new class extends Migration {
         Schema::create('students', function (Blueprint $table) {
             $table->uuid('id')->primary()->default(Str::uuid());
             $table->string('qr_code')->nullable();
-            $table->foreignId('street_id')->nullable()->constrained()->onDelete('cascade');
+            $table->foreignId('street_id')->nullable()->constrained()->restrictOnDelete()->cascadeOnUpdate();
             $table->string('firstname');
             $table->string('lastname');
             $table->string('father_name');
@@ -90,8 +89,8 @@ return new class extends Migration {
         // Student Educations Table
         Schema::create('student_educations', function (Blueprint $table) {
             $table->uuid('id')->primary()->default(Str::uuid());
-            $table->foreignId('education_id')->constrained('educations')->onDelete('cascade');
-            $table->foreignUuid('student_id')->constrained('students')->onDelete('cascade');
+            $table->foreignId('education_id')->constrained('educations')->restrictOnDelete()->cascadeOnUpdate();
+            $table->foreignUuid('student_id')->constrained('students')->cascadeOnDelete()->cascadeOnUpdate();
             $table->tinyInteger('level')->default(0);
             $table->tinyInteger('type')->default(0);
             $table->timestamp('synced_at')->nullable()->default(null);
@@ -102,9 +101,9 @@ return new class extends Migration {
         // Student Entries Table
         Schema::create('student_entries', function (Blueprint $table) {
             $table->uuid('id')->primary()->default(Str::uuid());
-            $table->foreignUuid('student_id')->constrained('students')->onDelete('cascade');
-            $table->foreignId('user_id')->nullable()->constrained('users')->onDelete('set null');
-            $table->foreignId('center_id')->constrained('centers')->onDelete('cascade');
+            $table->foreignUuid('student_id')->constrained('students')->cascadeOnDelete()->cascadeOnUpdate();
+            $table->foreignId('user_id')->nullable()->constrained('users')->restrictOnDelete()->cascadeOnUpdate();
+            $table->foreignId('center_id')->constrained('centers')->restrictOnDelete()->cascadeOnUpdate();
             $table->tinyInteger('entry_type')->default(1);
             $table->boolean('use_printer')->default(false);
             $table->boolean('use_drawer')->default(false);
@@ -116,9 +115,7 @@ return new class extends Migration {
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
+
     public function down(): void
     {
         Schema::dropIfExists('student_entries');

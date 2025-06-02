@@ -13,47 +13,63 @@ class EntryGenderChart extends ChartWidget
 
     protected static ?string $heading = 'Gender Distribution (Entries)';
     protected static ?int $sort = 6;
+    protected static ?string $maxHeight = '300px';
 
-    public function getData(): array
+    protected function getData(): array
     {
-        $query = StudentEntry::query()
+        $entries = StudentEntry::query()
             ->with('student')
-            ->when($this->filters['startDate'] ?? null, fn($q) =>
-                $q->whereDate('entry_time', '>=', Carbon::parse($this->filters['startDate']))
+
+            ->when($this->filters['startDate'] ?? null, fn ($query) =>
+                $query->whereDate('entry_time', '>=', Carbon::parse($this->filters['startDate']))
             )
-            ->when($this->filters['endDate'] ?? null, fn($q) =>
-                $q->whereDate('entry_time', '<=', Carbon::parse($this->filters['endDate']))
+
+            ->when($this->filters['endDate'] ?? null, fn ($query) =>
+                $query->whereDate('entry_time', '<=', Carbon::parse($this->filters['endDate']))
             )
-            ->when($this->filters['center'] ?? null, fn($q) =>
-                $q->whereIn('center_id', (array) $this->filters['center'])
+
+            ->when(
+                !isset($this->filters['startDate']) && !isset($this->filters['endDate']),
+                fn ($query) => $query->whereDate('entry_time', '>=', now()->subDays(30))
             )
-            ->when($this->filters['city'] ?? null, fn($q) =>
-                $q->whereHas('center', fn($q) =>
+
+            ->when($this->filters['center'] ?? null, fn ($query) =>
+                $query->whereIn('center_id', (array) $this->filters['center'])
+            )
+
+            ->when($this->filters['city'] ?? null, fn ($query) =>
+                $query->whereHas('center', fn ($q) =>
                     $q->whereIn('city_id', (array) $this->filters['city'])
                 )
             )
-            ->get()
-            ->groupBy(fn($entry) => $entry->student->gender ?? 0)
+            ->get();
+
+
+        $grouped = $entries->groupBy(fn($entry) => optional($entry->student)->gender ?? 0)
             ->map(fn($group) => $group->count());
 
-
-
-        $query[3] = collect($query)->sum();
         $genderLabels = [
-            0 => 'Unknown',
             3 => 'Total',
             1 => 'Male',
             2 => 'Female',
-
+            0 => 'Unknown',
         ];
 
-        $labels = [];
-        $data = [];
+        $labels = array_values($genderLabels);
+         $data[] = $grouped->sum(); ;
+
 
         foreach ($genderLabels as $key => $label) {
-            $labels[] = $label;
-            $data[] = $query[$key] ?? 0;
+            if($key === 3){
+                continue;
+            }else{
+                $data[] = $grouped[$key] ?? 0;
+            }
         }
+
+
+
+
 
         return [
             'labels' => $labels,
@@ -66,14 +82,12 @@ class EntryGenderChart extends ChartWidget
                         'rgba(54, 162, 235, 0.2)',
                         'rgba(255, 99, 132, 0.2)',
                         'rgba(255, 205, 86, 0.2)',
-
                     ],
                     'borderColor' => [
                         'rgb(255, 159, 64)',
                         'rgb(54, 162, 235)',
                         'rgb(255, 99, 132)',
                         'rgb(255, 205, 86)',
-
                     ],
                     'borderWidth' => 1,
                 ],
@@ -85,5 +99,4 @@ class EntryGenderChart extends ChartWidget
     {
         return 'bar';
     }
-
 }

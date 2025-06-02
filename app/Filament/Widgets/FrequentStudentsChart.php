@@ -32,34 +32,29 @@ class FrequentStudentsChart extends ChartWidget
 
         $cityIds = $this->filters['city'] ?? null;
         $centerIds = $this->filters['center'] ?? null;
-        $minVisits = intval($this->filter ?? 5);
+        $minVisits = intval($this->filter ?? 1);
 
-        // Get students who visited more than minVisits during the period
-        $frequentStudentIds = StudentEntry::query()
-            ->select('student_id')
+        // Step 1: Count entries per student per month
+        $monthlyStudentEntries = StudentEntry::query()
+            ->selectRaw("DATE_FORMAT(entry_time, '%Y-%m') as month, student_id, COUNT(*) as visits")
             ->whereBetween('entry_time', [$startDate, $endDate])
-            ->when($centerIds, fn($q) => $q->whereIn('center_id', (array)$centerIds))
-            ->when($cityIds, fn($q) => $q->whereHas('center', fn($c) => $c->whereIn('city_id', (array)$cityIds)
-            )
-            )
-            ->groupBy('student_id')
-            ->havingRaw('COUNT(*) > ?', [$minVisits])
-            ->pluck('student_id');
+            ->when($centerIds, fn($q) => $q->whereIn('center_id', (array) $centerIds))
+            ->when($cityIds, fn($q) => $q->whereHas('center', fn($c) => $c->whereIn('city_id', (array) $cityIds)))
+            ->groupBy('month', 'student_id')
+            ->havingRaw('visits >= ?', [$minVisits])
+            ->get();
 
-        // Count how many of them visited per month
-        $results = StudentEntry::query()
-            ->selectRaw("DATE_FORMAT(entry_time, '%Y-%m') as month, COUNT(DISTINCT student_id) as total")
-            ->whereIn('student_id', $frequentStudentIds)
-            ->whereBetween('entry_time', [$startDate, $endDate])
+        // Step 2: Count unique students per month from filtered records
+        $monthlyCounts = $monthlyStudentEntries
             ->groupBy('month')
-            ->orderBy('month')
-            ->pluck('total', 'month')
+            ->map(fn($group) => $group->pluck('student_id')->unique()->count())
             ->toArray();
 
-        // Generate month labels
+        // Step 3: Generate month labels and data
         $months = [];
         $labels = [];
         $current = $startDate->copy();
+
         while ($current <= $endDate) {
             $key = $current->format('Y-m');
             $months[] = $key;
@@ -67,22 +62,20 @@ class FrequentStudentsChart extends ChartWidget
             $current->addMonth();
         }
 
-        $data = array_map(fn($month) => $results[$month] ?? 0, $months);
+        $data = array_map(fn($month) => $monthlyCounts[$month] ?? 0, $months);
 
         return [
             'datasets' => [
                 [
-                    'label' => "Students > {$minVisits} Visits",
+                    'label' => "Students ≥ {$minVisits} Visits",
                     'data' => $data,
                     'fill' => 'start',
                     'backgroundColor' => [
                         'rgba(255, 159, 64, 0.2)',
                         'rgba(54, 162, 235, 0.2)',
                         'rgba(255, 99, 132, 0.2)',
-
                         'rgba(255, 205, 86, 0.2)',
                         'rgba(75, 192, 192, 0.2)',
-
                         'rgba(153, 102, 255, 0.2)',
                         'rgba(201, 203, 207, 0.2)'
                     ],
@@ -96,35 +89,23 @@ class FrequentStudentsChart extends ChartWidget
                         'rgb(201, 203, 207)'
                     ],
                     'borderWidth' => 1,
-
                 ],
             ],
             'labels' => $labels,
         ];
     }
 
+
     protected function getFilters(): ?array
     {
         return [
+            '1' => '1',
+            '5' => '5',
             '10' => '10',
-            '50' => '50',
-            '100' => '100',
-            '500' => '500',
-            '1000' => '1000',
-            '1500' => '1500',
-            '2000'  => '2000',
-            '2500'  => '2500',
-            '5000'  => '5000',
-            '7000'  => '7000',
-            '10000' => '10000',
-            '15000' => '15000',
-            '25000' => '25000',
-            '50000' => '50000',
-            '100000' => '100000',
-            '150000' => '150000',
-            '250000' => '250000',
-            '500000'   => '500000',
-
+            '15' => '15',
+            '20' => '20',
+            '25' => '25',
+            '30' => '30',
         ];
     }
 }
