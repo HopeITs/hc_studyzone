@@ -4,9 +4,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Interactive Links — {{ strtoupper($city->name) }}</title>
+    <title>Interactive Links — {{ strtoupper($city->name_en ?? $city->name) }}</title>
     <link rel="icon" href="{{ asset('images/new_logo.png') }}" type="image/png">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@700&display=swap" rel="stylesheet">
     <style>
         @font-face {
             font-family: 'Somar Sons';
@@ -16,7 +17,7 @@
         }
 
         body {
-            font-family: 'Somar Sons', sans-serif;
+            font-family: 'Somar Sons', 'Lato', sans-serif;
             font-weight: bold;
             margin: 0;
             padding: 0;
@@ -25,6 +26,8 @@
             min-height: 100vh;
             display: flex;
             flex-direction: column;
+            justify-content: center;
+            align-items: center;
         }
 
         .header {
@@ -55,23 +58,40 @@
             height: 40px;
         }
 
+        .small-logo {
+            height: 30px;
+            margin-bottom: 0.25rem;
+        }
+
+        .city-info {
+            text-align: right;
+        }
+
         .city {
             margin-top: 0.5rem;
-            font-size: clamp(1.75rem, 5vw, 2.75rem);
+            font-size: clamp(1.125rem, 3vw, 1.5rem); /* MODIFIED HERE */
             text-transform: uppercase;
-            text-align: right;
-            padding-right: 0.5rem;
+        }
+
+        .country {
+            font-size: 0.9rem;
+            font-weight: normal;
+            text-transform: uppercase;
+            opacity: 0.85;
+            line-height: 1.1;
         }
 
         .content {
-            max-width: 600px;
-            width: 100%;
-            margin: 0 auto;
-            padding: 8.5rem 1rem 1rem;
-            box-sizing: border-box;
-            flex: 1;
             display: flex;
             flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 8.5rem 1rem 1rem;
+            margin: 0 auto;
+            max-width: 600px;
+            width: 100%;
+            box-sizing: border-box;
+            flex: 1;
         }
 
         .links {
@@ -79,6 +99,8 @@
             flex-direction: column;
             align-items: center;
             gap: 1rem;
+            width: 100%;
+            max-width: 300px;
             margin-top: 5rem;
             flex-grow: 1;
         }
@@ -94,7 +116,7 @@
             font-size: 1rem;
             transition: background .2s, color .2s;
             width: 100%;
-            max-width: 300px;
+            text-transform: uppercase;
         }
 
         .links a:hover {
@@ -149,7 +171,7 @@
 
         @media (max-width: 350px) {
             .city {
-                font-size: 1.5rem;
+                font-size: 1.5rem; /* This will ensure it's 24px on very small screens */
             }
 
             .links a {
@@ -168,8 +190,10 @@
     <header class="header">
         <img src="{{ asset('images/new_logo.png') }}" alt="StudyZone Logo" class="left-logo">
         <div class="right-block">
-            <img src="{{ asset('images/sz.png') }}" alt="Study Zone" class="right-logo">
-            <div class="city">{{ strtoupper($city->name) }}</div>
+            <img src="{{ asset('images/sz.png') }}" alt="Study Zone" class="right-logo small-logo">
+            <div class="city-info">
+                <div class="city">{{ strtoupper($city->name_en ?? $city->name) }}</div>
+            </div>
         </div>
     </header>
 
@@ -188,12 +212,12 @@
                 <a href="{{ $city->telegram }}" target="_blank">Telegram</a>
             @endif
             @if ($city->website)
-                <a href="{{ $city->website }}" target="_blank">Official Website</a>
+                <a href="{{ $city->website }}" target="_blank">HCSYRIA.ORG</a>
             @endif
         </div>
 
         <footer>
-            A Project by:<br>Christian Hope Center
+            A Project by:<br>CHRISTIAN HOPE CENTER
         </footer>
     </div>
 </body>
