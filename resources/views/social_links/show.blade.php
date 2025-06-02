@@ -67,7 +67,8 @@
 
         .city {
             margin-top: 0.5rem;
-            font-size: clamp(1.125rem, 3vw, 1.5rem); /* MODIFIED HERE */
+            font-size: clamp(1.125rem, 3vw, 1.5rem);
+            /* MODIFIED HERE */
             text-transform: uppercase;
         }
 
@@ -169,7 +170,8 @@
 
         @media (max-width: 350px) {
             .city {
-                font-size: 1.5rem; /* This will ensure it's 24px on very small screens */
+                font-size: 1.5rem;
+                /* This will ensure it's 24px on very small screens */
             }
 
             .links a {
@@ -185,40 +187,42 @@
 </head>
 
 <body>
-<div class="content container">
-    <header class="header">
-        <img src="{{ asset('images/new_logo.png') }}" alt="StudyZone Logo" class="left-logo">
-        <div class="right-block">
-            <img src="{{ asset('images/sz.png') }}" alt="Study Zone" class="right-logo small-logo">
-            <div class="city-info">
-                <div class="city">{{ strtoupper($city->name_en ?? $city->name) }}</div>
+    <div class="content container">
+        <header class="header">
+            <img src="{{ asset('images/new_logo.png') }}" alt="StudyZone Logo" class="left-logo">
+            <div class="right-block">
+                <img src="{{ asset('images/sz.png') }}" alt="Study Zone" class="right-logo small-logo">
+                <div class="city-info">
+                    <div class="city">{{ strtoupper($city->name_en ?? $city->name) }}</div>
+                </div>
             </div>
+        </header>
+
+
+        <div class="links">
+            @if ($city->facebook)
+                <a href="{{ $city->facebook }}" target="_blank">Facebook</a>
+            @endif
+            @if ($city->instagram)
+                <a href="{{ $city->instagram }}" target="_blank">Instagram</a>
+            @endif
+            @if ($city->whatsapp)
+                <a href="{{ $city->whatsapp }}" target="_blank">WhatsApp</a>
+            @endif
+            @if ($city->telegram)
+                <a href="{{ $city->telegram }}" target="_blank">Telegram</a>
+            @endif
+            @if ($city->website)
+                <a href="{{ $city->website }}" target="_blank">HCSYRIA.ORG</a>
+            @endif
         </div>
-    </header>
 
-
-    <div class="links">
-        @if ($city->facebook)
-            <a href="{{ $city->facebook }}" target="_blank">Facebook</a>
-        @endif
-        @if ($city->instagram)
-            <a href="{{ $city->instagram }}" target="_blank">Instagram</a>
-        @endif
-        @if ($city->whatsapp)
-            <a href="{{ $city->whatsapp }}" target="_blank">WhatsApp</a>
-        @endif
-        @if ($city->telegram)
-            <a href="{{ $city->telegram }}" target="_blank">Telegram</a>
-        @endif
-        @if ($city->website)
-            <a href="{{ $city->website }}" target="_blank">HCSYRIA.ORG</a>
-        @endif
+        <footer>
+            <span style="font-size: 0.8em; color: #ffff; letter-spacing: 0.5px;">A Project by:</span>
+            <br>
+            CHRISTIAN HOPE CENTER
+        </footer>
     </div>
-
-    <footer>
-        A Project by:<br>CHRISTIAN HOPE CENTER
-    </footer>
-</div>
 </body>
 
 </html>
