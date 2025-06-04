@@ -71,7 +71,8 @@ class EntryResource extends Resource
                 ->options(__('general.entry-types'))->columnSpan(1)
                 ->required(),
             DateTimePicker::make('entry_time')->label(__('general.labels.entry_time'))
-                ->default(now())->columnSpan(1)
+                  ->default(now())
+                ->columnSpan(1)
                 ->required(),
             Fieldset::make('Services')->label('خدمات')
                 ->schema([

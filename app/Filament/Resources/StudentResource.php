@@ -7,6 +7,7 @@ use App\Enums\Roles;
 use App\Filament\Exports\StudentExporter;
 use App\Filament\Resources\StudentResource\Pages;
 use App\Filament\Resources\StudentResource\RelationManagers;
+use Carbon\Carbon;
 use App\Models\{City, Education, Street, Student, StudentEntry};
 
 use Filament\Forms\Components\{Checkbox,
@@ -383,7 +384,8 @@ class StudentResource extends Resource
                         ->options(__('general.entry-types'))->columnSpan(1)
                         ->required(),
                     DateTimePicker::make('entry_time')->label(__('general.labels.entry_time'))
-                        ->default(now())->columnSpan(1)
+                        ->default(now())
+                        ->columnSpan(1)
                         ->required(),
                     Fieldset::make('Services')->label('خدمات')
                         ->schema([
