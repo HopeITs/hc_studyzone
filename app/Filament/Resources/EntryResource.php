@@ -124,7 +124,7 @@ class EntryResource extends Resource
                     })->toggleable(),
 
                 TextColumn::make('entry_time')
-                    ->label('تاريخ الدخول')
+                    ->label('تاريخ الدخول')->sortable()
                     ->dateTime('Y-m-d H:i'),
 
                 TextColumn::make('center.city.name')
