@@ -22,7 +22,7 @@ Route::get('/', function () {
 Route::get('/clear-cache', function () {
     Artisan::call('optimize:clear'); // instead of cache:clear
     session()->flash('success', 'Cache');
-    return redirect()->route('filament.admin.pages.dashboard ')->withSuccess('Cache has been cleared');
+    return redirect()->route('filament.admin.pages.dashboard')->withSuccess('Cache has been cleared');
 });
 Route::get('/download-qr-code/{uuid}', function ($uuid) {
     $student = Student::findOrFail($uuid);
