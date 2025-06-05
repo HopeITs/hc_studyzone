@@ -86,9 +86,10 @@ Route::get('/admin/students/scan', function () {
 })->name('filament.admin.resources.students.scan')->middleware('auth');
 
 
-Route::get('/info/{city}', [SocialLinkController::class, 'show'])
+Route::get('/qr/studyzone/{city}', [SocialLinkController::class, 'show'])
      ->where('city', 'homs|damascus|aleppo|latakia|mouzeina|tartus')
      ->name('info.show');
+
 Route::get('/test-419', function () {
     abort(419);
 });
