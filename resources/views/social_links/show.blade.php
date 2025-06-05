@@ -6,22 +6,16 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Social Media Links — {{ strtoupper($city->name_en ?? $city->name) }}</title>
     <link rel="icon" href="{{ asset('images/new_logo.png') }}" type="image/png">
-    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        @font-face {
-            font-family: 'Somar Sons';
-            src: url('{{ asset('fonts/SomarSons-Bold.woff2') }}') format('woff2');
-            font-weight: bold;
-            font-style: normal;
-        }
-    </style>
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     fontFamily: {
-                        somar: ['"Somar Sons"', 'Lato', 'sans-serif'],
+                        lato: [ 'Lato', 'sans-serif'],
                     },
                     colors: {
                         primary: '#003c54',
@@ -33,7 +27,7 @@
     </script>
 </head>
 
-<body class="bg-primary text-white font-somar font-bold min-h-screen flex flex-col justify-center items-center m-0 p-0">
+<body class="bg-primary text-white font-lato font-bold min-h-screen flex flex-col justify-center items-center m-0 p-0">
 <div
     class="container mx-auto flex flex-col items-center justify-center px-4 pt-[8.5rem] pb-4 max-w-[600px] w-full flex-1">
     <header class="w-full flex items-start max-w-96 justify-between px-2 py-4 bg-transparent absolute top-0">
@@ -42,7 +36,7 @@
 
         <!-- Right: Study Zone & City -->
         <div class="text-right leading-tight">
-            <div class="text-white text-2xl font-bold uppercase">
+            <div class="text-white text-2xl font-black uppercase">
                 <span class="text-accent">STUDY</span> <span class="text-white">ZONE</span>
             </div>
             <div class="text-base text-white tracking-wide uppercase">
@@ -51,7 +45,7 @@
         </div>
     </header>
 
-    <div class="flex flex-col items-center gap-4 w-full max-w-72 mt-20 flex-grow">
+    <div class="flex flex-col items-center gap-4 w-full font-black max-w-72 mt-20 flex-grow">
         @if ($city->facebook)
             <a href="{{ $city->facebook }}" target="_blank"
                class="w-full text-center px-4 py-3 text-primary bg-white border border-white rounded-full text-base uppercase transition-colors duration-200 hover:bg-accent hover:text-white hover:border-accent">Facebook</a>
@@ -75,7 +69,7 @@
     </div>
 
     <footer class="text-center  relative ">
-        <span class="text-white text-xs font-extralight ">A Project by:</span><br>
+        <span class="text-white text-xs font-thin ">A Project by:</span><br>
         CHRISTIAN HOPE CENTER
         <div class="fixed text-sm left-0 right-0 bottom-0 h-2.5 bg-accent"></div>
     </footer>
