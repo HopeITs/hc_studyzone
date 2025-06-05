@@ -55,6 +55,8 @@ class CenterResource extends Resource
                 TextColumn::make('name')->sortable()->searchable(),
                 TextColumn::make('city.name')->sortable()->searchable(),
                 TextColumn::make('phone'),
+                TextColumn::make('entries_count')->counts('entries')->label('Total Entries Count')->sortable()->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('users_count')->counts('users')->label('Employees Count')->sortable()->toggleable(isToggledHiddenByDefault: true),
                 CheckboxColumn::make('is_active'),
                 TextColumn::make('address')->sortable()->searchable()->toggleable(isToggledHiddenByDefault: true),
             ])
