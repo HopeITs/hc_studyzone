@@ -7,6 +7,7 @@ use App\Enums\Roles;
 use App\Filament\Exports\StudentExporter;
 use App\Filament\Resources\StudentResource\Pages;
 use App\Filament\Resources\StudentResource\RelationManagers;
+use Carbon\Carbon;
 use App\Models\{City, Education, Street, Student, StudentEntry};
 
 use Filament\Forms\Components\{Checkbox,
@@ -251,10 +252,11 @@ class StudentResource extends Resource
                 }),
             TextColumn::make('year_of_birth')->label('Date of Birth')->sortable()->toggleable(),
             TextColumn::make('phone')->label('Phone')->sortable()->searchable()->toggleable(),
+            TextColumn::make('email')->label('Email')->sortable()->searchable()->toggleable(isToggledHiddenByDefault:true),
             TextColumn::make('entries_count')->counts('entries')->label('Entries')->sortable()->toggleable(),
-            TextColumn::make('whatsapp')->label('Whatsapp')->sortable()->searchable()->toggleable(),
+            TextColumn::make('whatsapp')->label('Whatsapp')->sortable()->searchable()->toggleable(isToggledHiddenByDefault:true),
             TextColumn::make('street.name')->label('Street')->toggleable()->sortable()->searchable(),
-            TextColumn::make('educations')
+            TextColumn::make('educations')->sortable()
                 ->label('Educations')
                 ->formatStateUsing(function ($record) {
                     return $record->educations->take(3)->pluck('name')->implode(', ');
@@ -283,9 +285,10 @@ class StudentResource extends Resource
                         Gender::Female() => 'danger',
                     },
                 )
-                ->toggleable(),
+                ->toggleable(isToggledHiddenByDefault:true),
 
-            CheckboxColumn::make('is_student')->toggleable(),
+            CheckboxColumn::make('is_student')->toggleable(isToggledHiddenByDefault:true),
+            CheckboxColumn::make('is_employed')->toggleable(isToggledHiddenByDefault:true),
             TextColumn::make('created_at')->label('Created at')->formatStateUsing(fn(Model $record) => $record->created_at->format('Y-m-d'))->sortable()->searchable()->toggleable(),
         ];
     }
@@ -305,7 +308,15 @@ class StudentResource extends Resource
     protected static function filterQueryByRole(Builder $query): Builder
     {
         $user = Auth::user();
-        return $user->role === Roles::GeneralAdmin() ? $query : ($user->role === Roles::CenterAdmin() || $user->role === Roles::CityAdmin() ? $query->whereIn('street_id', $user->city->streets->pluck('id')->toArray()) : $query->whereRaw('1 = 0'));
+        if($user->role === Roles::GeneralAdmin()){
+            return $query;
+        }else{
+            $streetsArr = $user->city->streets->pluck('id');
+            $streetsArr[] = 0;
+           return $query->whereIn('street_id', $streetsArr->toArray()) ;
+
+        }
+
     }
 
     protected static function tableFilters(): array
@@ -373,7 +384,8 @@ class StudentResource extends Resource
                         ->options(__('general.entry-types'))->columnSpan(1)
                         ->required(),
                     DateTimePicker::make('entry_time')->label(__('general.labels.entry_time'))
-                        ->default(now())->columnSpan(1)
+                        ->default(now())
+                        ->columnSpan(1)
                         ->required(),
                     Fieldset::make('Services')->label('خدمات')
                         ->schema([
