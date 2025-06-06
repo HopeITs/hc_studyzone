@@ -35,10 +35,9 @@
         <img src="{{ asset('images/new_logo.png') }}" alt="StudyZone Logo" class=" size-20">
 
         <!-- Right: Study Zone & City -->
-        <div class="text-right leading-tight">
-            <div class="text-white text-2xl font-black uppercase">
-                <span class="text-accent">STUDY</span> <span class="text-white">ZONE</span>
-            </div>
+        <div class="flex flex-col justify-end items-end leading-tight">
+            <img src="{{ asset('images/sz.png') }}" alt="StudyZone Logo" class="w-44">
+
             <div class="text-base text-white tracking-wide uppercase">
                 {{ strtoupper($city->name_en ?? $city->name) }}
             </div>
@@ -68,9 +67,12 @@
         @endif
     </div>
 
-    <footer class="text-center  relative ">
-        <span class="text-white text-xs font-thin ">A Project by:</span><br>
-        CHRISTIAN HOPE CENTER
+    <footer class="text-center leading-none  relative pb-4 ">
+        <span class="text-white text-xs font-light ">A Project by:</span>
+        <p>
+            CHRISTIAN HOPE CENTER
+        </p>
+
         <div class="fixed text-sm left-0 right-0 bottom-0 h-2.5 bg-accent"></div>
     </footer>
 </div>
