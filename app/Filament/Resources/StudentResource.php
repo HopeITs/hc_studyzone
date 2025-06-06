@@ -289,7 +289,7 @@ class StudentResource extends Resource
 
             CheckboxColumn::make('is_student')->toggleable(isToggledHiddenByDefault:true),
             CheckboxColumn::make('is_employed')->toggleable(isToggledHiddenByDefault:true),
-            TextColumn::make('created_at')->label('Created at')->formatStateUsing(fn(Model $record) => $record->created_at->format('Y-m-d'))->sortable()->searchable()->toggleable(),
+            TextColumn::make('created_at')->label('Created at')->formatStateUsing(fn(Model $record) => $record->created_at->format('Y-m-d'))->sortable()->searchable()->toggleable(isToggledHiddenByDefault:true),
         ];
     }
 
@@ -377,8 +377,6 @@ class StudentResource extends Resource
                 ->label(__('general.labels.entry'))
                 ->icon('heroicon-o-document-text')
                 ->form([
-
-
                     Select::make('entry_type')
                         ->label(__('general.labels.entry_type'))->default(1)
                         ->options(__('general.entry-types'))->columnSpan(1)
@@ -447,19 +445,7 @@ class StudentResource extends Resource
         ];
     }
 
-    public static function getGlobalActions(): array
-    {
-        return [
-            Action::make('scan:qrcode')
-                ->label('Open Camera')
-                ->icon('heroicon-o-camera')
-                ->modalHeading('Scan QR Code')
-                ->modalContent(fn() => view('filament.qr-code-scanner'))
-                ->modalSubmitAction(false)
-                ->modalCancelActionLabel('Close')
-                ->modalId('scan-qr-code'),
-        ];
-    }
+
 
     public static function mutateFormDataBeforeCreate(array $data): array
     {

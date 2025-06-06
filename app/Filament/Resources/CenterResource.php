@@ -12,6 +12,7 @@ use Filament\Forms\Form;
 use Filament\Resources\Concerns\Translatable;
 use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Tables\Actions\ActionGroup;
 use Filament\Tables\Actions\DeleteAction;
 use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Actions\ViewAction;
@@ -21,6 +22,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Mvenghaus\FilamentPluginTranslatableInline\Forms\Components\TranslatableContainer;
 
 class CenterResource extends Resource
 {
@@ -29,6 +31,13 @@ class CenterResource extends Resource
 
     protected static ?string $model = Center::class;
     protected static ?string $navigationIcon = 'heroicon-o-building-office-2';
+    protected static ?string $label = 'مركز';
+
+    protected static ?string $modelLabel = 'مركز';
+
+    protected static ?string $navigationLabel = 'المراكز';
+
+    protected static ?string $pluralModelLabel = 'المراكز';
     protected static ?int $navigationSort = 4;
 
     public static function canViewAny(): bool
@@ -39,7 +48,9 @@ class CenterResource extends Resource
     public static function form(Form $form): Form
     {
         return $form->schema([
-            Forms\Components\TextInput::make('name')->required(),
+            TranslatableContainer::make(
+                Forms\Components\TextInput::make('name')->required()
+            ),
             Forms\Components\TextInput::make('phone')->required(),
             Forms\Components\TextInput::make('address')->required(),
             Forms\Components\Select::make('city_id')
@@ -51,6 +62,7 @@ class CenterResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->orderByDesc('is_active')->orderBy('city_id'))
             ->columns([
                 TextColumn::make('name')->sortable()->searchable(),
                 TextColumn::make('city.name')->sortable()->searchable(),
@@ -67,10 +79,11 @@ class CenterResource extends Resource
                     ->searchable(),
             ])
             ->actions([
-                ViewAction::make(),
-                EditAction::make(),
-                DeleteAction::make(),
-
+                ActionGroup::make([
+                    ViewAction::make(),
+                    EditAction::make(),
+                    DeleteAction::make(),
+                ])->icon('heroicon-m-ellipsis-horizontal'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
