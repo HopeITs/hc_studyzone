@@ -1,6 +1,8 @@
 <?php
+
 namespace App\Filament\Widgets;
 
+use App\Exports\EducationExport;
 use App\Models\Education;
 use Carbon\Carbon;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
@@ -10,11 +12,11 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Tables\Actions\Action;
 use Maatwebsite\Excel\Facades\Excel;
-use App\Exports\EducationExport;
 
 class TopEducationsTable extends TableWidget
 {
     use InteractsWithPageFilters;
+
     protected static ?string $heading = 'Top 10 Educations by Students';
     protected static ?int $sort = 7;
 
@@ -23,16 +25,11 @@ class TopEducationsTable extends TableWidget
         return $table
             ->query($this->getQuery())
             ->columns([
-                Tables\Columns\TextColumn::make('name')
-                    ->label('Education'),
-                Tables\Columns\TextColumn::make('total')
-                    ->label('Total'),
-                Tables\Columns\TextColumn::make('males')
-                    ->label('Males'),
-                Tables\Columns\TextColumn::make('females')
-                    ->label('Females'),
-                Tables\Columns\TextColumn::make('unknown')
-                    ->label('Unknown'),
+                Tables\Columns\TextColumn::make('name')->label('Education'),
+                Tables\Columns\TextColumn::make('total')->label('Total'),
+                Tables\Columns\TextColumn::make('males')->label('Males'),
+                Tables\Columns\TextColumn::make('females')->label('Females'),
+                Tables\Columns\TextColumn::make('unknown')->label('Unknown'),
             ])
             ->paginated(false)
             ->headerActions([
@@ -41,7 +38,9 @@ class TopEducationsTable extends TableWidget
                     ->color('success')
                     ->icon('heroicon-o-document-arrow-down')
                     ->action(function () {
-                        return Excel::download(new EducationExport, 'educations.xlsx');
+                        return Excel::download(new EducationExport(
+                            $this->filters
+                        ), 'top_educations.xlsx');
                     }),
             ]);
     }
@@ -86,7 +85,7 @@ class TopEducationsTable extends TableWidget
                 },
                 'students as unknown' => function ($query) use ($startDate, $endDate, $cityIds) {
                     $query->where('students.gender', 0)
-                        ->whereBetween('students.created_at', [$startDate, $endDate]);
+                          ->whereBetween('students.created_at', [$startDate, $endDate]);
                     if ($cityIds) {
                         $query->whereHas('street', fn($q) => $q->whereIn('city_id', (array)$cityIds));
                     }
