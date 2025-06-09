@@ -17,7 +17,7 @@ class TopEducationsTable extends TableWidget
 {
     use InteractsWithPageFilters;
 
-    protected static ?string $heading = 'Top 10 Educations by Students';
+    protected static ?string $heading = 'Top 10 Educations by Students (From ${$startDate})';
     protected static ?int $sort = 7;
 
     public function table(Table $table): Table
@@ -49,7 +49,7 @@ class TopEducationsTable extends TableWidget
     {
         $startDate = !is_null($this->filters['startDate'] ?? null)
             ? Carbon::parse($this->filters['startDate'])->startOfDay()
-            : now()->startOfMonth()->startOfDay();
+            : now()->startOfYear()->startOfDay();
 
         $endDate = !is_null($this->filters['endDate'] ?? null)
             ? Carbon::parse($this->filters['endDate'])->endOfDay()
@@ -59,39 +59,78 @@ class TopEducationsTable extends TableWidget
         $centerIds = $this->filters['center'] ?? null;
 
         return Education::query()
-            ->withCount([
-                'students as total' => function ($query) use ($startDate, $endDate, $cityIds, $centerIds) {
-                    $query->whereBetween('students.created_at', [$startDate, $endDate]);
-                    if ($cityIds) {
-                        $query->whereHas('street', fn($q) => $q->whereIn('city_id', (array)$cityIds));
-                    }
-                    if ($centerIds) {
-                        $query->whereHas('entries', fn($q) => $q->whereIn('center_id', (array)$centerIds));
-                    }
-                },
-                'students as males' => function ($query) use ($startDate, $endDate, $cityIds) {
-                    $query->where('students.gender', 1)
-                          ->whereBetween('students.created_at', [$startDate, $endDate]);
-                    if ($cityIds) {
-                        $query->whereHas('street', fn($q) => $q->whereIn('city_id', (array)$cityIds));
-                    }
-                },
-                'students as females' => function ($query) use ($startDate, $endDate, $cityIds) {
-                    $query->where('students.gender', 2)
-                          ->whereBetween('students.created_at', [$startDate, $endDate]);
-                    if ($cityIds) {
-                        $query->whereHas('street', fn($q) => $q->whereIn('city_id', (array)$cityIds));
-                    }
-                },
-                'students as unknown' => function ($query) use ($startDate, $endDate, $cityIds) {
-                    $query->where('students.gender', 0)
-                          ->whereBetween('students.created_at', [$startDate, $endDate]);
-                    if ($cityIds) {
-                        $query->whereHas('street', fn($q) => $q->whereIn('city_id', (array)$cityIds));
-                    }
-                },
-            ])
-            ->having('total', '>', 0)
+            ->select('educations.*')
+            ->selectSub(function ($query) use ($startDate, $endDate, $cityIds, $centerIds) {
+                $query->from('student_educations')
+                    ->join('students', 'students.id', '=', 'student_educations.student_id')
+                    ->selectRaw('count(*)')
+                    ->whereColumn('student_educations.education_id', 'educations.id')
+                    ->whereBetween('students.created_at', [$startDate, $endDate]);
+
+                if ($cityIds) {
+                    $query->whereIn('students.street_id', function ($sub) use ($cityIds) {
+                        $sub->select('id')
+                            ->from('streets')
+                            ->whereIn('city_id', (array)$cityIds);
+                    });
+                }
+
+                if ($centerIds) {
+                    $query->whereIn('students.id', function ($sub) use ($centerIds) {
+                        $sub->select('student_id')
+                            ->from('entries')
+                            ->whereIn('center_id', (array)$centerIds);
+                    });
+                }
+            }, 'total')
+            ->selectSub(function ($query) use ($startDate, $endDate, $cityIds) {
+                $query->from('student_educations')
+                    ->join('students', 'students.id', '=', 'student_educations.student_id')
+                    ->selectRaw('count(*)')
+                    ->whereColumn('student_educations.education_id', 'educations.id')
+                    ->where('students.gender', 1)
+                    ->whereBetween('students.created_at', [$startDate, $endDate]);
+
+                if ($cityIds) {
+                    $query->whereIn('students.street_id', function ($sub) use ($cityIds) {
+                        $sub->select('id')
+                            ->from('streets')
+                            ->whereIn('city_id', (array)$cityIds);
+                    });
+                }
+            }, 'males')
+            ->selectSub(function ($query) use ($startDate, $endDate, $cityIds) {
+                $query->from('student_educations')
+                    ->join('students', 'students.id', '=', 'student_educations.student_id')
+                    ->selectRaw('count(*)')
+                    ->whereColumn('student_educations.education_id', 'educations.id')
+                    ->where('students.gender', 2)
+                    ->whereBetween('students.created_at', [$startDate, $endDate]);
+
+                if ($cityIds) {
+                    $query->whereIn('students.street_id', function ($sub) use ($cityIds) {
+                        $sub->select('id')
+                            ->from('streets')
+                            ->whereIn('city_id', (array)$cityIds);
+                    });
+                }
+            }, 'females')
+            ->selectSub(function ($query) use ($startDate, $endDate, $cityIds) {
+                $query->from('student_educations')
+                    ->join('students', 'students.id', '=', 'student_educations.student_id')
+                    ->selectRaw('count(*)')
+                    ->whereColumn('student_educations.education_id', 'educations.id')
+                    ->where('students.gender', 0)
+                    ->whereBetween('students.created_at', [$startDate, $endDate]);
+
+                if ($cityIds) {
+                    $query->whereIn('students.street_id', function ($sub) use ($cityIds) {
+                        $sub->select('id')
+                            ->from('streets')
+                            ->whereIn('city_id', (array)$cityIds);
+                    });
+                }
+            }, 'unknown')
             ->orderByDesc('total')
             ->limit(10);
     }
