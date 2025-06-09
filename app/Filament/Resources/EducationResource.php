@@ -18,31 +18,36 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Mvenghaus\FilamentPluginTranslatableInline\Forms\Components\TranslatableContainer;
 
 class EducationResource extends Resource
 {
     use Translatable;
+
     protected static ?string $model = Education::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-academic-cap';
-    protected static ?string $label = 'تعليم';
+    protected static ?string $label = 'مؤهل علمي';
 
-    protected static ?string $modelLabel = 'تعليم';
+    protected static ?string $modelLabel = 'مؤهل علمي';
 
-    protected static ?string $navigationLabel = 'تعليم';
+    protected static ?string $navigationLabel = 'المؤهلات العلمية';
 
-    protected static ?string $pluralModelLabel = 'تعليم';
+    protected static ?string $pluralModelLabel = 'المؤهلات العلمية';
     protected static ?int $navigationSort = 5;
 
     public static function canViewAny(): bool
     {
         return auth()->user()->role === Roles::GeneralAdmin();
     }
+
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('name')->required(),
+                TranslatableContainer::make(
+                    Forms\Components\TextInput::make('name')->required(),
+                ),
                 Forms\Components\Select::make('degree')
                     ->options(__('general.edu-degrees'))
                     ->required(),
@@ -56,7 +61,7 @@ class EducationResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('name')->sortable()->searchable(),
                 Tables\Columns\TextColumn::make('degree')
-                    ->formatStateUsing(fn (string $state): string => __("general.edu-degrees.{$state}"))
+                    ->formatStateUsing(fn(string $state): string => __("general.edu-degrees.{$state}"))
                     ->sortable(),
             ])
             ->filters([
@@ -66,9 +71,8 @@ class EducationResource extends Resource
                     ->searchable(),
             ])
             ->actions([
-                ViewAction::make(),
-                EditAction::make(),
-                DeleteAction::make(),
+                    EditAction::make(),
+                    DeleteAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

@@ -19,6 +19,13 @@ class CityResource extends Resource
 {
     protected static ?string $model = City::class;
     protected static ?int $navigationSort = 2;
+    protected static ?string $label = 'محافظة';
+
+    protected static ?string $modelLabel = 'محافظة';
+
+    protected static ?string $navigationLabel = 'المحافظات';
+
+    protected static ?string $pluralModelLabel = 'المحافظات';
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
     public static function canViewAny(): bool
@@ -49,21 +56,21 @@ class CityResource extends Resource
                 Tables\Columns\TextColumn::make('code')->sortable(),
             ])
             ->actions([
-                ViewAction::make(),
-                EditAction::make(),
-                Action::make('Manage Social Links')
-                    ->label('Social Links')
-                    ->icon('heroicon-o-link')
-                    ->url(fn ($record) =>
-                        $record->socialLink
+
+                    ViewAction::make(),
+                    EditAction::make(),
+                    Action::make('Manage Social Links')
+                        ->label('Social Links')
+                        ->icon('heroicon-o-link')
+                        ->url(fn($record) => $record->socialLink
                             ? route('filament.admin.resources.social-links.edit', ['record' => $record->socialLink->id])
                             : route('info.show', ['city' => $record->code])
-                    )
-                    ->visible(fn ($record) =>
-                        auth()->user()->role === Roles::GeneralAdmin() ||
-                        auth()->user()->city === $record->name
-                    )
-                    ->color('info'),
+                        )
+                        ->visible(fn($record) => auth()->user()->role === Roles::GeneralAdmin() ||
+                            auth()->user()->city === $record->name
+                        )
+                        ->color('info'),
+
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

@@ -13,7 +13,14 @@ class ListStudents extends ListRecords
 
     protected function getHeaderActions(): array
     {
-        return array_merge(parent::getHeaderActions(), [Actions\CreateAction::make(), Actions\Action::make('scan_qr_code')->label('Open Camera')->icon('heroicon-o-camera')->modalHeading('Scan QR Code')->modalContent(fn() => view('filament.qr-code-scanner'))->modalSubmitAction(false)->modalCancelActionLabel('Close')]);
+        return array_merge(parent::getHeaderActions(), [Actions\CreateAction::make(),
+            Actions\Action::make('scan_qr_code')
+                ->label('QR Scan')
+                ->icon('heroicon-o-qr-code')
+                ->modalHeading('Scan QR Code')
+                ->modalContent(fn() => view('filament.qr-code-scanner'))
+                ->modalSubmitAction(false)
+                ->modalCancelActionLabel('Close')]);
     }
 
     protected function getTableQuery(): ?\Illuminate\Database\Eloquent\Builder

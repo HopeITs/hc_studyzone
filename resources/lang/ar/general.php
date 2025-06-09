@@ -82,7 +82,7 @@ return [
         'education_type' => 'نوع التعليم',
         'add_education' => 'إضافة تعليم',
         'educations' => 'المؤهلات العلمية',
-        'view_qr_code' => 'عرض رمز QR',
+        'view_qr_code' => 'عرض QR',
         'qr_code_modal_heading' => 'تفاصيل رمز الاستجابة السريعة للطالب',
         'entry' => 'تسجيل الدخول',
         'entry_type' => 'نوع الدخول',

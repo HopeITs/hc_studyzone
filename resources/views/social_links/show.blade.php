@@ -4,198 +4,78 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Interactive Links — {{ strtoupper($city->name) }}</title>
+    <title>Social Media Links — {{ strtoupper($city->name_en ?? $city->name) }}</title>
     <link rel="icon" href="{{ asset('images/new_logo.png') }}" type="image/png">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        @font-face {
-            font-family: 'Somar Sons';
-            src: url('{{ asset('fonts/SomarSons-Bold.woff2') }}') format('woff2');
-            font-weight: bold;
-            font-style: normal;
-        }
-
-        body {
-            font-family: 'Somar Sons', sans-serif;
-            font-weight: bold;
-            margin: 0;
-            padding: 0;
-            background-color: #003c54;
-            color: #fff;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .header {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            padding: 1rem 1.25rem;
-            box-sizing: border-box;
-            flex-wrap: wrap;
-        }
-
-        .left-logo {
-            height: 100px;
-        }
-
-        .right-block {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            margin-right: 1.25rem;
-        }
-
-        .right-logo {
-            height: 40px;
-        }
-
-        .city {
-            margin-top: 0.5rem;
-            font-size: clamp(1.75rem, 5vw, 2.75rem);
-            text-transform: uppercase;
-            text-align: right;
-            padding-right: 0.5rem;
-        }
-
-        .content {
-            max-width: 600px;
-            width: 100%;
-            margin: 0 auto;
-            padding: 8.5rem 1rem 1rem;
-            box-sizing: border-box;
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .links {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 1rem;
-            margin-top: 5rem;
-            flex-grow: 1;
-        }
-
-        .links a {
-            padding: 0.75rem 1rem;
-            background: #fff;
-            color: #003c54;
-            text-align: center;
-            text-decoration: none;
-            border: 1px solid #fff;
-            border-radius: 30px;
-            font-size: 1rem;
-            transition: background .2s, color .2s;
-            width: 100%;
-            max-width: 300px;
-        }
-
-        .links a:hover {
-            background: #f59a24;
-            color: #fff;
-            border-color: #f59a24;
-        }
-
-        footer {
-            text-align: center;
-            font-size: 0.9rem;
-            padding-bottom: 1rem;
-            position: relative;
-            margin-bottom: 1rem;
-        }
-
-        footer::after {
-            content: '';
-            position: fixed;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            height: 10px;
-            background: #f59a24;
-        }
-
-        @media (max-width: 576px) {
-            .header {
-                flex-direction: column;
-                align-items: center;
-                text-align: center;
-            }
-
-            .right-block {
-                align-items: center;
-                margin-right: 0;
-            }
-
-            .left-logo {
-                height: 80px;
-            }
-
-            .right-logo {
-                height: 30px;
-            }
-
-            .links a {
-                font-size: 1.1rem;
-                padding: 1rem;
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        lato: [ 'Lato', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: '#003c54',
+                        accent: '#f59a24',
+                    },
+                }
             }
         }
-
-        @media (max-width: 350px) {
-            .city {
-                font-size: 1.5rem;
-            }
-
-            .links a {
-                font-size: 1rem;
-                padding: 0.75rem;
-            }
-
-            .content {
-                padding-top: 6rem;
-            }
-        }
-    </style>
+    </script>
 </head>
 
-<body>
-    <header class="header">
-        <img src="{{ asset('images/new_logo.png') }}" alt="StudyZone Logo" class="left-logo">
-        <div class="right-block">
-            <img src="{{ asset('images/sz.png') }}" alt="Study Zone" class="right-logo">
-            <div class="city">{{ strtoupper($city->name) }}</div>
+<body class="bg-primary text-white font-lato font-bold min-h-screen flex flex-col justify-center items-center m-0 p-0">
+<div
+    class="container mx-auto flex flex-col items-center justify-center px-4 pt-[8.5rem] pb-4 max-w-[600px] w-full flex-1">
+    <header class="w-full flex items-start max-w-96 justify-between px-2 py-4 bg-transparent absolute top-0">
+        <!-- Left: Logo -->
+        <img src="{{ asset('images/new_logo.png') }}" alt="StudyZone Logo" class=" size-20">
+
+        <!-- Right: Study Zone & City -->
+        <div class="flex flex-col justify-end items-end leading-tight">
+            <img src="{{ asset('images/sz.png') }}" alt="StudyZone Logo" class="w-44">
+
+            <div class="text-base text-white tracking-wide uppercase">
+                {{ strtoupper($city->name_en ?? $city->name) }}
+            </div>
         </div>
     </header>
 
-    <div class="content container">
-        <div class="links">
-            @if ($city->facebook)
-                <a href="{{ $city->facebook }}" target="_blank">Facebook</a>
-            @endif
-            @if ($city->instagram)
-                <a href="{{ $city->instagram }}" target="_blank">Instagram</a>
-            @endif
-            @if ($city->whatsapp)
-                <a href="{{ $city->whatsapp }}" target="_blank">WhatsApp</a>
-            @endif
-            @if ($city->telegram)
-                <a href="{{ $city->telegram }}" target="_blank">Telegram</a>
-            @endif
-            @if ($city->website)
-                <a href="{{ $city->website }}" target="_blank">Official Website</a>
-            @endif
-        </div>
-
-        <footer>
-            A Project by:<br>Christian Hope Center
-        </footer>
+    <div class="flex flex-col items-center gap-4 w-full font-black max-w-72 mt-20 flex-grow">
+        @if ($city->facebook)
+            <a href="{{ $city->facebook }}" target="_blank"
+               class="w-full text-center px-4 py-3 text-primary bg-white border border-white rounded-full text-base uppercase transition-colors duration-200 hover:bg-accent hover:text-white hover:border-accent">Facebook</a>
+        @endif
+        @if ($city->instagram)
+            <a href="{{ $city->instagram }}" target="_blank"
+               class="w-full text-center px-4 py-3 text-primary bg-white border border-white rounded-full text-base uppercase transition-colors duration-200 hover:bg-accent hover:text-white hover:border-accent">Instagram</a>
+        @endif
+        @if ($city->whatsapp)
+            <a href="{{ $city->whatsapp }}" target="_blank"
+               class="w-full text-center px-4 py-3 text-primary bg-white border border-white rounded-full text-base uppercase transition-colors duration-200 hover:bg-accent hover:text-white hover:border-accent">WhatsApp</a>
+        @endif
+        @if ($city->telegram)
+            <a href="{{ $city->telegram }}" target="_blank"
+               class="w-full text-center px-4 py-3 text-primary bg-white border border-white rounded-full text-base uppercase transition-colors duration-200 hover:bg-accent hover:text-white hover:border-accent">Telegram</a>
+        @endif
+        @if ($city->website)
+            <a href="{{ $city->website }}" target="_blank"
+               class="w-full text-center px-4 py-3 text-primary bg-white border border-white rounded-full text-base uppercase transition-colors duration-200 hover:bg-accent hover:text-white hover:border-accent">HCSYRIA.ORG</a>
+        @endif
     </div>
+
+    <footer class="text-center leading-none  relative pb-4 ">
+        <span class="text-white text-xs font-light ">A Project by:</span>
+        <p>
+            CHRISTIAN HOPE CENTER
+        </p>
+
+        <div class="fixed text-sm left-0 right-0 bottom-0 h-2.5 bg-accent"></div>
+    </footer>
+</div>
 </body>
 
 </html>
