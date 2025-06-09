@@ -13,34 +13,19 @@ class SyncOnlineToLocal extends Command
     protected $signature = 'sync:online-to-local';
     protected $description = 'Bidirectional sync between local and online database using async jobs';
 
+
     public function handle(): void
     {
+        $this->info('🔁 Starting synchronization...');
 
         if (!SyncHelper::isInternetAvailable()) {
-            $this->error('No internet connection is available...');
-
+            $this->error('❌ No internet connection available.');
             return;
         }
-        $this->info('Starting data synchronization...');
 
-        $tables = [
-            'cities' , 'centers' , 'streets' , 'users' , 'educations',
-            'students' , 'student_educations' , 'student_entries'
-        ];
-        $this->info('Starting bidirectional sync...');
-        $this->output->progressStart(count($tables));
-        foreach ($tables as $table) {
-            $this->info("➡️ Syncing table: {$table}");
-            SyncHelper::syncOnlineToLocal($table);
-            $this->output->progressAdvance();
-        }
+        SyncHelper::syncOnlineToLocal();
 
-        $this->output->progressFinish();
-
-
-        $this->info('Sync completed.');
-
-
+        $this->info('✅ Synchronization completed.');
     }
 }
 

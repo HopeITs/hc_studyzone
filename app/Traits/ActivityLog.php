@@ -16,9 +16,10 @@ trait ActivityLog
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logAll()
-            ->logOnlyDirty();
+            ->useLogName(config('activitylog.default_log_name'))
+            ->logAll();
         // Chain fluent methods for configuration options
     }
+
 
 }

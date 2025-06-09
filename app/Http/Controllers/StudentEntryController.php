@@ -14,7 +14,7 @@ class StudentEntryController extends Controller
     {
         $student = Student::findOrFail($uuid);
         $entryTypes = collect(__('general.entry-types'))->toArray();
-        $centers = Center::all();
+        $centers = Center::where('is_active',true)->get();
         return view('students.entry-form', compact('student', 'entryTypes', 'centers'));
     }
 

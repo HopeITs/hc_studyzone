@@ -7,12 +7,24 @@ use App\Enums\Roles;
 use App\Filament\Exports\StudentExporter;
 use App\Filament\Resources\StudentResource\Pages;
 use App\Filament\Resources\StudentResource\RelationManagers;
+use Carbon\Carbon;
 use App\Models\{City, Education, Street, Student, StudentEntry};
 
-use Filament\Forms\Components\{Checkbox, DatePicker, DateTimePicker, Fieldset, Select, Textarea, TextInput, Toggle, Wizard};
+use Filament\Forms\Components\{Checkbox,
+    DatePicker,
+    DateTimePicker,
+    Fieldset,
+    Select,
+    Textarea,
+    TextInput,
+    Toggle,
+    Wizard
+};
+use Closure;
 use Filament\Actions\Exports\Enums\ExportFormat;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
+use Filament\Forms\Set;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Actions\{Action, ActionGroup, ExportAction, ExportBulkAction};
@@ -26,12 +38,14 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
-use PhpOffice\PhpSpreadsheet\Calculation\TextData\Format;
+
+use Livewire\Component as Livewire;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class StudentResource extends Resource
 {
     use InteractsWithPageFilters;
+
     protected static ?string $model = Student::class;
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
     protected static ?int $navigationSort = 6;
@@ -77,10 +91,17 @@ class StudentResource extends Resource
                     ->disabled(fn(Get $get) => $get('is_child'))
                     ->unique(ignoreRecord: true)
                     ->columnSpan(2),
-                Checkbox::make('is_child')->reactive()
+
+                Checkbox::make('is_child')
                     ->label('قاصر')
                     ->default(false)
-                ,
+                    ->reactive()
+                    ->afterStateHydrated(function ($set, $get, $state, $livewire) {
+                        $record = $livewire->record ?? null;
+                        if ($record && is_null($record->national_number)) {
+                            $set('is_child', true);
+                        }
+                    }),
 
                 Select::make('gender')
                     ->label(__('general.labels.gender'))
@@ -116,27 +137,34 @@ class StudentResource extends Resource
 
     protected static function contactInformationStep(): Wizard\Step
     {
+
         return Wizard\Step::make(__('general.labels.contact_information'))
             ->schema([
-                Select::make('city_id')
-                    ->label(__('general.labels.city'))
-                    ->relationship('street.city', 'name')
-                    ->searchable()
-                    ->required()
-                    ->preload()
-                    ->live()
-                    ->default(auth()->user()->city_id) // Set default to the user's city
-                    ->reactive()  // Make city_id reactive
-                    ->afterStateUpdated(fn($state, callable $set) => $set('street_id', null)), // Reset street_id when city changes
 
+                Select::make('city_id')
+                    ->live()
+                    ->label(__('general.labels.city'))
+                    ->dehydrated(false)
+                    ->searchable()
+                    ->default(auth()->user()->city_id ?? '')
+                    ->preload()
+                    ->options(City::pluck('name', 'id'))
+                    ->afterStateUpdated(fn($state, callable $set) => $set('street_id', null)),
                 Select::make('street_id')
+                    ->required()
+                    ->searchable()
+                    ->preload()
                     ->label(__('general.labels.street'))
-                    ->options(fn(Get $get): \Illuminate\Support\Collection => Street::query()
-                        ->where('city_id', $get('city_id'))
-                        ->pluck('name', 'id'))
-                    ->searchable()  // Make streets searchable
-                    ->required()  // Make street selection mandatory
-                ,
+                    ->placeholder(fn(Get $get): string => empty($get('city_id')) ? 'First select City' : 'Select an option')
+                    ->options(function (?Student $record, Get $get, Set $set) {
+                        if (!empty($record) && empty($get('city_id'))) {
+                            $set('city_id', $record->street->city_id ?? '');
+                            $set('street_id', $record->street_id);
+                        }
+
+                        return Street::where('city_id', $get('city_id'))->pluck('name', 'id');
+                    }),
+
 
                 TextInput::make('phone')
                     ->label(__('general.labels.phone'))
@@ -224,10 +252,11 @@ class StudentResource extends Resource
                 }),
             TextColumn::make('year_of_birth')->label('Date of Birth')->sortable()->toggleable(),
             TextColumn::make('phone')->label('Phone')->sortable()->searchable()->toggleable(),
+            TextColumn::make('email')->label('Email')->sortable()->searchable()->toggleable(isToggledHiddenByDefault:true),
             TextColumn::make('entries_count')->counts('entries')->label('Entries')->sortable()->toggleable(),
-            TextColumn::make('whatsapp')->label('Whatsapp')->sortable()->searchable()->toggleable(),
+            TextColumn::make('whatsapp')->label('Whatsapp')->sortable()->searchable()->toggleable(isToggledHiddenByDefault:true),
             TextColumn::make('street.name')->label('Street')->toggleable()->sortable()->searchable(),
-            TextColumn::make('educations')
+            TextColumn::make('educations')->sortable()
                 ->label('Educations')
                 ->formatStateUsing(function ($record) {
                     return $record->educations->take(3)->pluck('name')->implode(', ');
@@ -256,10 +285,11 @@ class StudentResource extends Resource
                         Gender::Female() => 'danger',
                     },
                 )
-                ->toggleable(),
+                ->toggleable(isToggledHiddenByDefault:true),
 
-            CheckboxColumn::make('is_student')->toggleable(),
-            TextColumn::make('created_at')->label('Created at')->formatStateUsing(fn(Model $record) => $record->created_at->format('Y-m-d'))->sortable()->searchable()->toggleable(),
+            CheckboxColumn::make('is_student')->toggleable(isToggledHiddenByDefault:true),
+            CheckboxColumn::make('is_employed')->toggleable(isToggledHiddenByDefault:true),
+            TextColumn::make('created_at')->label('Created at')->formatStateUsing(fn(Model $record) => $record->created_at->format('Y-m-d'))->sortable()->searchable()->toggleable(isToggledHiddenByDefault:true),
         ];
     }
 
@@ -278,7 +308,15 @@ class StudentResource extends Resource
     protected static function filterQueryByRole(Builder $query): Builder
     {
         $user = Auth::user();
-        return $user->role === Roles::GeneralAdmin() ? $query : ($user->role === Roles::CenterAdmin() || $user->role === Roles::CityAdmin() ? $query->whereIn('street_id', $user->city->streets->pluck('id')->toArray()) : $query->whereRaw('1 = 0'));
+        if($user->role === Roles::GeneralAdmin()){
+            return $query;
+        }else{
+            $streetsArr = $user->city->streets->pluck('id');
+            $streetsArr[] = 0;
+           return $query->whereIn('street_id', $streetsArr->toArray()) ;
+
+        }
+
     }
 
     protected static function tableFilters(): array
@@ -308,7 +346,7 @@ class StudentResource extends Resource
                 ->preload()
                 ->options(City::all()->pluck('name', 'id'))
                 ->searchable()
-                ->visible(auth()->user()->role === Roles::GeneralAdmin),
+                ->visible(auth()->user()->role === Roles::GeneralAdmin()),
 
             SelectFilter::make('street_id')->label('Filter by Street')->preload()->options($streets)->searchable(),
 
@@ -339,14 +377,13 @@ class StudentResource extends Resource
                 ->label(__('general.labels.entry'))
                 ->icon('heroicon-o-document-text')
                 ->form([
-
-
                     Select::make('entry_type')
                         ->label(__('general.labels.entry_type'))->default(1)
                         ->options(__('general.entry-types'))->columnSpan(1)
                         ->required(),
                     DateTimePicker::make('entry_time')->label(__('general.labels.entry_time'))
-                        ->default(now())->columnSpan(1)
+                        ->default(now())
+                        ->columnSpan(1)
                         ->required(),
                     Fieldset::make('Services')->label('خدمات')
                         ->schema([
@@ -408,19 +445,7 @@ class StudentResource extends Resource
         ];
     }
 
-    public static function getGlobalActions(): array
-    {
-        return [
-            Action::make('scan:qrcode')
-                ->label('Open Camera')
-                ->icon('heroicon-o-camera')
-                ->modalHeading('Scan QR Code')
-                ->modalContent(fn() => view('filament.qr-code-scanner'))
-                ->modalSubmitAction(false)
-                ->modalCancelActionLabel('Close')
-                ->modalId('scan-qr-code'),
-        ];
-    }
+
 
     public static function mutateFormDataBeforeCreate(array $data): array
     {

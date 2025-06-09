@@ -82,9 +82,7 @@ return [
             'prefix_indexes' => true,
             'strict' => true,
             'engine' => null,
-            'options' => extension_loaded('pdo_mysql') ? array_filter([
-                PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
-            ]) : [],
+
         ],
 
         'online_mysql' => [
@@ -95,6 +93,8 @@ return [
             'database' => env('ONLINE_DB_DATABASE', 'online_db'),
             'username' => env('ONLINE_DB_USERNAME', 'online_user'),
             'password' => env('ONLINE_DB_PASSWORD', ''),
+            'strict' => true,
+            'engine' => null,
         ],
 
     ],

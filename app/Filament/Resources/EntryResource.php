@@ -37,13 +37,13 @@ class EntryResource extends Resource
             return parent::getEloquentQuery();
         }
 
-        if ($user->role === Roles::GeneralAdmin()) {
+        if ($user->role === Roles::CityAdmin()) {
             return parent::getEloquentQuery()->whereHas('center', function ($query) use ($user) {
                 $query->where('city_id', $user->city_id);
             });
         }
 
-        if ($user->role === Roles::GeneralAdmin()) {
+        if ($user->role === Roles::CenterAdmin()) {
             return parent::getEloquentQuery()->where('center_id', $user->center_id);
         }
 
@@ -71,7 +71,8 @@ class EntryResource extends Resource
                 ->options(__('general.entry-types'))->columnSpan(1)
                 ->required(),
             DateTimePicker::make('entry_time')->label(__('general.labels.entry_time'))
-                ->default(now())->columnSpan(1)
+                  ->default(now())
+                ->columnSpan(1)
                 ->required(),
             Fieldset::make('Services')->label('خدمات')
                 ->schema([
@@ -124,7 +125,7 @@ class EntryResource extends Resource
                     })->toggleable(),
 
                 TextColumn::make('entry_time')
-                    ->label('تاريخ الدخول')
+                    ->label('تاريخ الدخول')->sortable()
                     ->dateTime('Y-m-d H:i'),
 
                 TextColumn::make('center.city.name')
