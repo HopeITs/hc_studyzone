@@ -4,6 +4,7 @@ namespace App\Helpers;
 
 use DateTime;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Spatie\Activitylog\Models\Activity;
@@ -63,6 +64,7 @@ class SyncHelper
             ->where('log_name', '!=', config('activitylog.default_log_name'))
             ->orderBy('created_at')
             ->chunk(50, function ($activities) use (&$syncedCount) {
+
                 $grouped = $activities->groupBy('subject_type');
 
                 $helper = new self();
@@ -78,8 +80,8 @@ class SyncHelper
                         continue;
                     }
                     foreach ($grouped[$modelClass] as $activity) {
-
                         try {
+                            DB::beginTransaction();
                             $synced_at = now();
                             $attributes = $activity->properties['attributes'] ?? [];
                             $attributes['synced_at'] = $synced_at;
@@ -104,9 +106,10 @@ class SyncHelper
                             $localActivity->update(['synced_at' => $synced_at]);
 
                             $syncedCount++;
-
+                            DB::commit();
 
                         } catch (\Throwable $e) {
+                            DB::rollBack();
                             Log::error("❌ Failed syncing [{$modelClass}] Activity ID {$activity->id}: {$e->getMessage()}");
 
                             if (!self::isInternetAvailable()) {
@@ -147,6 +150,7 @@ class SyncHelper
 
                     foreach ($grouped[$modelClass] as $activity) {
                         try {
+                            DB::beginTransaction();
                             $attributes = $activity->properties['attributes'] ?? [];
                             $query = $modelClass::on('online_mysql');
                             if ($activity->event === 'created') {
@@ -163,21 +167,29 @@ class SyncHelper
                             $onlineActivityData['log_name'] = config('activitylog.default_log_name');
                             $onlineActivity = Activity::on('online_mysql')
                                 ->create($onlineActivityData);
-
-
-
-
                             $activity->update(['synced_at' => now()]);
+                            DB::commit();
                             $syncedCount++;
-
                         } catch (\Throwable $e) {
-                            Log::error("❌ Failed to sync local [{$modelClass}] ID {$activity->id}: " . $e->getMessage());
+                            DB::rollBack();
+                            $errorMessage = $e->getMessage();
+                            Log::error("❌ Failed to sync local [{$modelClass}] ID {$activity->id}: " . $errorMessage);
 
+                            // Check for duplicate entry error
+                            if (str_contains($errorMessage, 'Duplicate entry')) {
+                                // Mark as synced anyway to skip next time
+                                $activity->update(['synced_at' => now()]);
+                                Log::info("⚠️ Duplicate detected. Marked activity ID {$activity->id} as synced.");
+                            }
+
+                            // Stop if there's no internet
                             if (!self::isInternetAvailable()) {
                                 Log::warning("🚫 Internet lost during sync. Stopping...");
                                 return false;
                             }
                         }
+
+
                     }
                 }
             });

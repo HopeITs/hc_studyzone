@@ -47,10 +47,6 @@ class Student extends Model implements HasName
         return $this->hasMany(StudentEducation::class, 'student_id');
     }
 
-    public function city()
-    {
-        return $this->street()->withDefault()->city;
-    }
 
     // Method to get the QR code path
     public function getQrCodePath(): string
