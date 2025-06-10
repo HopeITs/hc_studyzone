@@ -17,7 +17,16 @@ class TopEducationsTable extends TableWidget
 {
     use InteractsWithPageFilters;
 
-    protected static ?string $heading = 'Top 10 Educations by Students (From ${$startDate})';
+    public function getHeading(): ?string
+    {
+
+        $startDate = !is_null($this->filters['startDate'] ?? null)
+            ? Carbon::parse($this->filters['startDate'])->format('F j, Y')
+            : now()->startOfYear()->format('F j, Y');
+
+        return "Top 10 Educations by Students (From {$startDate})";
+    }
+
     protected static ?int $sort = 7;
 
     public function table(Table $table): Table
