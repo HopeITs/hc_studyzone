@@ -11,7 +11,7 @@ class StudentGenderChart extends ChartWidget
 {
     use InteractsWithPageFilters;
 
-    protected static ?string $heading = 'Gender Distribution (Students)';
+    protected static ?string $heading = 'Gender Distribution (New Students)';
     protected static ?int $sort = 5;
     protected static string $color = 'primary';
 
@@ -22,11 +22,19 @@ class StudentGenderChart extends ChartWidget
 
     protected function getData(): array
     {
+        $startDate = !is_null($this->filters['startDate'] ?? null)
+            ? Carbon::parse($this->filters['startDate'])->startOfMonth()
+            : now()->startOfYear();
+
+        $endDate = !is_null($this->filters['endDate'] ?? null)
+            ? Carbon::parse($this->filters['endDate'])->endOfMonth()
+            : now()->endOfMonth();
+
+        $cityId = $this->filters['city'] ?? null;
+        $centerId = $this->filters['center'] ?? null;
+
         $query = Student::query()
-            ->when($this->filters['startDate'] ?? null, fn($q) => $q->whereDate('created_at', '>=', Carbon::parse($this->filters['startDate']))
-            )
-            ->when($this->filters['endDate'] ?? null, fn($q) => $q->whereDate('created_at', '<=', Carbon::parse($this->filters['endDate']))
-            )
+            ->whereBetween('created_at', [$startDate, $endDate])
             ->when($this->filters['center'] ?? null, fn($q) => $q->whereHas('entries', fn($q) => $q->whereIn('center_id', (array)$this->filters['center'])))
             ->when($this->filters['city'] ?? null, fn($q) => $q->whereHas('entries.center', fn($q) => $q->whereIn('city_id', (array)$this->filters['city'])))
             ->selectRaw('gender, COUNT(*) as total')
@@ -55,7 +63,7 @@ class StudentGenderChart extends ChartWidget
         return [
             'datasets' => [
                 [
-                    'label' => 'Students',
+                    'label' => 'New Students',
                     'data' => $data,
                     'backgroundColor' => [
                         'rgba(255, 159, 64, 0.2)',
