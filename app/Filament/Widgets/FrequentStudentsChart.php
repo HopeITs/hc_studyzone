@@ -47,7 +47,7 @@ class FrequentStudentsChart extends ChartWidget
         // Step 2: Count unique students per month from filtered records
         $monthlyCounts = $monthlyStudentEntries
             ->groupBy('month')
-            ->map(fn($group) => $group->pluck('student_id')->unique()->count())
+            ->map(fn($group) => $group->sum('visits'))
             ->toArray();
 
         // Step 3: Generate month labels and data
