@@ -19,7 +19,7 @@ class TopLevels extends TableWidget
     use InteractsWithPageFilters;
 
     protected static ?int $sort = 7;
-    protected static ?string $heading = 'Top 10 Levels by Students';
+    protected static ?string $heading = 'Top Levels by Students';
 
     public function table(Table $table): Table
     {
@@ -52,7 +52,7 @@ class TopLevels extends TableWidget
     {
         $startDate = !is_null($this->filters['startDate'] ?? null)
             ? Carbon::parse($this->filters['startDate'])->startOfDay()
-            : now()->startOfMonth()->startOfDay();
+            : now()->startOfYear()->startOfDay();
 
         $endDate = !is_null($this->filters['endDate'] ?? null)
             ? Carbon::parse($this->filters['endDate'])->endOfDay()
