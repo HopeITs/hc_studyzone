@@ -47,17 +47,12 @@ class EntryGenderChart extends ChartWidget
         ];
 
         $labels = array_values($genderLabels);
-        $data[] = $grouped->sum();;
-
-
-        foreach ($genderLabels as $key => $label) {
-            if ($key === 3) {
-                continue;
-            } else {
-                $data[] = $grouped[$key] ?? 0;
-            }
-        }
-
+        $data = [
+            $grouped->sum(), // Total
+            $grouped[1] ?? 0, // Male
+            $grouped[2] ?? 0, // Female
+            $grouped[0] ?? 0, // Unknown
+        ];
 
         return [
             'labels' => $labels,
