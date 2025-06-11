@@ -31,14 +31,8 @@ class EntryGenderChart extends ChartWidget
         $entries = StudentEntry::query()
             ->with('student')
             ->whereBetween('entry_time', [$startDate, $endDate])
-            ->when($centerId, fn ($query) =>
-                $query->whereIn('center_id', (array) $$centerId)
-            )
-            ->when($centerId, fn ($query) =>
-                $query->whereHas('center', fn ($q) =>
-                    $q->whereIn('city_id', (array) $cityId)
-                )
-            )
+            ->when($centerId, fn($query) => $query->whereIn('center_id', (array)$centerId))
+            ->when($cityId, fn($query) => $query->whereHas('center', fn($q) => $q->whereIn('city_id', (array)$cityId)))
             ->get();
 
 
@@ -53,19 +47,16 @@ class EntryGenderChart extends ChartWidget
         ];
 
         $labels = array_values($genderLabels);
-         $data[] = $grouped->sum(); ;
+        $data[] = $grouped->sum();;
 
 
         foreach ($genderLabels as $key => $label) {
-            if($key === 3){
+            if ($key === 3) {
                 continue;
-            }else{
+            } else {
                 $data[] = $grouped[$key] ?? 0;
             }
         }
-
-
-
 
 
         return [
