@@ -17,29 +17,26 @@ class EntryGenderChart extends ChartWidget
 
     protected function getData(): array
     {
+        $startDate = !is_null($this->filters['startDate'] ?? null)
+            ? Carbon::parse($this->filters['startDate'])->startOfMonth()
+            : now()->startOfYear();
+
+        $endDate = !is_null($this->filters['endDate'] ?? null)
+            ? Carbon::parse($this->filters['endDate'])->endOfMonth()
+            : now()->endOfMonth();
+
+        $cityId = $this->filters['city'] ?? null;
+        $centerId = $this->filters['center'] ?? null;
+
         $entries = StudentEntry::query()
             ->with('student')
-
-            ->when($this->filters['startDate'] ?? null, fn ($query) =>
-                $query->whereDate('entry_time', '>=', Carbon::parse($this->filters['startDate']))
+            ->whereBetween('entry_time', [$startDate, $endDate])
+            ->when($centerId, fn ($query) =>
+                $query->whereIn('center_id', (array) $$centerId)
             )
-
-            ->when($this->filters['endDate'] ?? null, fn ($query) =>
-                $query->whereDate('entry_time', '<=', Carbon::parse($this->filters['endDate']))
-            )
-
-            ->when(
-                !isset($this->filters['startDate']) && !isset($this->filters['endDate']),
-                fn ($query) => $query->whereDate('entry_time', '>=', now()->subDays(30))
-            )
-
-            ->when($this->filters['center'] ?? null, fn ($query) =>
-                $query->whereIn('center_id', (array) $this->filters['center'])
-            )
-
-            ->when($this->filters['city'] ?? null, fn ($query) =>
+            ->when($centerId, fn ($query) =>
                 $query->whereHas('center', fn ($q) =>
-                    $q->whereIn('city_id', (array) $this->filters['city'])
+                    $q->whereIn('city_id', (array) $cityId)
                 )
             )
             ->get();
