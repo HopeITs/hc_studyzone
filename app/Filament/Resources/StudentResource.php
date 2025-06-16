@@ -252,9 +252,9 @@ class StudentResource extends Resource
                 }),
             TextColumn::make('year_of_birth')->label('Date of Birth')->sortable()->toggleable(),
             TextColumn::make('phone')->label('Phone')->sortable()->searchable()->toggleable(),
-            TextColumn::make('email')->label('Email')->sortable()->searchable()->toggleable(isToggledHiddenByDefault:true),
+            TextColumn::make('email')->label('Email')->sortable()->searchable()->toggleable(isToggledHiddenByDefault: true),
             TextColumn::make('entries_count')->counts('entries')->label('Entries')->sortable()->toggleable(),
-            TextColumn::make('whatsapp')->label('Whatsapp')->sortable()->searchable()->toggleable(isToggledHiddenByDefault:true),
+            TextColumn::make('whatsapp')->label('Whatsapp')->sortable()->searchable()->toggleable(isToggledHiddenByDefault: true),
             TextColumn::make('street.name')->label('Street')->toggleable()->sortable()->searchable(),
             TextColumn::make('educations')->sortable()
                 ->label('Educations')
@@ -271,9 +271,9 @@ class StudentResource extends Resource
                 ->toggleable(),
             TextColumn::make('street.city.name')
                 ->label('City')
-                ->visible(auth()->user()->role === Roles::GeneralAdmin())
                 ->sortable()
-                ->searchable(),
+                ->searchable()
+                ->toggleable(isToggledHiddenByDefault: true),
             TextColumn::make('gender')
                 ->label('Gender')
                 ->badge()
@@ -285,11 +285,11 @@ class StudentResource extends Resource
                         Gender::Female() => 'danger',
                     },
                 )
-                ->toggleable(isToggledHiddenByDefault:true),
+                ->toggleable(isToggledHiddenByDefault: true),
 
-            CheckboxColumn::make('is_student')->toggleable(isToggledHiddenByDefault:true),
-            CheckboxColumn::make('is_employed')->toggleable(isToggledHiddenByDefault:true),
-            TextColumn::make('created_at')->label('Created at')->formatStateUsing(fn(Model $record) => $record->created_at->format('Y-m-d'))->sortable()->searchable()->toggleable(isToggledHiddenByDefault:true),
+            CheckboxColumn::make('is_student')->toggleable(isToggledHiddenByDefault: true),
+            CheckboxColumn::make('is_employed')->toggleable(isToggledHiddenByDefault: true),
+            TextColumn::make('created_at')->label('Created at')->formatStateUsing(fn(Model $record) => $record->created_at->format('Y-m-d'))->sortable()->searchable()->toggleable(isToggledHiddenByDefault: true),
         ];
     }
 
@@ -308,13 +308,21 @@ class StudentResource extends Resource
     protected static function filterQueryByRole(Builder $query): Builder
     {
         $user = Auth::user();
-        if($user->role === Roles::GeneralAdmin()){
+        if ($user->role === Roles::GeneralAdmin()) {
             return $query;
-        }else{
-            $streetsArr = $user->city->streets->pluck('id');
-            $streetsArr[] = 0;
-           return $query->whereIn('street_id', $streetsArr->toArray()) ;
+        } else {
+            $cityId = $user->city_id;
 
+            // Avoid loading all street models, just pluck IDs with a direct query
+            $streetsArr = \App\Models\Street::where('city_id', $cityId)->pluck('id')->toArray();
+            $streetsArr[] = 0; // Optional fallback value
+
+            return $query->where(function ($q) use ($streetsArr, $cityId) {
+                $q->whereIn('street_id', $streetsArr)
+                    ->orWhereHas('entries.center', function ($q) use ($cityId) {
+                        $q->where('city_id', $cityId);
+                    });
+            });
         }
 
     }
@@ -346,7 +354,7 @@ class StudentResource extends Resource
                 ->preload()
                 ->options(City::all()->pluck('name', 'id'))
                 ->searchable()
-                ->visible(auth()->user()->role === Roles::GeneralAdmin()),
+             ,
 
             SelectFilter::make('street_id')->label('Filter by Street')->preload()->options($streets)->searchable(),
 
@@ -444,7 +452,6 @@ class StudentResource extends Resource
             'edit' => Pages\EditStudent::route('/{record}/edit'),
         ];
     }
-
 
 
     public static function mutateFormDataBeforeCreate(array $data): array
