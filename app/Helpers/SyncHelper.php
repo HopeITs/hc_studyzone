@@ -55,7 +55,7 @@ class SyncHelper
     public static function syncOnlineToLocal(): int
     {
 
-        $lastSync = Activity::max('synced_at') ?? now()->subYear();
+        $lastSync = Activity::max('synced_at') ?? now()->subWeek();
 
         $syncedCount = 0;
 
