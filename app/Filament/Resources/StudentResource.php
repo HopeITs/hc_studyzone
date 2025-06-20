@@ -234,7 +234,7 @@ class StudentResource extends Resource
                     ->exporter(StudentExporter::class)
                     ->formats([ExportFormat::Xlsx]),
                 Tables\Actions\BulkActionGroup::make([Tables\Actions\DeleteBulkAction::make()]),
-            ]);
+            ])->paginated([20, 50, 100, 200]);
     }
 
     protected static function tableColumns(): array

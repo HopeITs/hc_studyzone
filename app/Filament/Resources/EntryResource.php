@@ -196,7 +196,7 @@ class EntryResource extends Resource
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
-            ]);
+            ])->paginated([20, 50, 100, 200]);
     }
 
     public static function getRelations(): array
