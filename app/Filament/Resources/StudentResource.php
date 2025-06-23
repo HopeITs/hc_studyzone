@@ -251,6 +251,7 @@ class StudentResource extends Resource
                         ->orWhere('father_name', 'like', "%{$search}%");
                 }),
             TextColumn::make('year_of_birth')->label('Date of Birth')->sortable()->toggleable(),
+            TextColumn::make('national_number')->label('National number')->toggleable(isToggledHiddenByDefault: true),
             TextColumn::make('phone')->label('Phone')->sortable()->searchable()->toggleable(),
             TextColumn::make('email')->label('Email')->sortable()->searchable()->toggleable(isToggledHiddenByDefault: true),
             TextColumn::make('entries_count')->counts('entries')->label('Entries')->sortable()->toggleable(),
