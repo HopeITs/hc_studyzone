@@ -298,10 +298,14 @@ class StudentResource extends Resource
     protected static function qrCodeModalContent(Student $record)
     {
         $url = url("student/{$record->id}/entry");
+        $localUrl = 'https://hope_studyzone.test/student/'.$record->id.'/entry';
+        $onlineUrl ='https://studyzone.sha8er.com/student/'.$record->id.'/entry';
         $qrCode = QrCode::size(200)->generate($url);
         return view('filament.qr-code-modal', [
             'uuid' => $record->id,
             'url' => $url,
+            'offlineUrl' => $localUrl,
+            'onlineUrl' => $onlineUrl,
             'qrCode' => $qrCode,
         ]);
     }
