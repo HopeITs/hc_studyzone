@@ -243,7 +243,7 @@ class StudentResource extends Resource
             TextColumn::make('firstname')
                 ->label('Full name')
                 ->formatStateUsing(fn(Model $record) => $record->firstname . ' ' . $record->father_name . ' ' . $record->lastname)
-                ->sortable(['firstname', 'lastname'])
+                ->sortable(['firstname'])
                 ->searchable(query: function (Builder $query, string $search): Builder {
                     return $query
                         ->where('firstname', 'like', "%{$search}%")
@@ -257,7 +257,7 @@ class StudentResource extends Resource
             TextColumn::make('entries_count')->counts('entries')->label('Entries')->sortable()->toggleable(),
             TextColumn::make('whatsapp')->label('Whatsapp')->sortable()->searchable()->toggleable(isToggledHiddenByDefault: true),
             TextColumn::make('street.name')->label('Street')->toggleable()->sortable()->searchable(),
-            TextColumn::make('educations')->sortable()
+            TextColumn::make('educations')
                 ->label('Educations')
                 ->formatStateUsing(function ($record) {
                     return $record->educations->take(3)->pluck('name')->implode(', ');
