@@ -55,7 +55,7 @@ class SyncHelper
     public static function syncOnlineToLocal(): int
     {
 
-        $lastSync = Activity::max('synced_at') ?? now()->subYear();
+        $lastSync = Activity::max('synced_at') ?? now()->subWeek();
 
         $syncedCount = 0;
 
@@ -167,21 +167,29 @@ class SyncHelper
                             $onlineActivityData['log_name'] = config('activitylog.default_log_name');
                             $onlineActivity = Activity::on('online_mysql')
                                 ->create($onlineActivityData);
-
-
                             $activity->update(['synced_at' => now()]);
                             DB::commit();
                             $syncedCount++;
-
                         } catch (\Throwable $e) {
                             DB::rollBack();
-                            Log::error("❌ Failed to sync local [{$modelClass}] ID {$activity->id}: " . $e->getMessage());
+                            $errorMessage = $e->getMessage();
+                            Log::error("❌ Failed to sync local [{$modelClass}] ID {$activity->id}: " . $errorMessage);
 
+                            // Check for duplicate entry error
+                            if (str_contains($errorMessage, 'Duplicate entry')) {
+                                // Mark as synced anyway to skip next time
+                                $activity->update(['synced_at' => now()]);
+                                Log::info("⚠️ Duplicate detected. Marked activity ID {$activity->id} as synced.");
+                            }
+
+                            // Stop if there's no internet
                             if (!self::isInternetAvailable()) {
                                 Log::warning("🚫 Internet lost during sync. Stopping...");
                                 return false;
                             }
                         }
+
+
                     }
                 }
             });

@@ -38,7 +38,7 @@ class EntriesRelationManager extends RelationManager
                 ->required()->columnSpanFull(),
             Forms\Components\Select::make('entry_type')
                 ->options(__('general.entry-types'))
-                ->default(0)
+                ->default(1)
                 ->required()->columnSpanFull(),
             Forms\Components\DateTimePicker::make('entry_time')
                 ->default(now())

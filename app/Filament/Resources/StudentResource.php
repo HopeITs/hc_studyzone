@@ -193,8 +193,7 @@ class StudentResource extends Resource
                     ->color('success'),
 
                 Tables\Actions\BulkActionGroup::make([Tables\Actions\DeleteBulkAction::make()]),
-            ])
-            ->paginated([20, 50, 100, 200]);
+            ])->paginated([20, 50, 100, 200]);
     }
 
     protected static function tableColumns(): array
@@ -203,15 +202,13 @@ class StudentResource extends Resource
             TextColumn::make('firstname')
                 ->label('Full name')
                 ->formatStateUsing(fn(Model $record) => $record->firstname . ' ' . $record->father_name . ' ' . $record->lastname)
-                ->sortable(['firstname', 'lastname'])
-                ->searchable(
-                    query: function (Builder $query, string $search): Builder {
-                        return $query
-                            ->where('firstname', 'like', "%{$search}%")
-                            ->orWhere('lastname', 'like', "%{$search}%")
-                            ->orWhere('father_name', 'like', "%{$search}%");
-                    },
-                ),
+                ->sortable(['firstname'])
+                ->searchable(query: function (Builder $query, string $search): Builder {
+                    return $query
+                        ->where('firstname', 'like', "%{$search}%")
+                        ->orWhere('lastname', 'like', "%{$search}%")
+                        ->orWhere('father_name', 'like', "%{$search}%");
+                }),
             TextColumn::make('year_of_birth')->label('Date of Birth')->sortable()->toggleable(),
             TextColumn::make('national_number')->label('National number')->searchable()->toggleable(isToggledHiddenByDefault: true),
             TextColumn::make('phone')->label('Phone')->sortable()->searchable()->toggleable(),
@@ -220,7 +217,6 @@ class StudentResource extends Resource
             TextColumn::make('whatsapp')->label('Whatsapp')->sortable()->searchable()->toggleable(isToggledHiddenByDefault: true),
             TextColumn::make('street.name')->label('Street')->toggleable()->sortable()->searchable(),
             TextColumn::make('educations')
-                ->sortable()
                 ->label('Educations')
                 ->formatStateUsing(function ($record) {
                     return $record->educations->take(3)->pluck('name')->implode(', ');
@@ -233,7 +229,11 @@ class StudentResource extends Resource
                     },
                 )
                 ->toggleable(),
-            TextColumn::make('street.city.name')->label('City')->sortable()->searchable()->toggleable(isToggledHiddenByDefault: true),
+            TextColumn::make('street.city.name')
+                ->label('City')
+                ->sortable()
+                ->searchable()
+                ->toggleable(isToggledHiddenByDefault: true),
             TextColumn::make('gender')
                 ->label('Gender')
                 ->badge()
@@ -253,11 +253,12 @@ class StudentResource extends Resource
         ];
     }
 
+
     protected static function qrCodeModalContent(Student $record)
     {
         $url = url("student/{$record->id}/entry");
-        $localUrl = 'https://hope_studyzone.test/student/' . $record->id . '/entry';
-        $onlineUrl = 'https://studyzone.sha8er.com/student/' . $record->id . '/entry';
+        $localUrl = 'https://hope_studyzone.test/student/'.$record->id.'/entry';
+        $onlineUrl ='https://studyzone.sha8er.com/student/'.$record->id.'/entry';
         $qrCode = QrCode::size(200)->generate($url);
         return view('filament.qr-code-modal', [
             'uuid' => $record->id,
@@ -281,15 +282,18 @@ class StudentResource extends Resource
             $streetsArr[] = 0; // Optional fallback value
 
             return $query->where(function ($q) use ($streetsArr, $cityId) {
-                $q->whereIn('street_id', $streetsArr)->orWhereHas('entries.center', function ($q) use ($cityId) {
-                    $q->where('city_id', $cityId);
-                });
+                $q->whereIn('street_id', $streetsArr)
+                    ->orWhereHas('entries.center', function ($q) use ($cityId) {
+                        $q->where('city_id', $cityId);
+                    });
             });
         }
+
     }
 
     protected static function tableFilters(): array
     {
+
         if (isset(auth()->user()->city_id)) {
             $streets = Street::where('city_id', auth()->user()->city_id)
                 ->get()
@@ -304,6 +308,7 @@ class StudentResource extends Resource
             } else {
                 $streets = Street::all()->pluck('name', 'id')->toArray();
             }
+
         }
 
         return [
@@ -312,7 +317,9 @@ class StudentResource extends Resource
                 ->label('Filter by City')
                 ->preload()
                 ->options(City::all()->pluck('name', 'id'))
-                ->searchable(),
+                ->searchable()
+             ,
+
             SelectFilter::make('street_id')->label('Filter by Street')->preload()->options($streets)->searchable(),
 
             Filter::make('created_at')
@@ -330,18 +337,42 @@ class StudentResource extends Resource
     protected static function tableActions(): array
     {
         return [
-            Tables\Actions\Action::make('view_qr_code')->label(__('general.labels.view_qr_code'))->icon('heroicon-o-qr-code')->modalHeading(__('general.labels.qr_code_modal_heading'))->modalContent(fn(Student $record) => self::qrCodeModalContent($record))->modalCancelAction(false)->modalSubmitAction(false),
+            Tables\Actions\Action::make('view_qr_code')
+                ->label(__('general.labels.view_qr_code'))
+                ->icon('heroicon-o-qr-code')
+                ->modalHeading(__('general.labels.qr_code_modal_heading'))
+                ->modalContent(fn(Student $record) => self::qrCodeModalContent($record))
+                ->modalCancelAction(false)
+                ->modalSubmitAction(false),
 
             Tables\Actions\Action::make('entry')
                 ->label(__('general.labels.entry'))
                 ->icon('heroicon-o-document-text')
                 ->form([
-                    Select::make('entry_type')->label(__('general.labels.entry_type'))->default(1)->options(__('general.entry-types'))->columnSpan(1)->required(),
-                    DateTimePicker::make('entry_time')->label(__('general.labels.entry_time'))->default(now())->columnSpan(1)->required(),
-                    Fieldset::make('Services')
-                        ->label('خدمات')
-                        ->schema([Checkbox::make('use_printer')->reactive()->label('خدمة طباعة')->default(false), Checkbox::make('use_drawer')->reactive()->label('خدمة مرسم')->default(false), Checkbox::make('use_mecrator')->reactive()->label('خدمة ميكراتور')->default(false)])
-                        ->columns(3),
+                    Select::make('entry_type')
+                        ->label(__('general.labels.entry_type'))->default(1)
+                        ->options(__('general.entry-types'))->columnSpan(1)
+                        ->required(),
+                    DateTimePicker::make('entry_time')->label(__('general.labels.entry_time'))
+                        ->default(now())
+                        ->columnSpan(1)
+                        ->required(),
+                    Fieldset::make('Services')->label('خدمات')
+                        ->schema([
+                            Checkbox::make('use_printer')->reactive()
+                                ->label('خدمة طباعة')
+                                ->default(false)
+                            ,
+                            Checkbox::make('use_drawer')->reactive()
+                                ->label('خدمة مرسم')
+                                ->default(false)
+                            ,
+                            Checkbox::make('use_mecrator')->reactive()
+                                ->label('خدمة ميكراتور')
+                                ->default(false)
+                            ,
+                        ])->columns(3)
+
                 ])
                 ->modalHeading(__('general.labels.record_student_entry'))
                 ->modalButton(__('general.labels.save_entry'))
@@ -355,17 +386,26 @@ class StudentResource extends Resource
                         'use_drawer' => $data['use_drawer'],
                         'use_printer' => $data['use_printer'],
                         'use_mecrator' => $data['use_mecrator'],
-                    ]),
+
+                    ])
                 )
                 ->successNotificationTitle(__('general.labels.entry_recorded_successfully')),
 
-            ActionGroup::make([Tables\Actions\ViewAction::make(), Tables\Actions\EditAction::make(), Tables\Actions\DeleteAction::make()])->icon('heroicon-m-ellipsis-horizontal'),
+            ActionGroup::make([
+                Tables\Actions\ViewAction::make(),
+                Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make(),
+            ])->icon('heroicon-m-ellipsis-horizontal'),
         ];
     }
 
     public static function getRelations(): array
     {
-        return [RelationManagers\EntriesRelationManager::class, RelationManagers\EducationsRelationManager::class];
+        return [
+            RelationManagers\EntriesRelationManager::class,
+            RelationManagers\EducationsRelationManager::class,
+
+        ];
     }
 
     public static function getPages(): array
@@ -376,6 +416,7 @@ class StudentResource extends Resource
             'edit' => Pages\EditStudent::route('/{record}/edit'),
         ];
     }
+
 
     public static function mutateFormDataBeforeCreate(array $data): array
     {

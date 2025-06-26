@@ -17,36 +17,27 @@ class EntryGenderChart extends ChartWidget
 
     protected function getData(): array
     {
-        $entries = StudentEntry::query()
-            ->with('student')
+        $startDate = !is_null($this->filters['startDate'] ?? null)
+            ? Carbon::parse($this->filters['startDate'])->startOfMonth()
+            : now()->startOfYear();
 
-            ->when($this->filters['startDate'] ?? null, fn ($query) =>
-                $query->whereDate('entry_time', '>=', Carbon::parse($this->filters['startDate']))
+        $endDate = !is_null($this->filters['endDate'] ?? null)
+            ? Carbon::parse($this->filters['endDate'])->endOfMonth()
+            : now()->endOfMonth();
+
+        $cityId = $this->filters['city'] ?? null;
+        $centerId = $this->filters['center'] ?? null;
+
+        $query = StudentEntry::query()
+            ->selectRaw('COALESCE(hcsz_students.gender, 0) as gender, COUNT(*) as total')
+            ->join('students', 'students.id', '=', 'student_entries.student_id')
+            ->whereBetween('entry_time', [$startDate, $endDate])
+            ->when($centerId, fn($q) => $q->whereIn('center_id', (array)$centerId))
+            ->when($cityId, fn($q) =>
+            $q->whereHas('center', fn($c) => $c->whereIn('city_id', (array)$cityId))
             )
-
-            ->when($this->filters['endDate'] ?? null, fn ($query) =>
-                $query->whereDate('entry_time', '<=', Carbon::parse($this->filters['endDate']))
-            )
-
-            ->when(
-                !isset($this->filters['startDate']) && !isset($this->filters['endDate']),
-                fn ($query) => $query->whereDate('entry_time', '>=', now()->subDays(30))
-            )
-
-            ->when($this->filters['center'] ?? null, fn ($query) =>
-                $query->whereIn('center_id', (array) $this->filters['center'])
-            )
-
-            ->when($this->filters['city'] ?? null, fn ($query) =>
-                $query->whereHas('center', fn ($q) =>
-                    $q->whereIn('city_id', (array) $this->filters['city'])
-                )
-            )
-            ->get();
-
-
-        $grouped = $entries->groupBy(fn($entry) => optional($entry->student)->gender ?? 0)
-            ->map(fn($group) => $group->count());
+            ->groupBy('gender')
+            ->pluck('total', 'gender');
 
         $genderLabels = [
             3 => 'Total',
@@ -56,20 +47,12 @@ class EntryGenderChart extends ChartWidget
         ];
 
         $labels = array_values($genderLabels);
-         $data[] = $grouped->sum(); ;
-
-
-        foreach ($genderLabels as $key => $label) {
-            if($key === 3){
-                continue;
-            }else{
-                $data[] = $grouped[$key] ?? 0;
-            }
-        }
-
-
-
-
+        $data = [
+            $query->sum(), // Total
+            $query[1] ?? 0,
+            $query[2] ?? 0,
+            $query[0] ?? 0,
+        ];
 
         return [
             'labels' => $labels,
@@ -94,6 +77,7 @@ class EntryGenderChart extends ChartWidget
             ],
         ];
     }
+
 
     protected function getType(): string
     {

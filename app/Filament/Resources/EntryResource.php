@@ -101,7 +101,7 @@ class EntryResource extends Resource
                 TextColumn::make('student.id')
                     ->label('اسم الطالب')
                     ->formatStateUsing(fn(Model $record) => $record->student->firstname . ' ' . $record->student->father_name . ' ' . $record->student->lastname)
-                    ->sortable(['firstname', 'lastname'])
+                    ->sortable(['firstname'])
                     ->searchable(query: function (Builder $query, string $search): Builder {
                         return $query->whereHas('student', function (Builder $studentQuery) use ($search) {
                             $studentQuery->where('firstname', 'like', "%{$search}%")
@@ -196,7 +196,7 @@ class EntryResource extends Resource
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
-            ]);
+            ])->paginated([20, 50, 100, 200]);
     }
 
     public static function getRelations(): array

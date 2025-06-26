@@ -1,9 +1,16 @@
 <div class="p-4 flex justify-between">
-    <div class="rtl">
-        <h3 class="text-lg font-semibold mb-4">{{ __('general.labels.student_details') }}</h3>
-        <p><strong>{{ __('general.labels.uuid') }}:</strong> {{ $uuid }}</p>
-        <p><strong>{{ __('general.labels.url') }}:</strong>
-            <a href="{{ $url }}" target="_blank" class="text-blue-600 underline">{{ $url }}</a>
+    <div class="rtl flex flex-col gap-y-4">
+        <h3 class="text-lg font-semibold mb-8">{{ __('general.labels.student_details') }}</h3>
+        <p><strong>{{ __('general.labels.uuid') }}:</strong> <br>{{ $uuid }}</p>
+        <p>
+            <strong>{{ __('general.labels.url') . ' (Online)' }}:</strong>
+            <br>
+            <a href="{{ $onlineUrl }}" target="_blank" class="text-blue-600 underline">{{ $onlineUrl }}</a>
+        </p>
+        <p>
+            <strong>{{ __('general.labels.url') . ' (Offline)' }}:</strong>
+            <br>
+            <a href="{{ $offlineUrl }}" target="_blank" class="text-blue-600 underline">{{ $offlineUrl }}</a>
         </p>
     </div>
 

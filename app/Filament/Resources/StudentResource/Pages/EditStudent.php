@@ -16,4 +16,17 @@ class EditStudent extends EditRecord
             Actions\DeleteAction::make(),
         ];
     }
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index'); // Redirect to index
+    }
+
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        if ($data['is_child']) {
+            $data['national_number'] = null;
+        }
+
+        return $data;
+    }
 }
