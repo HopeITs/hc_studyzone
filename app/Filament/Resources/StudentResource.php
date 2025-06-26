@@ -10,7 +10,16 @@ use App\Filament\Resources\StudentResource\RelationManagers;
 use Carbon\Carbon;
 use App\Models\{City, Education, Street, Student, StudentEntry};
 
-use Filament\Forms\Components\{Checkbox, DatePicker, DateTimePicker, Fieldset, Select, Textarea, TextInput, Toggle, Wizard};
+use Filament\Forms\Components\{Checkbox,
+    DatePicker,
+    DateTimePicker,
+    Fieldset,
+    Select,
+    Textarea,
+    TextInput,
+    Toggle,
+    Wizard
+};
 use Closure;
 use Filament\Actions\Exports\Enums\ExportFormat;
 use Filament\Forms\Form;
@@ -168,32 +177,35 @@ class StudentResource extends Resource
                 ExportBulkAction::make()
                     ->exporter(StudentExporter::class)
                     ->formats([ExportFormat::Xlsx]),
+                Tables\Actions\BulkActionGroup::make(
+                    [
+                        Tables\Actions\DeleteBulkAction::make(),
+                        Tables\Actions\BulkAction::make('custom_excel_export')
+                            ->label('تصدير روابط الدخوليات')
+                            ->icon('heroicon-o-document-arrow-up')
+                            ->action(function ($records) {
+                                $data = $records->map(function ($student) {
+                                    return [
+                                        'اسم الطالب الثلاثي' => $student->firstname . ' ' . $student->father_name . ' ' . $student->lastname,
+                                        'محافظة' => $student->street->city->name ?? '',
+                                        'رابط الاونلاين' => 'https://studyzone.sha8er.com/student/' . $student->id . '/entry',
+                                        'رابط الاوفلاين' => 'https://hope_studyzone.test/student/' . $student->id . '/entry',
+                                        'اختصاص دراسي' => $student->educations->pluck('name')->implode(', '),
+                                    ];
+                                });
 
-                Tables\Actions\BulkAction::make('custom_excel_export')
-                    ->label('تصدير إلى Excel')
-                    ->icon('heroicon-o-arrow-down-tray')
-                    ->action(function ($records) {
-                        $data = $records->map(function ($student) {
-                            return [
-                                'اسم الطالب الثلاثي' => $student->firstname . ' ' . $student->father_name . ' ' . $student->lastname,
-                                'محافظة' => $student->street->city->name ?? '',
-                                'رابط الاونلاين' => 'https://studyzone.sha8er.com/student/' . $student->id . '/entry',
-                                'رابط الاوفلاين' => 'https://hope_studyzone.test/student/' . $student->id . '/entry',
-                                'اختصاص دراسي' => $student->educations->pluck('name')->implode(', '),
-                            ];
-                        });
+                                $fileName = 'students_export_' . now()->format('Y_m_d_H_i_s') . '.xlsx';
+                                $export = new \App\Exports\CustomStudentsExport($data);
 
-                        $fileName = 'students_export_' . now()->format('Y_m_d_H_i_s') . '.xlsx';
-                        $export = new \App\Exports\CustomStudentsExport($data);
+                                return \Maatwebsite\Excel\Facades\Excel::download($export, $fileName);
+                            })
+                            ->requiresConfirmation()
+                            ->deselectRecordsAfterCompletion()
 
-                        return \Maatwebsite\Excel\Facades\Excel::download($export, $fileName);
-                    })
-                    ->requiresConfirmation()
-                    ->deselectRecordsAfterCompletion()
-                    ->color('success'),
 
-                Tables\Actions\BulkActionGroup::make([Tables\Actions\DeleteBulkAction::make()]),
-            ])->paginated([20, 50, 100, 200]);
+                    ])
+            ])
+            ->paginated([20, 50, 100, 200]);
     }
 
     protected static function tableColumns(): array
@@ -257,8 +269,8 @@ class StudentResource extends Resource
     protected static function qrCodeModalContent(Student $record)
     {
         $url = url("student/{$record->id}/entry");
-        $localUrl = 'https://hope_studyzone.test/student/'.$record->id.'/entry';
-        $onlineUrl ='https://studyzone.sha8er.com/student/'.$record->id.'/entry';
+        $localUrl = 'https://hope_studyzone.test/student/' . $record->id . '/entry';
+        $onlineUrl = 'https://studyzone.sha8er.com/student/' . $record->id . '/entry';
         $qrCode = QrCode::size(200)->generate($url);
         return view('filament.qr-code-modal', [
             'uuid' => $record->id,
@@ -318,7 +330,7 @@ class StudentResource extends Resource
                 ->preload()
                 ->options(City::all()->pluck('name', 'id'))
                 ->searchable()
-             ,
+            ,
 
             SelectFilter::make('street_id')->label('Filter by Street')->preload()->options($streets)->searchable(),
 
