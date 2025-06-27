@@ -171,6 +171,12 @@ class StudentResource extends Resource
             ->modifyQueryUsing(fn(Builder $query) => self::filterQueryByRole($query))
             ->columns(self::tableColumns())
             ->filters(self::tableFilters())
+            ->recordUrl(function (Student $record): string {
+                if (auth()->user()->role === Roles::CenterAdmin()) {
+                    return static::getUrl('edit', ['record' => $record]);
+                }
+                return static::getUrl('view', ['record' => $record]);
+            })
             ->toggleColumnsTriggerAction(fn(Action $action) => $action->button()->label('Toggle columns'))
             ->actions(self::tableActions())
             ->bulkActions([
@@ -430,9 +436,6 @@ class StudentResource extends Resource
             'view' => Pages\ViewStudent::route('/{record}'),
         ];
     }
-
-
-
 
 
     public static function mutateFormDataBeforeCreate(array $data): array
