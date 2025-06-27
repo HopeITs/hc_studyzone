@@ -358,7 +358,7 @@ class StudentResource extends Resource
                 ->modalSubmitAction(false),
 
             Tables\Actions\Action::make('entry')
-                ->visible(Auth::user()->role === '3')
+                ->visible(Auth::user()->role === Roles::CenterAdmin())
                 ->label(__('general.labels.entry'))
                 ->icon('heroicon-o-document-text')
                 ->form([
