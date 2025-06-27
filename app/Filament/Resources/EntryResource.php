@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Enums\Roles;
+use Carbon\Carbon;
 use App\Filament\Resources\EntryResource\Pages;
 use App\Filament\Resources\EntryResource\Widgets\EntryStats;
 use App\Models\StudentEntry;
@@ -19,6 +20,8 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
+use App\Exports\CustomEntriesExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class EntryResource extends Resource
 {
@@ -53,44 +56,15 @@ class EntryResource extends Resource
     public static function form(Form $form): Form
     {
         return $form->schema([
-            Select::make('student_id')
-                ->relationship('student', 'firstname')
-                ->label('الطالب')
-                ->searchable()
-                ->preload()
-                ->required(),
-            Select::make('center_id')
-                ->relationship('center', 'name')
-                ->label('المركز')
-                ->searchable()
-                ->preload()
-                ->required(),
+            Select::make('student_id')->relationship('student', 'firstname')->label('الطالب')->searchable()->preload()->required(),
+            Select::make('center_id')->relationship('center', 'name')->label('المركز')->searchable()->preload()->required(),
 
-            Select::make('entry_type')
-                ->label(__('general.labels.entry_type'))->default(1)
-                ->options(__('general.entry-types'))->columnSpan(1)
-                ->required(),
-            DateTimePicker::make('entry_time')->label(__('general.labels.entry_time'))
-                  ->default(now())
-                ->columnSpan(1)
-                ->required(),
-            Fieldset::make('Services')->label('خدمات')
-                ->schema([
-                    Checkbox::make('use_printer')->reactive()
-                        ->label('خدمة طباعة')
-                        ->default(false)
-                    ,
-                    Checkbox::make('use_drawer')->reactive()
-                        ->label('خدمة مرسم')
-                        ->default(false)
-                    ,
-                    Checkbox::make('use_mecrator')->reactive()
-                        ->label('خدمة ميكراتور')
-                        ->default(false)
-                    ,
-                ])->columns(3)
-
-
+            Select::make('entry_type')->label(__('general.labels.entry_type'))->default(1)->options(__('general.entry-types'))->columnSpan(1)->required(),
+            DateTimePicker::make('entry_time')->label(__('general.labels.entry_time'))->default(now())->columnSpan(1)->required(),
+            Fieldset::make('Services')
+                ->label('خدمات')
+                ->schema([Checkbox::make('use_printer')->reactive()->label('خدمة طباعة')->default(false), Checkbox::make('use_drawer')->reactive()->label('خدمة مرسم')->default(false), Checkbox::make('use_mecrator')->reactive()->label('خدمة ميكراتور')->default(false)])
+                ->columns(3),
         ]);
     }
 
@@ -117,16 +91,17 @@ class EntryResource extends Resource
                     ->label('المؤهل العلمي')
                     ->formatStateUsing(function ($record) {
                         return $record->student->educations->take(3)->pluck('name')->implode(', ');
-                    })->searchable(query: function (Builder $query, string $search): Builder {
-                        return $query->whereHas('student.educations', function (Builder $studentQuery) use ($search) {
-                            $studentQuery->where('name', 'like', "%{$search}%");
+                    })
+                    ->searchable(
+                        query: function (Builder $query, string $search): Builder {
+                            return $query->whereHas('student.educations', function (Builder $studentQuery) use ($search) {
+                                $studentQuery->where('name', 'like', "%{$search}%");
+                            });
+                        },
+                    )
+                    ->toggleable(),
 
-                        });
-                    })->toggleable(),
-
-                TextColumn::make('entry_time')
-                    ->label('تاريخ الدخول')->sortable()
-                    ->dateTime('Y-m-d H:i'),
+                TextColumn::make('entry_time')->label('تاريخ الدخول')->sortable()->dateTime('Y-m-d H:i'),
 
                 TextColumn::make('center.city.name')
                     ->label('المدينة')
@@ -147,27 +122,12 @@ class EntryResource extends Resource
             ->filters([
                 Filter::make('entry_time')
                     ->label('التاريخ')
-                    ->form([
-                        \Filament\Forms\Components\DatePicker::make('from')->label('من')->default(today()),
-                        \Filament\Forms\Components\DatePicker::make('to')->label('إلى')->default(now()),
-                    ])
+                    ->form([\Filament\Forms\Components\DatePicker::make('from')->label('من')->default(today()), \Filament\Forms\Components\DatePicker::make('to')->label('إلى')->default(now())])
                     ->query(function (Builder $query, array $data): Builder {
-                        return $query
-                            ->when($data['from'], fn($q, $date) => $q->whereDate('entry_time', '>=', $date))
-                            ->when($data['to'], fn($q, $date) => $q->whereDate('entry_time', '<=', $date));
+                        return $query->when($data['from'], fn($q, $date) => $q->whereDate('entry_time', '>=', $date))->when($data['to'], fn($q, $date) => $q->whereDate('entry_time', '<=', $date));
                     }),
-                SelectFilter::make('entry_type')
-                    ->label('نوع الدخولية')
-                    ->options(__('general.entry-types'))
-                    ->searchable()
-                    ->multiple()
-                    ->preload(),
-                SelectFilter::make('student.educations')
-                    ->label('المؤهل العلمي')
-                    ->relationship('student.educations', 'name')
-                    ->searchable()
-                    ->multiple()
-                    ->preload(),
+                SelectFilter::make('entry_type')->label('نوع الدخولية')->options(__('general.entry-types'))->searchable()->multiple()->preload(),
+                SelectFilter::make('student.educations')->label('المؤهل العلمي')->relationship('student.educations', 'name')->searchable()->multiple()->preload(),
                 SelectFilter::make('center.city.name')
                     ->label('المدينة')
                     ->relationship('center.city', 'name')
@@ -183,15 +143,8 @@ class EntryResource extends Resource
                     ->multiple()
                     ->preload(),
             ])
-            ->filtersTriggerAction(
-                fn (Action $action) => $action
-                    ->button()
-                    ->label('فلتر'),
-            )
-            ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
-            ])
+            ->filtersTriggerAction(fn(Action $action) => $action->button()->label('فلتر'))
+            ->actions([Tables\Actions\EditAction::make(), Tables\Actions\DeleteAction::make()])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
@@ -208,14 +161,11 @@ class EntryResource extends Resource
     {
         return [
             'index' => Pages\ListEntries::route('/'),
-
         ];
     }
 
     public static function getWidgets(): array
     {
-        return [
-            EntryStats::class ,
-        ];
+        return [EntryStats::class];
     }
 }
