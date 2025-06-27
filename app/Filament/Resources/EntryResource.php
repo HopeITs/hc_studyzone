@@ -3,15 +3,19 @@
 namespace App\Filament\Resources;
 
 use App\Enums\Roles;
+use App\Filament\Exports\EntryExporter;
+use App\Filament\Exports\StudentExporter;
 use App\Filament\Resources\EntryResource\Pages;
 use App\Filament\Resources\EntryResource\Widgets\EntryStats;
 use App\Models\StudentEntry;
 use Filament\Forms\Components\{Checkbox, DateTimePicker, Fieldset, Placeholder, Select, TextInput, Toggle};
+use Filament\Actions\Exports\Enums\ExportFormat;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Columns\{CheckboxColumn, TextColumn};
 use Filament\Tables\Actions\Action;
+use Filament\Tables\Actions\ExportBulkAction;
 use Filament\Tables\Filters\BaseFilter;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
@@ -193,6 +197,9 @@ class EntryResource extends Resource
                 Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
+                ExportBulkAction::make()
+                    ->exporter(EntryExporter::class)
+                    ->formats([ExportFormat::Xlsx]),
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
