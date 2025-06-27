@@ -11,7 +11,7 @@ class SyncData extends Page
 {
     protected static ?string $navigationIcon = 'heroicon-o-arrow-up-tray';
     protected static string $view = 'filament.pages.sync-data';
-
+    protected static ?string $title = 'مزامنة البيانات';
     public function syncData(): void
     {
         if (!SyncHelper::isInternetAvailable()) {
