@@ -171,6 +171,12 @@ class StudentResource extends Resource
             ->modifyQueryUsing(fn(Builder $query) => self::filterQueryByRole($query))
             ->columns(self::tableColumns())
             ->filters(self::tableFilters())
+            ->recordUrl(function (Student $record): string {
+                if (auth()->user()->role === Roles::CenterAdmin()) {
+                    return static::getUrl('edit', ['record' => $record]);
+                }
+                return static::getUrl('view', ['record' => $record]);
+            })
             ->toggleColumnsTriggerAction(fn(Action $action) => $action->button()->label('Toggle columns'))
             ->actions(self::tableActions())
             ->bulkActions([
@@ -358,6 +364,7 @@ class StudentResource extends Resource
                 ->modalSubmitAction(false),
 
             Tables\Actions\Action::make('entry')
+                ->visible(Auth::user()->role === Roles::CenterAdmin())
                 ->label(__('general.labels.entry'))
                 ->icon('heroicon-o-document-text')
                 ->form([
@@ -426,6 +433,7 @@ class StudentResource extends Resource
             'index' => Pages\ListStudents::route('/'),
             'create' => Pages\CreateStudent::route('/create'),
             'edit' => Pages\EditStudent::route('/{record}/edit'),
+            'view' => Pages\ViewStudent::route('/{record}'),
         ];
     }
 
@@ -439,6 +447,11 @@ class StudentResource extends Resource
     public static function canCreate(): bool
     {
         return auth()->user()->role === Roles::CenterAdmin();
+    }
+
+    public static function canEdit(Model $record): bool
+    {
+        return auth()->user()->role !== Roles::MealAdmin();
     }
 
     public static function canDelete(Model $record): bool
