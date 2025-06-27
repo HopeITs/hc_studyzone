@@ -358,6 +358,7 @@ class StudentResource extends Resource
                 ->modalSubmitAction(false),
 
             Tables\Actions\Action::make('entry')
+                ->visible(Auth::user()->role === '3')
                 ->label(__('general.labels.entry'))
                 ->icon('heroicon-o-document-text')
                 ->form([
@@ -426,8 +427,12 @@ class StudentResource extends Resource
             'index' => Pages\ListStudents::route('/'),
             'create' => Pages\CreateStudent::route('/create'),
             'edit' => Pages\EditStudent::route('/{record}/edit'),
+            'view' => Pages\ViewStudent::route('/{record}'),
         ];
     }
+
+
+
 
 
     public static function mutateFormDataBeforeCreate(array $data): array
@@ -439,6 +444,11 @@ class StudentResource extends Resource
     public static function canCreate(): bool
     {
         return auth()->user()->role === Roles::CenterAdmin();
+    }
+
+    public static function canEdit(Model $record): bool
+    {
+        return auth()->user()->role !== Roles::MealAdmin();
     }
 
     public static function canDelete(Model $record): bool

@@ -6,7 +6,7 @@ use App\Enums\Roles;
 use App\Filament\Resources\EntryResource\Pages;
 use App\Filament\Resources\EntryResource\Widgets\EntryStats;
 use App\Models\StudentEntry;
-use Filament\Forms\Components\{Checkbox, DateTimePicker, Fieldset, Select, Toggle};
+use Filament\Forms\Components\{Checkbox, DateTimePicker, Fieldset, Placeholder, Select, TextInput, Toggle};
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -37,7 +37,7 @@ class EntryResource extends Resource
             return parent::getEloquentQuery();
         }
 
-        if ($user->role === Roles::CityAdmin()) {
+        if ($user->role === Roles::CityAdmin() || $user->role === Roles::MealAdmin()) {
             return parent::getEloquentQuery()->whereHas('center', function ($query) use ($user) {
                 $query->where('city_id', $user->city_id);
             });
@@ -53,12 +53,12 @@ class EntryResource extends Resource
     public static function form(Form $form): Form
     {
         return $form->schema([
-            Select::make('student_id')
-                ->relationship('student', 'firstname')
-                ->label('الطالب')
-                ->searchable()
-                ->preload()
-                ->required(),
+
+            Placeholder::make('student_full_name')
+                ->label('الاسم')
+                ->content(fn ($record) => $record?->student
+                    ? $record->student->firstname . ' ' . $record->student->father_name . ' ' . $record->student->lastname
+                    : '-'),
             Select::make('center_id')
                 ->relationship('center', 'name')
                 ->label('المركز')
@@ -71,7 +71,7 @@ class EntryResource extends Resource
                 ->options(__('general.entry-types'))->columnSpan(1)
                 ->required(),
             DateTimePicker::make('entry_time')->label(__('general.labels.entry_time'))
-                  ->default(now())
+                ->default(now())
                 ->columnSpan(1)
                 ->required(),
             Fieldset::make('Services')->label('خدمات')
@@ -98,7 +98,7 @@ class EntryResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('student.id')
+                TextColumn::make('student_id')
                     ->label('اسم الطالب')
                     ->formatStateUsing(fn(Model $record) => $record->student->firstname . ' ' . $record->student->father_name . ' ' . $record->student->lastname)
                     ->sortable(['firstname'])
@@ -140,9 +140,9 @@ class EntryResource extends Resource
                     ->hidden(auth()->user()->role === Roles::CenterAdmin())
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                CheckboxColumn::make('use_printer')->label('طباعة'),
-                CheckboxColumn::make('use_mecrator')->label('ميكراتور'),
-                CheckboxColumn::make('use_drawer')->label('مرسم'),
+                CheckboxColumn::make('use_printer')->disabled(auth()->user()->role === Roles::MealAdmin())->label('طباعة'),
+                CheckboxColumn::make('use_mecrator')->disabled(auth()->user()->role === Roles::MealAdmin())->label('ميكراتور'),
+                CheckboxColumn::make('use_drawer')->disabled(auth()->user()->role === Roles::MealAdmin())->label('مرسم'),
             ])
             ->filters([
                 Filter::make('entry_time')
@@ -184,7 +184,7 @@ class EntryResource extends Resource
                     ->preload(),
             ])
             ->filtersTriggerAction(
-                fn (Action $action) => $action
+                fn(Action $action) => $action
                     ->button()
                     ->label('فلتر'),
             )
@@ -215,7 +215,17 @@ class EntryResource extends Resource
     public static function getWidgets(): array
     {
         return [
-            EntryStats::class ,
+            EntryStats::class,
         ];
     }
+    public static function canEdit(Model $record): bool
+    {
+        return auth()->user()->role !== Roles::MealAdmin();
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        return auth()->user()->role !== Roles::MealAdmin();
+    }
+
 }

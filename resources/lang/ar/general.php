@@ -14,6 +14,7 @@ return [
         Roles::GeneralAdmin() => 'General Admin',
         Roles::CityAdmin() => 'City Admin',
         Roles::CenterAdmin() => 'Center Admin',
+        Roles::MealAdmin() => 'MEAL Admin',
     ],
 
     'edu-degrees' => [
