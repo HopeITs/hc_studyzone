@@ -102,10 +102,10 @@ class EntryResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('student_id')
+                TextColumn::make('student.firstname')
                     ->label('اسم الطالب')
                     ->formatStateUsing(fn(Model $record) => $record->student->firstname . ' ' . $record->student->father_name . ' ' . $record->student->lastname)
-                    ->sortable(['firstname'])
+                    ->sortable()
                     ->searchable(query: function (Builder $query, string $search): Builder {
                         return $query->whereHas('student', function (Builder $studentQuery) use ($search) {
                             $studentQuery->where('firstname', 'like', "%{$search}%")
