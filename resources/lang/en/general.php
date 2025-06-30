@@ -50,6 +50,7 @@ return [
         EntryType::Free() => 'Free',
         EntryType::Daily() => 'Daily',
         EntryType::Monthly() => 'Monthly',
+        EntryType::Course() => 'Course - Workshop'
     ],
     'genders' => [
         Gender::Unknown() => 'Unknown',

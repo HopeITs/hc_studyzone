@@ -48,6 +48,7 @@ return [
         EntryType::Free() => 'مجاني',
         EntryType::Daily() => 'يومي',
         EntryType::Monthly() => 'شهري',
+        EntryType::Course() => 'دورة - ورشة',
     ],
     'genders' => [
         Gender::Unknown() => 'غير معرف',
