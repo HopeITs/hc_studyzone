@@ -29,6 +29,7 @@ class EntryStats extends BaseWidget
             Stat::make(__('general.entry-types.' . EntryType::Free()), $this->getPageTableQuery()->where('entry_type', EntryType::Free())->count()),
             Stat::make(__('general.entry-types.' . EntryType::Daily()), $this->getPageTableQuery()->where('entry_type', EntryType::Daily())->count()),
             Stat::make(__('general.entry-types.' . EntryType::Monthly()), $this->getPageTableQuery()->where('entry_type', EntryType::Monthly())->count()),
+            Stat::make(__('general.entry-types.' . EntryType::Course()), $this->getPageTableQuery()->where('entry_type', EntryType::Course())->count()),
             Stat::make(__('general.labels.print-service'), $this->getPageTableQuery()->where('use_printer', true)->count()),
             Stat::make(__('general.labels.mecrator-service'), $this->getPageTableQuery()->where('use_mecrator', true)->count()),
             Stat::make(__('general.labels.drawer-service'), $this->getPageTableQuery()->where('use_drawer', true)->count()),
