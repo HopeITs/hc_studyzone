@@ -82,19 +82,14 @@ class EntryResource extends Resource
                 ->schema([
                     Checkbox::make('use_printer')->reactive()
                         ->label('خدمة طباعة')
-                        ->default(false)
-                    ,
+                        ->default(false),
                     Checkbox::make('use_drawer')->reactive()
                         ->label('خدمة مرسم')
-                        ->default(false)
-                    ,
+                        ->default(false),
                     Checkbox::make('use_mecrator')->reactive()
                         ->label('خدمة ميكراتور')
-                        ->default(false)
-                    ,
-                ])->columns(3)
-
-
+                        ->default(false),
+                ])->columns(3),
         ]);
     }
 
@@ -113,6 +108,12 @@ class EntryResource extends Resource
                                 ->orWhere('father_name', 'like', "%{$search}%");
                         });
                     }),
+
+                TextColumn::make('student.national_number')
+                    ->label('الرقم الوطني')
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
                 TextColumn::make('entry_type')
                     ->label('نوع الدخول')
                     ->formatStateUsing(fn($state) => __('general.entry-types.' . $state)),
@@ -124,7 +125,6 @@ class EntryResource extends Resource
                     })->searchable(query: function (Builder $query, string $search): Builder {
                         return $query->whereHas('student.educations', function (Builder $studentQuery) use ($search) {
                             $studentQuery->where('name', 'like', "%{$search}%");
-
                         });
                     })->toggleable(),
 
@@ -203,7 +203,8 @@ class EntryResource extends Resource
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
-            ])->paginated([20, 50, 100, 200]);
+            ])
+            ->paginated([20, 50, 100, 200]);
     }
 
     public static function getRelations(): array
@@ -215,7 +216,6 @@ class EntryResource extends Resource
     {
         return [
             'index' => Pages\ListEntries::route('/'),
-
         ];
     }
 
