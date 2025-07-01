@@ -13,6 +13,10 @@ class Center extends Model
 
     protected $translatable = ['name'];
 
+    protected $casts = [
+    'name' => 'array',
+];
+
     protected $guarded = ['id'];
 
     public function city(): \Illuminate\Database\Eloquent\Relations\BelongsTo
