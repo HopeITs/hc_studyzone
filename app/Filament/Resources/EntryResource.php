@@ -112,10 +112,12 @@ class EntryResource extends Resource
                 TextColumn::make('student.national_number')
                     ->label('الرقم الوطني')
                     ->searchable()
+                    ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('entry_type')
                     ->label('نوع الدخول')
+                    ->sortable()
                     ->formatStateUsing(fn($state) => __('general.entry-types.' . $state)),
 
                 TextColumn::make('student.educations')
