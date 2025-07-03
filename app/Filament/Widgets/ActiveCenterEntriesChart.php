@@ -3,17 +3,19 @@
 namespace App\Filament\Widgets;
 
 use App\Models\StudentEntry;
+use App\Models\Center;
 use Carbon\Carbon;
 use Filament\Widgets\ChartWidget;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
+use Illuminate\Support\Facades\DB;
 
 class ActiveCenterEntriesChart extends ChartWidget
 {
     use InteractsWithPageFilters;
 
     protected static ?string $heading = 'Entries Per Active Center';
-    protected static ?int $sort = 5;
-    // protected int|string|array $columnSpan = 'full';
+    protected int|string|array $columnSpan = 'full';
+    protected static ?int $sort = 4;
 
     protected function getType(): string
     {
@@ -22,81 +24,72 @@ class ActiveCenterEntriesChart extends ChartWidget
 
     protected function getData(): array
     {
-        // Filter on the dates:
-        $startDate = !is_null($this->filters['startDate'] ?? null)
-            ? Carbon::parse($this->filters['startDate'])->startOfDay()
-            : now()->startOfYear()->startOfDay();
-
-        $endDate = !is_null($this->filters['endDate'] ?? null)
-            ? Carbon::parse($this->filters['endDate'])->endOfDay()
-            : now()->endOfMonth()->endOfDay();
+        $startDate = $this->filters['startDate'] ?? now()->startOfYear();
+        $endDate = $this->filters['endDate'] ?? now()->endOfMonth();
 
         $centerIds = $this->filters['center'] ?? null;
         $cityIds = $this->filters['city'] ?? null;
 
-        // Fetch entries with the active centers and display them:
-        $results = StudentEntry::query()
-            ->whereHas('center', fn ($q) => $q->where('is_active', 1))
-            ->whereBetween('entry_time', [$startDate, $endDate])
-            ->when($centerIds, fn ($q) => $q->whereIn('center_id', (array) $centerIds))
-            ->when($cityIds, fn ($q) =>
-                $q->whereHas('center', fn ($q) => $q->whereIn('city_id', (array) $cityIds))
+        $query = StudentEntry::query()
+            ->select([
+                'center_id',
+                DB::raw('COUNT(*) as total_entries')
+            ])
+            ->whereBetween('entry_time', [
+                Carbon::parse($startDate)->startOfDay(),
+                Carbon::parse($endDate)->endOfDay()
+            ])
+            ->whereHas('center', fn($q) => $q->where('is_active', 1))
+            ->when($centerIds, fn($q) => $q->whereIn('center_id', (array)$centerIds))
+            ->when($cityIds, fn($q) => $q->whereHas('center', fn($q) => $q->whereIn('city_id', (array)$cityIds))
             )
-            ->with('center')
-            ->get()
             ->groupBy('center_id')
-            ->map(function ($entries) {
-                $center = $entries->first()->center;
-                return [
-                    'name' => $center->getTranslation('name', 'en') ?? 'Unnamed',
-                    'count' => $entries->count(),
-                ];
-            })
-            ->sortByDesc('count')
-            ->values();
+            ->orderByDesc('total_entries')
+            ->with('center:id,name') // Only load needed fields
+            ->get();
+
+        $results = $query->map(function ($entry) {
+            $name = $entry->center?->getTranslation('name', app()->getLocale()) ?? 'Unnamed Center';
+            return [
+                'name' => $name,
+                'count' => $entry->total_entries,
+            ];
+        });
 
         $labels = $results->pluck('name')->toArray();
         $data = $results->pluck('count')->toArray();
 
-        $backgroundColors = [
-            'rgba(255, 99, 132, 0.2)',
-            'rgba(54, 162, 235, 0.2)',
-            'rgba(255, 206, 86, 0.2)',
-            'rgba(75, 192, 192, 0.2)',
-            'rgba(153, 102, 255, 0.2)',
-            'rgba(255, 159, 64, 0.2)',
-            'rgba(201, 203, 207, 0.2)',
-        ];
 
-        $borderColors = [
-            'rgb(255, 99, 132)',
-            'rgb(54, 162, 235)',
-            'rgb(255, 206, 86)',
-            'rgb(75, 192, 192)',
-            'rgb(153, 102, 255)',
-            'rgb(255, 159, 64)',
-            'rgb(201, 203, 207)',
-        ];
-
-        $backgroundColor = [];
-        $borderColor = [];
-
-        for ($i = 0; $i < count($data); $i++) {
-            $backgroundColor[] = $backgroundColors[$i % count($backgroundColors)];
-            $borderColor[] = $borderColors[$i % count($borderColors)];
-        }
 
         return [
             'datasets' => [
                 [
                     'label' => 'Total Entries',
                     'data' => $data,
-                    'backgroundColor' => $backgroundColor,
-                    'borderColor' => $borderColor,
+                    'backgroundColor' => [
+                        'rgba(255, 159, 64, 0.2)',
+                        'rgba(54, 162, 235, 0.2)',
+                        'rgba(255, 99, 132, 0.2)',
+                        'rgba(255, 205, 86, 0.2)',
+                        'rgba(75, 192, 192, 0.2)',
+                        'rgba(153, 102, 255, 0.2)',
+                        'rgba(201, 203, 207, 0.2)'
+                    ],
+                    'borderColor' => [
+                        'rgb(255, 159, 64)',
+                        'rgb(54, 162, 235)',
+                        'rgb(255, 99, 132)',
+                        'rgb(255, 205, 86)',
+                        'rgb(75, 192, 192)',
+                        'rgb(153, 102, 255)',
+                        'rgb(201, 203, 207)'
+                    ],
                     'borderWidth' => 1,
                 ],
             ],
             'labels' => $labels,
         ];
     }
+
+
 }

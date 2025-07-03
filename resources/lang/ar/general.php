@@ -14,6 +14,7 @@ return [
         Roles::GeneralAdmin() => 'General Admin',
         Roles::CityAdmin() => 'City Admin',
         Roles::CenterAdmin() => 'Center Admin',
+        Roles::MealAdmin() => 'MEAL Admin',
     ],
 
     'edu-degrees' => [
@@ -47,6 +48,7 @@ return [
         EntryType::Free() => 'مجاني',
         EntryType::Daily() => 'يومي',
         EntryType::Monthly() => 'شهري',
+        EntryType::Course() => 'دورة - ورشة',
     ],
     'genders' => [
         Gender::Unknown() => 'غير معرف',
