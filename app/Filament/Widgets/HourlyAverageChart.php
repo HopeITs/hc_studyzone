@@ -47,14 +47,14 @@ class HourlyAverageChart extends ChartWidget
 
         // Get entries grouped by hour
         $rawData = StudentEntry::query()
-            ->selectRaw("HOUR(CONVERT_TZ(entry_time, '+00:00', '+03:00')) as hour, COUNT(*) as total")
-            ->whereBetween(DB::raw("HOUR(CONVERT_TZ(entry_time, '+00:00', '+03:00'))"), [9, 21])
+            ->selectRaw("HOUR(entry_time) as hour, COUNT(*) as total")
+            ->whereBetween(DB::raw("HOUR(entry_time)"), [9, 21])
             ->whereBetween(DB::raw('DATE(entry_time)'), [$startDate, $endDate])
             ->when($centerIds, fn ($q) => $q->whereIn('center_id', (array) $centerIds))
             ->when($cityIds, fn ($q) =>
             $q->whereHas('center', fn ($q) => $q->whereIn('city_id', (array) $cityIds))
             )
-            ->groupBy(DB::raw("HOUR(CONVERT_TZ(entry_time, '+00:00', '+03:00'))"))
+            ->groupBy(DB::raw("HOUR(entry_time)"))
             ->orderBy('hour')
             ->pluck('total', 'hour')
             ->toArray();

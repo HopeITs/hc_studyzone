@@ -242,10 +242,14 @@ protected static function personalAndContactInformationStep(): Wizard\Step
                     }),
 
                 TextInput::make('phone')->label(__('general.labels.phone'))->required(),
+                TextInput::make('phone')->label(__('general.labels.phone'))->required(),
 
                 TextInput::make('whatsapp')->label(__('general.labels.whatsapp')),
                 TextInput::make('email')->label(__('general.labels.email'))->unique(ignoreRecord: true),
+                TextInput::make('whatsapp')->label(__('general.labels.whatsapp')),
+                TextInput::make('email')->label(__('general.labels.email'))->unique(ignoreRecord: true),
 
+                TextInput::make('address')->label(__('general.labels.address'))->maxLength(255),
                 TextInput::make('address')->label(__('general.labels.address'))->maxLength(255),
             ])
             ->columns(2);
@@ -266,7 +270,9 @@ protected static function personalAndContactInformationStep(): Wizard\Step
                             ->required(),
 
                         Select::make('level')->label(__('general.labels.education_level'))->options(__('general.edu-levels'))->required(),
+                        Select::make('level')->label(__('general.labels.education_level'))->options(__('general.edu-levels'))->required(),
 
+                        Select::make('type')->label(__('general.labels.education_type'))->options(__('general.edu-types'))->required(),
                         Select::make('type')->label(__('general.labels.education_type'))->options(__('general.edu-types'))->required(),
                     ])
                     ->columns(2)
@@ -283,6 +289,12 @@ protected static function personalAndContactInformationStep(): Wizard\Step
             ->modifyQueryUsing(fn(Builder $query) => self::filterQueryByRole($query))
             ->columns(self::tableColumns())
             ->filters(self::tableFilters())
+            ->recordUrl(function (Student $record): string {
+                if (auth()->user()->role === Roles::CenterAdmin()) {
+                    return static::getUrl('edit', ['record' => $record]);
+                }
+                return static::getUrl('view', ['record' => $record]);
+            })
             ->toggleColumnsTriggerAction(fn(Action $action) => $action->button()->label('Toggle columns'))
             ->actions(self::tableActions())
             ->bulkActions([
@@ -353,6 +365,8 @@ protected static function personalAndContactInformationStep(): Wizard\Step
     protected static function qrCodeModalContent(Student $record)
     {
         $url = url("student/{$record->id}/entry");
+        $localUrl = 'https://hope_studyzone.test/student/' . $record->id . '/entry';
+        $onlineUrl = 'https://studyzone.sha8er.com/student/' . $record->id . '/entry';
         $localUrl = 'https://hope_studyzone.test/student/' . $record->id . '/entry';
         $onlineUrl = 'https://studyzone.sha8er.com/student/' . $record->id . '/entry';
         $qrCode = QrCode::size(200)->generate($url);
@@ -430,6 +444,7 @@ protected static function personalAndContactInformationStep(): Wizard\Step
             Tables\Actions\Action::make('view_qr_code')->label(__('general.labels.view_qr_code'))->icon('heroicon-o-qr-code')->modalHeading(__('general.labels.qr_code_modal_heading'))->modalContent(fn(Student $record) => self::qrCodeModalContent($record))->modalCancelAction(false)->modalSubmitAction(false),
 
             Tables\Actions\Action::make('entry')
+                ->visible(Auth::user()->role === Roles::CenterAdmin())
                 ->label(__('general.labels.entry'))
                 ->icon('heroicon-o-document-text')
                 ->form([
@@ -471,6 +486,7 @@ protected static function personalAndContactInformationStep(): Wizard\Step
             'index' => Pages\ListStudents::route('/'),
             'create' => Pages\CreateStudent::route('/create'),
             'edit' => Pages\EditStudent::route('/{record}/edit'),
+            'view' => Pages\ViewStudent::route('/{record}'),
         ];
     }
 
@@ -483,6 +499,11 @@ protected static function personalAndContactInformationStep(): Wizard\Step
     public static function canCreate(): bool
     {
         return auth()->user()->role === Roles::CenterAdmin();
+    }
+
+    public static function canEdit(Model $record): bool
+    {
+        return auth()->user()->role !== Roles::MealAdmin();
     }
 
     public static function canDelete(Model $record): bool

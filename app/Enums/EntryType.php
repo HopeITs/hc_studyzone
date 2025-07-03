@@ -14,13 +14,15 @@ enum EntryType: int
     case Daily  = 1;
     case Monthly  = 2;
 
+    case Course = 3;
+
 
 
 
     // Return the default case
     public static function default(): self
     {
-        return self::Classic;
+        return self::Daily;
     }
 
     // Return an array of all case values

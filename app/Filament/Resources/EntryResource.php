@@ -3,15 +3,19 @@
 namespace App\Filament\Resources;
 
 use App\Enums\Roles;
+use App\Filament\Exports\EntryExporter;
+use App\Filament\Exports\StudentExporter;
 use App\Filament\Resources\EntryResource\Pages;
 use App\Filament\Resources\EntryResource\Widgets\EntryStats;
 use App\Models\StudentEntry;
-use Filament\Forms\Components\{Checkbox, DateTimePicker, Fieldset, Select, Toggle};
+use Filament\Forms\Components\{Checkbox, DateTimePicker, Fieldset, Placeholder, Select, TextInput, Toggle};
+use Filament\Actions\Exports\Enums\ExportFormat;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Columns\{CheckboxColumn, TextColumn};
 use Filament\Tables\Actions\Action;
+use Filament\Tables\Actions\ExportBulkAction;
 use Filament\Tables\Filters\BaseFilter;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
@@ -37,7 +41,7 @@ class EntryResource extends Resource
             return parent::getEloquentQuery();
         }
 
-        if ($user->role === Roles::CityAdmin()) {
+        if ($user->role === Roles::CityAdmin() || $user->role === Roles::MealAdmin()) {
             return parent::getEloquentQuery()->whereHas('center', function ($query) use ($user) {
                 $query->where('city_id', $user->city_id);
             });
@@ -53,12 +57,12 @@ class EntryResource extends Resource
     public static function form(Form $form): Form
     {
         return $form->schema([
-            Select::make('student_id')
-                ->relationship('student', 'firstname')
-                ->label('الطالب')
-                ->searchable()
-                ->preload()
-                ->required(),
+
+            Placeholder::make('student_full_name')
+                ->label('الاسم')
+                ->content(fn ($record) => $record?->student
+                    ? $record->student->firstname . ' ' . $record->student->father_name . ' ' . $record->student->lastname
+                    : '-'),
             Select::make('center_id')
                 ->relationship('center', 'name')
                 ->label('المركز')
@@ -93,10 +97,10 @@ class EntryResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('student.id')
+                TextColumn::make('student.firstname')
                     ->label('اسم الطالب')
                     ->formatStateUsing(fn(Model $record) => $record->student->firstname . ' ' . $record->student->father_name . ' ' . $record->student->lastname)
-                    ->sortable(['firstname', 'lastname'])
+                    ->sortable()
                     ->searchable(query: function (Builder $query, string $search): Builder {
                         return $query->whereHas('student', function (Builder $studentQuery) use ($search) {
                             $studentQuery->where('firstname', 'like', "%{$search}%")
@@ -108,10 +112,12 @@ class EntryResource extends Resource
                 TextColumn::make('student.national_number')
                     ->label('الرقم الوطني')
                     ->searchable()
+                    ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('entry_type')
                     ->label('نوع الدخول')
+                    ->sortable()
                     ->formatStateUsing(fn($state) => __('general.entry-types.' . $state)),
 
                 TextColumn::make('student.educations')
@@ -140,9 +146,9 @@ class EntryResource extends Resource
                     ->hidden(auth()->user()->role === Roles::CenterAdmin())
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                CheckboxColumn::make('use_printer')->label('طباعة'),
-                CheckboxColumn::make('use_mecrator')->label('ميكراتور'),
-                CheckboxColumn::make('use_drawer')->label('مرسم'),
+                CheckboxColumn::make('use_printer')->disabled(auth()->user()->role === Roles::MealAdmin())->label('طباعة'),
+                CheckboxColumn::make('use_mecrator')->disabled(auth()->user()->role === Roles::MealAdmin())->label('ميكراتور'),
+                CheckboxColumn::make('use_drawer')->disabled(auth()->user()->role === Roles::MealAdmin())->label('مرسم'),
             ])
             ->filters([
                 Filter::make('entry_time')
@@ -184,7 +190,7 @@ class EntryResource extends Resource
                     ->preload(),
             ])
             ->filtersTriggerAction(
-                fn (Action $action) => $action
+                fn(Action $action) => $action
                     ->button()
                     ->label('فلتر'),
             )
@@ -193,6 +199,9 @@ class EntryResource extends Resource
                 Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
+                ExportBulkAction::make()
+                    ->exporter(EntryExporter::class)
+                    ->formats([ExportFormat::Xlsx]),
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
@@ -218,4 +227,14 @@ class EntryResource extends Resource
             EntryStats::class,
         ];
     }
+    public static function canEdit(Model $record): bool
+    {
+        return auth()->user()->role !== Roles::MealAdmin();
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        return auth()->user()->role !== Roles::MealAdmin();
+    }
+
 }

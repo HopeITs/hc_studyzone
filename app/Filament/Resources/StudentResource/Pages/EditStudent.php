@@ -16,4 +16,14 @@ class EditStudent extends EditRecord
             Actions\DeleteAction::make(),
         ];
     }
+
+
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        if ($data['is_child']) {
+            $data['national_number'] = null;
+        }
+
+        return $data;
+    }
 }

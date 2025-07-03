@@ -17,8 +17,8 @@
         "maatwebsite/excel": "^3.1",
         "mvenghaus/filament-plugin-translatable-inline": "^3.0",
         "rmsramos/activitylog": "^1.0",
-        "simplesoftwareio/simple-qrcode": "^4.2"
-
+        "simplesoftwareio/simple-qrcode": "^4.2",
+        "ext-xlswriter": "*"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

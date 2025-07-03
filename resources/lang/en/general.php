@@ -15,6 +15,7 @@ return [
         Roles::GeneralAdmin() => 'General Admin',
         Roles::CityAdmin() => 'City Admin',
         Roles::CenterAdmin() => 'Center Admin',
+        Roles::MealAdmin() => 'MEAL Admin',
     ],
 
     'edu-degrees' => [
@@ -49,6 +50,7 @@ return [
         EntryType::Free() => 'Free',
         EntryType::Daily() => 'Daily',
         EntryType::Monthly() => 'Monthly',
+        EntryType::Course() => 'Course - Workshop'
     ],
     'genders' => [
         Gender::Unknown() => 'Unknown',
