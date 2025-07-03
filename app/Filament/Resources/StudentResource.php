@@ -289,12 +289,7 @@ protected static function personalAndContactInformationStep(): Wizard\Step
             ->modifyQueryUsing(fn(Builder $query) => self::filterQueryByRole($query))
             ->columns(self::tableColumns())
             ->filters(self::tableFilters())
-            ->recordUrl(function (Student $record): string {
-                if (auth()->user()->role === Roles::CenterAdmin()) {
-                    return static::getUrl('edit', ['record' => $record]);
-                }
-                return static::getUrl('view', ['record' => $record]);
-            })
+            ->recordUrl(fn(Student $record) => null)
             ->toggleColumnsTriggerAction(fn(Action $action) => $action->button()->label('Toggle columns'))
             ->actions(self::tableActions())
             ->bulkActions([
