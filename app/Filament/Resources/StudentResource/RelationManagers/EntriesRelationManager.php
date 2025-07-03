@@ -69,7 +69,7 @@ class EntriesRelationManager extends RelationManager
                 ->formatStateUsing(fn(string $state): string => __("general.entry-types.{$state}"))
                 ->sortable(),
 
-            TextColumn::make('entry_time')->label('Date')->date()->sortable(),
+            TextColumn::make('entry_time')->label('Date')->date()->sortable()->dateTime('Y-m-d H:i'),
 
         ])
             ->headerActions([
