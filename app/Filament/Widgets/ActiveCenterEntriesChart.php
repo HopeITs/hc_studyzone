@@ -29,7 +29,8 @@ class ActiveCenterEntriesChart extends ChartWidget
         $centerIds = $this->filters['center'] ?? null;
         $cityIds = $this->filters['city'] ?? null;
 
-        $query = StudentEntry::query()
+        // Get the center IDs with their total entries in the period
+        $entries = StudentEntry::query()
             ->whereBetween('entry_time', [
                 Carbon::parse($startDate)->startOfDay(),
                 Carbon::parse($endDate)->endOfDay()
@@ -37,14 +38,19 @@ class ActiveCenterEntriesChart extends ChartWidget
             ->whereHas('center', fn($q) => $q->where('is_active', 1))
             ->when($centerIds, fn($q) => $q->whereIn('center_id', (array) $centerIds))
             ->when($cityIds, fn($q) => $q->whereHas('center', fn($q2) => $q2->whereIn('city_id', (array) $cityIds)))
-            ->select(['center_id', DB::raw('COUNT(*) as total_entries')])
+            ->select('center_id', DB::raw('COUNT(*) as total_entries'))
             ->groupBy('center_id')
             ->orderByDesc('total_entries')
-            ->with(['center:id,name'])
             ->get();
 
-        $results = $query->map(function ($entry) {
-            $name = $entry->center?->getTranslation('name', app()->getLocale()) ?? 'Unnamed Center';
+        // Load centers in one go (prevents N+1)
+        $centers = \App\Models\Center::whereIn('id', $entries->pluck('center_id')->toArray())->get();
+
+        $results = $entries->map(function ($entry) use ($centers) {
+            $center = $centers->where('id', $entry->center_id)->first();
+            $name = $center
+                ? $center->getTranslation('name', app()->getLocale())
+                : 'Unnamed Center';
             return [
                 'name' => $name,
                 'count' => $entry->total_entries,
