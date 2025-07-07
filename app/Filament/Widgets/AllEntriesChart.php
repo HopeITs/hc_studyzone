@@ -37,10 +37,10 @@ class AllEntriesChart extends ChartWidget
             ->whereBetween('entry_time', [$startDate, $endDate]);
 
         if ($centerId) {
-            $query->where('center_id', $centerId);
+            $query->whereIn('center_id', $centerId);
         } elseif ($cityId) {
             $query->whereHas('center', function ($q) use ($cityId) {
-                $q->where('city_id', $cityId);
+                $q->whereIn('city_id', $cityId);
             });
         }
 

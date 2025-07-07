@@ -39,11 +39,11 @@ class NewStudentsChart extends ChartWidget
 
         if ($centerId) {
             $query->whereHas('entries', function ($q) use ($centerId) {
-                $q->where('center_id', $centerId);
+                $q->whereIn('center_id', $centerId);
             });
         } elseif ($cityId) {
             $query->whereHas('entries.center', function ($q) use ($cityId) {
-                $q->where('city_id', $cityId);
+                $q->whereIn('city_id', $cityId);
             });
         }
 
