@@ -3,7 +3,6 @@
 namespace App\Filament\Widgets;
 
 use App\Models\StudentEntry;
-use App\Models\Center;
 use Carbon\Carbon;
 use Filament\Widgets\ChartWidget;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
@@ -24,28 +23,24 @@ class ActiveCenterEntriesChart extends ChartWidget
 
     protected function getData(): array
     {
-        $startDate = $this->filters['startDate'] ?? now()->startOfYear();
+        $startDate = $this->filters['startDate'] ?? now()->startOfMonth();
         $endDate = $this->filters['endDate'] ?? now()->endOfMonth();
 
         $centerIds = $this->filters['center'] ?? null;
         $cityIds = $this->filters['city'] ?? null;
 
         $query = StudentEntry::query()
-            ->select([
-                'center_id',
-                DB::raw('COUNT(*) as total_entries')
-            ])
             ->whereBetween('entry_time', [
                 Carbon::parse($startDate)->startOfDay(),
                 Carbon::parse($endDate)->endOfDay()
             ])
             ->whereHas('center', fn($q) => $q->where('is_active', 1))
-            ->when($centerIds, fn($q) => $q->whereIn('center_id', (array)$centerIds))
-            ->when($cityIds, fn($q) => $q->whereHas('center', fn($q) => $q->whereIn('city_id', (array)$cityIds))
-            )
+            ->when($centerIds, fn($q) => $q->whereIn('center_id', (array) $centerIds))
+            ->when($cityIds, fn($q) => $q->whereHas('center', fn($q2) => $q2->whereIn('city_id', (array) $cityIds)))
+            ->select(['center_id', DB::raw('COUNT(*) as total_entries')])
             ->groupBy('center_id')
             ->orderByDesc('total_entries')
-            ->with('center:id,name') // Only load needed fields
+            ->with(['center:id,name'])
             ->get();
 
         $results = $query->map(function ($entry) {
@@ -59,37 +54,44 @@ class ActiveCenterEntriesChart extends ChartWidget
         $labels = $results->pluck('name')->toArray();
         $data = $results->pluck('count')->toArray();
 
+        $defaultBgColors = [
+            'rgba(255, 159, 64, 0.2)',
+            'rgba(54, 162, 235, 0.2)',
+            'rgba(255, 99, 132, 0.2)',
+            'rgba(255, 205, 86, 0.2)',
+            'rgba(75, 192, 192, 0.2)',
+            'rgba(153, 102, 255, 0.2)',
+            'rgba(201, 203, 207, 0.2)',
+        ];
+        $defaultBorderColors = [
+            'rgb(255, 159, 64)',
+            'rgb(54, 162, 235)',
+            'rgb(255, 99, 132)',
+            'rgb(255, 205, 86)',
+            'rgb(75, 192, 192)',
+            'rgb(153, 102, 255)',
+            'rgb(201, 203, 207)',
+        ];
 
+        $count = count($labels);
+        $bgColors = [];
+        $borderColors = [];
+        for ($i = 0; $i < $count; $i++) {
+            $bgColors[] = $defaultBgColors[$i % count($defaultBgColors)];
+            $borderColors[] = $defaultBorderColors[$i % count($defaultBorderColors)];
+        }
 
         return [
             'datasets' => [
                 [
                     'label' => 'Total Entries',
                     'data' => $data,
-                    'backgroundColor' => [
-                        'rgba(255, 159, 64, 0.2)',
-                        'rgba(54, 162, 235, 0.2)',
-                        'rgba(255, 99, 132, 0.2)',
-                        'rgba(255, 205, 86, 0.2)',
-                        'rgba(75, 192, 192, 0.2)',
-                        'rgba(153, 102, 255, 0.2)',
-                        'rgba(201, 203, 207, 0.2)'
-                    ],
-                    'borderColor' => [
-                        'rgb(255, 159, 64)',
-                        'rgb(54, 162, 235)',
-                        'rgb(255, 99, 132)',
-                        'rgb(255, 205, 86)',
-                        'rgb(75, 192, 192)',
-                        'rgb(153, 102, 255)',
-                        'rgb(201, 203, 207)'
-                    ],
+                    'backgroundColor' => $bgColors,
+                    'borderColor' => $borderColors,
                     'borderWidth' => 1,
                 ],
             ],
             'labels' => $labels,
         ];
     }
-
-
 }
