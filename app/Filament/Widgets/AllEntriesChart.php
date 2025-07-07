@@ -14,13 +14,18 @@ class AllEntriesChart extends ChartWidget
     protected static ?string $heading = 'Entries per month';
     protected static ?int $sort = 1;
 
-    public function getData(): array
+    protected function getType(): string
     {
-        $startDate = isset($this->filters['startDate']) && $this->filters['startDate']
+        return 'line';
+    }
+
+    protected function getData(): array
+    {
+        $startDate = !empty($this->filters['startDate'] ?? null)
             ? Carbon::parse($this->filters['startDate'])->startOfMonth()
             : now()->startOfYear();
 
-        $endDate = isset($this->filters['endDate']) && $this->filters['endDate']
+        $endDate = !empty($this->filters['endDate'] ?? null)
             ? Carbon::parse($this->filters['endDate'])->endOfMonth()
             : now()->endOfMonth();
 
@@ -54,7 +59,6 @@ class AllEntriesChart extends ChartWidget
         $months = [];
         $labels = [];
         $current = $startDate->copy();
-
         while ($current <= $endDate) {
             $key = $current->format('Y-m');
             $months[] = $key;
@@ -62,7 +66,7 @@ class AllEntriesChart extends ChartWidget
             $current->addMonth();
         }
 
-        $data = array_map(fn ($month) => $dataByMonth[$month] ?? 0, $months);
+        $data = array_map(fn($month) => $dataByMonth[$month] ?? 0, $months);
 
         return [
             'labels' => $labels,
@@ -74,10 +78,5 @@ class AllEntriesChart extends ChartWidget
                 ],
             ],
         ];
-    }
-
-    protected function getType(): string
-    {
-        return 'line';
     }
 }

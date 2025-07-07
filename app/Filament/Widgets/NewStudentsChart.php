@@ -21,11 +21,11 @@ class NewStudentsChart extends ChartWidget
 
     protected function getData(): array
     {
-        $startDate = !empty($this->filters['startDate'])
+        $startDate = !empty($this->filters['startDate'] ?? null)
             ? Carbon::parse($this->filters['startDate'])->startOfMonth()
             : now()->startOfYear();
 
-        $endDate = !empty($this->filters['endDate'])
+        $endDate = !empty($this->filters['endDate'] ?? null)
             ? Carbon::parse($this->filters['endDate'])->endOfMonth()
             : now()->endOfMonth();
 
@@ -48,8 +48,8 @@ class NewStudentsChart extends ChartWidget
         }
 
         $query->groupBy('year', 'month')
-            ->orderBy('year')
-            ->orderBy('month');
+              ->orderBy('year')
+              ->orderBy('month');
 
         $results = $query->get();
 
@@ -69,7 +69,7 @@ class NewStudentsChart extends ChartWidget
             $current->addMonth();
         }
 
-        $data = array_map(fn ($month) => $dataByMonth[$month] ?? 0, $months);
+        $data = array_map(fn($month) => $dataByMonth[$month] ?? 0, $months);
 
         return [
             'labels' => $labels,
