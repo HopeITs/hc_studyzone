@@ -16,11 +16,11 @@ class AllEntriesChart extends ChartWidget
 
     public function getData(): array
     {
-        $startDate = !is_null($this->filters['startDate'] ?? null)
+        $startDate = isset($this->filters['startDate']) && $this->filters['startDate']
             ? Carbon::parse($this->filters['startDate'])->startOfMonth()
             : now()->startOfYear();
 
-        $endDate = !is_null($this->filters['endDate'] ?? null)
+        $endDate = isset($this->filters['endDate']) && $this->filters['endDate']
             ? Carbon::parse($this->filters['endDate'])->endOfMonth()
             : now()->endOfMonth();
 
@@ -28,22 +28,33 @@ class AllEntriesChart extends ChartWidget
         $centerId = $this->filters['center'] ?? null;
 
         $query = StudentEntry::query()
-            ->selectRaw("DATE_FORMAT(entry_time, '%Y-%m') as month, COUNT(*) as total")
-            ->whereBetween('entry_time', [$startDate, $endDate])
-            ->groupBy('month')
-            ->orderBy('month');
+            ->selectRaw('YEAR(entry_time) as year, MONTH(entry_time) as month, COUNT(*) as total')
+            ->whereBetween('entry_time', [$startDate, $endDate]);
 
         if ($centerId) {
             $query->where('center_id', $centerId);
         } elseif ($cityId) {
-            $query->whereHas('center', fn ($q) => $q->where('city_id', $cityId));
+            $query->whereHas('center', function ($q) use ($cityId) {
+                $q->where('city_id', $cityId);
+            });
         }
 
-        $results = $query->pluck('total', 'month')->toArray();
+        $query->groupBy('year', 'month')
+              ->orderBy('year')
+              ->orderBy('month');
+
+        $results = $query->get();
+
+        $dataByMonth = [];
+        foreach ($results as $row) {
+            $key = sprintf('%04d-%02d', $row->year, $row->month);
+            $dataByMonth[$key] = $row->total;
+        }
 
         $months = [];
         $labels = [];
         $current = $startDate->copy();
+
         while ($current <= $endDate) {
             $key = $current->format('Y-m');
             $months[] = $key;
@@ -51,7 +62,7 @@ class AllEntriesChart extends ChartWidget
             $current->addMonth();
         }
 
-        $data = array_map(fn ($month) => $results[$month] ?? 0, $months);
+        $data = array_map(fn ($month) => $dataByMonth[$month] ?? 0, $months);
 
         return [
             'labels' => $labels,
@@ -64,6 +75,7 @@ class AllEntriesChart extends ChartWidget
             ],
         ];
     }
+
     protected function getType(): string
     {
         return 'line';

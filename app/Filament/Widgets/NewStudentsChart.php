@@ -12,7 +12,6 @@ class NewStudentsChart extends ChartWidget
     use InteractsWithPageFilters;
 
     protected static ?string $heading = 'New Students';
-
     protected static ?int $sort = 2;
 
     protected function getType(): string
@@ -22,11 +21,11 @@ class NewStudentsChart extends ChartWidget
 
     protected function getData(): array
     {
-        $startDate = !is_null($this->filters['startDate'] ?? null)
+        $startDate = !empty($this->filters['startDate'])
             ? Carbon::parse($this->filters['startDate'])->startOfMonth()
             : now()->startOfYear();
 
-        $endDate = !is_null($this->filters['endDate'] ?? null)
+        $endDate = !empty($this->filters['endDate'])
             ? Carbon::parse($this->filters['endDate'])->endOfMonth()
             : now()->endOfMonth();
 
@@ -34,22 +33,32 @@ class NewStudentsChart extends ChartWidget
         $centerId = $this->filters['center'] ?? null;
 
         $query = Student::query()
-            ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as month, COUNT(*) as total")
+            ->selectRaw('YEAR(created_at) as year, MONTH(created_at) as month, COUNT(*) as total')
             ->whereBetween('created_at', [$startDate, $endDate])
-            ->where('is_active', true)
-            ->groupBy('month')
-            ->orderBy('month');
+            ->where('is_active', true);
 
-        // Center filter via latest entry's center
         if ($centerId) {
-            $query->whereHas('entries', fn ($q) => $q->where('center_id', $centerId));
+            $query->whereHas('entries', function ($q) use ($centerId) {
+                $q->where('center_id', $centerId);
+            });
         } elseif ($cityId) {
-            $query->whereHas('entries.center', fn ($q) => $q->where('city_id', $cityId));
+            $query->whereHas('entries.center', function ($q) use ($cityId) {
+                $q->where('city_id', $cityId);
+            });
         }
 
-        $results = $query->pluck('total', 'month')->toArray();
+        $query->groupBy('year', 'month')
+            ->orderBy('year')
+            ->orderBy('month');
 
-        // All months between range
+        $results = $query->get();
+
+        $dataByMonth = [];
+        foreach ($results as $row) {
+            $key = sprintf('%04d-%02d', $row->year, $row->month);
+            $dataByMonth[$key] = $row->total;
+        }
+
         $months = [];
         $labels = [];
         $current = $startDate->copy();
@@ -60,9 +69,10 @@ class NewStudentsChart extends ChartWidget
             $current->addMonth();
         }
 
-        $data = array_map(fn ($month) => $results[$month] ?? 0, $months);
+        $data = array_map(fn ($month) => $dataByMonth[$month] ?? 0, $months);
 
         return [
+            'labels' => $labels,
             'datasets' => [
                 [
                     'label' => 'New Students',
@@ -70,7 +80,6 @@ class NewStudentsChart extends ChartWidget
                     'fill' => 'start',
                 ],
             ],
-            'labels' => $labels,
         ];
     }
 }
