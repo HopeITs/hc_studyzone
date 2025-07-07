@@ -426,6 +426,7 @@ protected static function personalAndContactInformationStep(): Wizard\Step
                 ->relationship('street.city', 'name')
                 ->label('Filter by City')
                 ->preload()
+                ->multiple()
                 ->options(City::all()->pluck('name', 'id'))
                 ->searchable(),
             SelectFilter::make('street_id')->label('Filter by Street')->preload()->options($streets)->searchable(),
