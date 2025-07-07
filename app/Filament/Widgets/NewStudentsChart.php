@@ -40,16 +40,16 @@ class NewStudentsChart extends ChartWidget
             ->groupBy('month')
             ->orderBy('month');
 
-        // Filter by latest entry's center or city
+        // Center filter via latest entry's center
         if ($centerId) {
-            $query->whereHas('latestEntry', fn ($q) => $q->where('center_id', $centerId));
+            $query->whereHas('entries', fn ($q) => $q->where('center_id', $centerId));
         } elseif ($cityId) {
-            $query->whereHas('latestEntry.center', fn ($q) => $q->where('city_id', $cityId));
+            $query->whereHas('entries.center', fn ($q) => $q->where('city_id', $cityId));
         }
 
         $results = $query->pluck('total', 'month')->toArray();
 
-        // Build the full months range for the X axis
+        // All months between range
         $months = [];
         $labels = [];
         $current = $startDate->copy();
@@ -74,4 +74,3 @@ class NewStudentsChart extends ChartWidget
         ];
     }
 }
-
