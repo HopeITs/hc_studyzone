@@ -18,8 +18,12 @@ class TopEducationsTable extends TableWidget
     use InteractsWithPageFilters;
 
     protected static ?string $heading = 'Top 10 Educations by Students';
-
     protected static ?int $sort = 7;
+
+    public function getTable(): Table
+    {
+        return $this->table($this->makeTable());
+    }
 
     public function table(Table $table): Table
     {

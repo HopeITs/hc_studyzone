@@ -21,6 +21,11 @@ class TopLevels extends TableWidget
     protected static ?int $sort = 7;
     protected static ?string $heading = 'Top Levels by Students';
 
+    public function getTable(): Table
+    {
+        return $this->table($this->makeTable());
+    }
+
     public function table(Table $table): Table
     {
         return $table
