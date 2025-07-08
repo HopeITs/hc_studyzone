@@ -29,27 +29,20 @@ class NewStudentsChart extends ChartWidget
             ? Carbon::parse($this->filters['endDate'])->endOfMonth()
             : now()->endOfMonth();
 
-        $cityId = $this->filters['city'] ?? null;
-        $centerId = $this->filters['center'] ?? null;
+        $cityIds = $this->filters['city'] ?? [];
+
 
         $query = Student::query()
             ->selectRaw('YEAR(created_at) as year, MONTH(created_at) as month, COUNT(*) as total')
             ->whereBetween('created_at', [$startDate, $endDate])
-            ->where('is_active', true);
-
-        if ($centerId) {
-            $query->whereHas('entries', function ($q) use ($centerId) {
-                $q->whereIn('center_id', $centerId);
-            });
-        } elseif ($cityId) {
-            $query->whereHas('entries.center', function ($q) use ($cityId) {
-                $q->whereIn('city_id', $cityId);
-            });
-        }
-
-        $query->groupBy('year', 'month')
-              ->orderBy('year')
-              ->orderBy('month');
+            ->when(!empty($cityIds), function ($query) use ($cityIds) {
+                $query->whereHas('street', function ($q) use ($cityIds) {
+                    $q->whereIn('city_id', (array) $cityIds);
+                });
+            })
+            ->groupBy('year', 'month')
+            ->orderBy('year')
+            ->orderBy('month');
 
         $results = $query->get();
 

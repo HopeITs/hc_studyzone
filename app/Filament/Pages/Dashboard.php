@@ -23,9 +23,14 @@ class Dashboard extends BaseDashboard
                 Section::make()
                     ->schema([
                         Select::make('city')->options(City::pluck('name', 'id'))->multiple()->visible(auth()->user()->role === Roles::GeneralAdmin())->columnSpanFull(),
-                        Select::make('center')->options(Center::pluck('name', 'id'))->multiple()->columnSpanFull()->visible(auth()->user()->role === Roles::GeneralAdmin()),
-                        Select::make('center')->options(Center::where('city_id', auth()->user()->city_id)->pluck('name', 'id'))->multiple()->columnSpanFull()->hidden(auth()->user()->role === Roles::GeneralAdmin()),
-
+                        Select::make('center')
+                            ->options(
+                                auth()->user()->role === Roles::GeneralAdmin()
+                                    ? Center::pluck('name', 'id')
+                                    : Center::where('city_id', auth()->user()->city_id)->pluck('name', 'id')
+                            )
+                            ->multiple()
+                            ->columnSpanFull(),
                         DatePicker::make('startDate')
                             ->default(now()->startOfYear())
                             ->maxDate(fn(Get $get) => $get('endDate') ?: now()),
