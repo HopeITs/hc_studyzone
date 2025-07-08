@@ -2,6 +2,8 @@
 
 namespace App\Filament\Widgets;
 
+use App\Models\Center;
+use App\Models\Student;
 use App\Models\StudentEntry;
 use Carbon\Carbon;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
@@ -15,13 +17,13 @@ class MultiToolUsage extends BaseWidget
 
     protected function getCards(): array
     {
-        $startDate = isset($this->filters['startDate'])
-            ? Carbon::parse($this->filters['startDate'])
-            : Carbon::now()->startOfYear();
+        $startDate = !is_null($this->filters['startDate'] ?? null)
+            ? Carbon::parse($this->filters['startDate'])->startOfMonth()
+            : now()->startOfYear();
 
-        $endDate = isset($this->filters['endDate'])
-            ? Carbon::parse($this->filters['endDate'])
-            : Carbon::now();
+        $endDate = !is_null($this->filters['endDate'] ?? null)
+            ? Carbon::parse($this->filters['endDate'])->endOfMonth()
+            : now()->endOfMonth();
 
         $centerIds = $this->filters['center'] ?? null;
         $cityIds = $this->filters['city'] ?? null;
@@ -50,6 +52,48 @@ class MultiToolUsage extends BaseWidget
             ->having('center_count', '>', 1)
             ->get()
             ->count();
+        $studentBaseQuery = Student::query()
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->when(!empty($cityIds), function ($query) use ($cityIds) {
+                $query->whereHas('street', function ($q) use ($cityIds) {
+                    $q->whereIn('city_id', (array) $cityIds);
+                });
+            })
+            ->when(!empty($centerIds), function ($query) use ($centerIds) {
+                $cities =   Center::whereIn('id', $centerIds)->distinct()->pluck('city_id')->toArray();
+
+                $query->whereHas('street', function ($q) use ($cities) {
+                    $q->whereIn('city_id', (array) $cities);
+                });
+            });
+        // Total unique students within the filtered data
+        $studentIds = (clone $studentBaseQuery)->pluck('id');
+
+
+        $totalStudents = $studentIds->count();
+
+// Count Architecture students (education_id = 65)
+        $architectureCount = DB::table('student_educations')
+            ->whereIn('student_id', $studentIds)
+            ->where('education_id', 65)
+            ->distinct('student_id')
+            ->count();
+
+// Count Dentistry students (education_id = 77 or 136)
+        $dentistryCount = DB::table('student_educations')
+            ->whereIn('student_id', $studentIds)
+            ->whereIn('education_id', [77, 136])
+            ->distinct('student_id')
+            ->count();
+
+// Calculate percentages
+        $architecturePercentage = $totalStudents > 0
+            ? round(($architectureCount / $totalStudents) * 100, 2)
+            : 0;
+
+        $dentistryPercentage = $totalStudents > 0
+            ? round(($dentistryCount / $totalStudents) * 100, 2)
+            : 0;
 
         return [
             Card::make('استخدام أكثر من خدمة', "{$multiToolPercentage}%")
@@ -61,6 +105,16 @@ class MultiToolUsage extends BaseWidget
                 ->description('عدد الطلاب الذين زاروا أكثر من مركز في المدينة المحددة')
                 ->color('info')
                 ->icon('heroicon-o-map-pin'),
+
+            Card::make('طلاب هندسة العمارة', "{$architecturePercentage}%")
+                ->description('نسبة طلاب هندسة العمارة من إجمالي الطلاب')
+                ->color('success')
+                ->icon('heroicon-o-academic-cap'),
+
+            Card::make('طلاب طب الأسنان', "{$dentistryPercentage}%")
+                ->description('نسبة طلاب طب الأسنان من إجمالي الطلاب')
+                ->color('success')
+                ->icon('heroicon-o-academic-cap'),
         ];
     }
 }
