@@ -83,7 +83,7 @@ class TopEducationsTable extends TableWidget
                 if ($centerIds) {
                     $query->whereIn('students.id', function ($sub) use ($centerIds) {
                         $sub->select('student_id')
-                            ->from('entries')
+                            ->from('student_entries')
                             ->whereIn('center_id', (array)$centerIds);
                     });
                 }
