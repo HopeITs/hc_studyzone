@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use App\Models\Center;
 use App\Models\Student;
 use Carbon\Carbon;
 use Filament\Widgets\ChartWidget;
@@ -28,7 +29,7 @@ class NewStudentsChart extends ChartWidget
         $endDate = !empty($this->filters['endDate'] ?? null)
             ? Carbon::parse($this->filters['endDate'])->endOfMonth()
             : now()->endOfMonth();
-
+        $centerIds = $this->filters['center'] ?? [];
         $cityIds = $this->filters['city'] ?? [];
 
 
@@ -38,6 +39,13 @@ class NewStudentsChart extends ChartWidget
             ->when(!empty($cityIds), function ($query) use ($cityIds) {
                 $query->whereHas('street', function ($q) use ($cityIds) {
                     $q->whereIn('city_id', (array) $cityIds);
+                });
+            })
+            ->when(!empty($centerIds), function ($query) use ($centerIds) {
+                $cities =   Center::whereIn('id', $centerIds)->distinct()->pluck('city_id')->toArray();
+
+                $query->whereHas('street', function ($q) use ($cities) {
+                    $q->whereIn('city_id', (array) $cities);
                 });
             })
             ->groupBy('year', 'month')
