@@ -12,15 +12,16 @@ use Filament\Tables\Actions\CreateAction;
 use Filament\Tables\Actions\DeleteAction;
 use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Actions\ViewAction;
+use Filament\Tables\Columns\CheckboxColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Forms;
 use Illuminate\Support\Facades\Auth;
 use App\Filament\Resources\StudentResource\RelationManagers\Pages;
+
 class EntriesRelationManager extends RelationManager
 {
     protected static string $relationship = 'entries';
-
 
 
     public function form(Form $form): Form
@@ -65,17 +66,19 @@ class EntriesRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table->columns([
-            TextColumn::make('entry_type')->label('Type')
+            TextColumn::make('entry_type')->label('النوع')
                 ->formatStateUsing(fn(string $state): string => __("general.entry-types.{$state}"))
                 ->sortable(),
-
-            TextColumn::make('entry_time')->label('Date')->date()->sortable()->dateTime('Y-m-d H:i'),
+            TextColumn::make('center.name')->label('المركز'),
+            TextColumn::make('entry_time')->label('التاريخ')->date()->sortable()->dateTime('Y-m-d H:i'),
+            CheckboxColumn::make('use_printer')->disabled(auth()->user()->role === Roles::MealAdmin())->label('طباعة'),
+            CheckboxColumn::make('use_mecrator')->disabled(auth()->user()->role === Roles::MealAdmin())->label('ميكراتور'),
+            CheckboxColumn::make('use_drawer')->disabled(auth()->user()->role === Roles::MealAdmin())->label('مرسم'),
 
         ])
             ->headerActions([
 //                CreateAction::make(),
                 CreateAction::make()
-
                     ->openUrlInNewTab(),
             ])
             ->actions([
