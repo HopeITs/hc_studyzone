@@ -7,7 +7,6 @@ use App\Enums\Roles;
 use App\Filament\Exports\StudentExporter;
 use App\Filament\Resources\StudentResource\Pages;
 use App\Filament\Resources\StudentResource\RelationManagers;
-use Carbon\Carbon;
 use App\Models\{City, Education, Street, Student, StudentEntry};
 
 use Filament\Forms\Components\{Checkbox,
@@ -25,6 +24,7 @@ use Filament\Actions\Exports\Enums\ExportFormat;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Actions\{Action, ActionGroup, ExportAction, ExportBulkAction};
@@ -38,6 +38,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
+use Filament\Notifications\Actions\Action as NotificationAction;
 
 use Livewire\Component as Livewire;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
@@ -70,131 +71,58 @@ class StudentResource extends Resource
     }
 
 
-protected static function personalAndContactInformationStep(): Wizard\Step
-{
-    return Wizard\Step::make(__('general.labels.personal_information') . ' & ' . __('general.labels.contact_information'))
-        ->schema([
-
-            TextInput::make('firstname')
-                ->label(__('general.labels.firstname'))
-                ->required()
-                ->maxLength(255)
-                ->columnSpan(1),
-
-            TextInput::make('lastname')
-                ->label(__('general.labels.lastname'))
-                ->required()
-                ->maxLength(255)
-                ->columnSpan(1),
-
-            TextInput::make('father_name')
-                ->label(__('general.labels.father_name'))
-                ->required()
-                ->maxLength(255)
-                ->columnSpan(1),
-
-            TextInput::make('national_number')
-                ->label(__('general.labels.national_number'))
-                ->required(fn(Get $get) => !$get('is_child'))
-                ->disabled(fn(Get $get) => $get('is_child'))
-                ->unique(ignoreRecord: true)
-                ->columnSpan(2),
-
-            Checkbox::make('is_child')
-                ->label('قاصر')
-                ->default(false)
-                ->reactive()
-                ->afterStateHydrated(function ($set, $get, $state, $livewire) {
-                    $record = $livewire->record ?? null;
-                    if ($record && is_null($record->national_number)) {
-                        $set('is_child', true);
-                    }
-                }),
-
-            Select::make('gender')
-                ->label(__('general.labels.gender'))
-                ->options(__('general.genders'))
-                ->required()
-                ->columnSpan(1),
-
-            Select::make('religion')
-                ->label(__('general.labels.religion'))
-                ->options(__('general.religions'))
-                ->default(0)
-                ->columnSpan(1),
-
-            DatePicker::make('year_of_birth')
-                ->label(__('general.labels.date_of_birth'))
-                ->columnSpan(1),
-
-            Toggle::make('is_student')
-                ->label(__('general.labels.is_student'))
-                ->columnSpan(1),
-
-            Toggle::make('is_employed')
-                ->label(__('general.labels.is_employed'))
-                ->columnSpan(1),
-
-            Textarea::make('notes')
-                ->label(__('general.labels.notes'))
-                ->maxLength(500)
-                ->columnSpan(3),
-
-
-            Select::make('city_id')
-                ->live()
-                ->label(__('general.labels.city'))
-                ->dehydrated(false)
-                ->searchable()
-                ->default(auth()->user()->city_id ?? '')
-                ->preload()
-                ->options(City::pluck('name', 'id'))
-                ->afterStateUpdated(fn($state, callable $set) => $set('street_id', null)),
-
-            Select::make('street_id')
-                ->required()
-                ->searchable()
-                ->preload()
-                ->label(__('general.labels.street'))
-                ->placeholder(fn(Get $get): string => empty($get('city_id')) ? 'First select City' : 'Select an option')
-                ->options(function (?Student $record, Get $get, Set $set) {
-                    if (!empty($record) && empty($get('city_id'))) {
-                        $set('city_id', $record->street->city_id ?? '');
-                        $set('street_id', $record->street_id);
-                    }
-                    return Street::where('city_id', $get('city_id'))->pluck('name', 'id');
-                }),
-
-            TextInput::make('phone')
-                ->label(__('general.labels.phone'))
-                ->required(),
-
-            TextInput::make('whatsapp')
-                ->label(__('general.labels.whatsapp')),
-
-            TextInput::make('email')
-                ->label(__('general.labels.email'))
-                ->unique(ignoreRecord: true),
-
-            TextInput::make('address')
-                ->label(__('general.labels.address'))
-                ->maxLength(255),
-        ])
-        ->columns(3);
-}
-
-
-    protected static function personalInformationStep(): Wizard\Step
+    protected static function personalAndContactInformationStep(): Wizard\Step
     {
-        return Wizard\Step::make(__('general.labels.personal_information'))
-            ->schema([
-                TextInput::make('firstname')->label(__('general.labels.firstname'))->required()->maxLength(255)->columnSpan(1),
+        return Wizard\Step::make(__('general.labels.personal_information') . ' & ' . __('general.labels.contact_information'))
+            ->schema(fn(?Student $record) =>[
 
-                TextInput::make('lastname')->label(__('general.labels.lastname'))->required()->maxLength(255)->columnSpan(1),
+                TextInput::make('firstname')
+                    ->label(__('general.labels.firstname'))
+                    ->required()
+                    ->maxLength(255)
+                    ->columnSpan(1),
 
-                TextInput::make('father_name')->label(__('general.labels.father_name'))->required()->maxLength(255)->columnSpan(1),
+                TextInput::make('lastname')
+                    ->label(__('general.labels.lastname'))
+                    ->required()
+                    ->maxLength(255)
+                    ->columnSpan(1),
 
-                TextInput::make('national_number')->label(__('general.labels.national_number'))->required(fn(Get $get) => !$get('is_child'))->disabled(fn(Get $get) => $get('is_child'))->unique(ignoreRecord: true)->columnSpan(2),
+                TextInput::make('father_name')
+                    ->label(__('general.labels.father_name'))
+                    ->required()
+                    ->maxLength(255)
+                    ->columnSpan(1),
+
+                TextInput::make('national_number')
+                    ->label(__('general.labels.national_number'))
+                    ->required(fn(Get $get) => !$get('is_child'))
+                    ->disabled(fn(Get $get) => $get('is_child'))
+//                ->unique(ignoreRecord: true)
+                    ->rules([
+                        fn() => function (string $attribute, $value, Closure $fail) use ($record) {
+                            $student = Student::where('national_number', $value)->first();
+
+                            // If there's a student with the same number,
+                            // and it's NOT the same record we're editing
+                            if ($student && (!$record || $student->id !== $record->id)) {
+                                Notification::make()
+                                    ->title("الطالب {$student->firstname} موجود في محافظة {$student->street->city->name}")
+                                    ->danger()
+                                    ->persistent()
+                                    ->actions([
+                                        NotificationAction::make('view')
+                                            ->button()
+                                            ->label('عرض الطالب')
+                                            ->url(route('filament.admin.resources.students.view', $student), shouldOpenInNewTab: true),
+                                    ])
+                                    ->send();
+
+                                $fail("الطالب {$student->firstname} موجود مسبقاً.");
+                            }
+                        },
+                    ])
+                    ->columnSpan(2),
 
                 Checkbox::make('is_child')
                     ->label('قاصر')
@@ -207,25 +135,36 @@ protected static function personalAndContactInformationStep(): Wizard\Step
                         }
                     }),
 
-                Select::make('gender')->label(__('general.labels.gender'))->options(__('general.genders'))->required()->columnSpan(1),
+                Select::make('gender')
+                    ->label(__('general.labels.gender'))
+                    ->options(__('general.genders'))
+                    ->required()
+                    ->columnSpan(1),
 
-                Select::make('religion')->label(__('general.labels.religion'))->options(__('general.religions'))->default(0)->columnSpan(1),
+                Select::make('religion')
+                    ->label(__('general.labels.religion'))
+                    ->options(__('general.religions'))
+                    ->default(0)
+                    ->columnSpan(1),
 
-                DatePicker::make('year_of_birth')->label(__('general.labels.date_of_birth'))->columnSpan(1),
+                DatePicker::make('year_of_birth')
+                    ->label(__('general.labels.date_of_birth'))
+                    ->columnSpan(1),
 
-                Toggle::make('is_student')->label(__('general.labels.is_student'))->columnSpan(1),
+                Toggle::make('is_student')
+                    ->label(__('general.labels.is_student'))
+                    ->columnSpan(1),
 
-                Toggle::make('is_employed')->label(__('general.labels.is_employed'))->columnSpan(1),
+                Toggle::make('is_employed')
+                    ->label(__('general.labels.is_employed'))
+                    ->columnSpan(1),
 
-                Textarea::make('notes')->label(__('general.labels.notes'))->maxLength(500)->columnSpan(3),
-            ])
-            ->columns(3);
-    }
+                Textarea::make('notes')
+                    ->label(__('general.labels.notes'))
+                    ->maxLength(500)
+                    ->columnSpan(3),
 
-    protected static function contactInformationStep(): Wizard\Step
-    {
-        return Wizard\Step::make(__('general.labels.contact_information'))
-            ->schema([
+
                 Select::make('city_id')
                     ->live()
                     ->label(__('general.labels.city'))
@@ -235,6 +174,7 @@ protected static function personalAndContactInformationStep(): Wizard\Step
                     ->preload()
                     ->options(City::pluck('name', 'id'))
                     ->afterStateUpdated(fn($state, callable $set) => $set('street_id', null)),
+
                 Select::make('street_id')
                     ->required()
                     ->searchable()
@@ -246,20 +186,27 @@ protected static function personalAndContactInformationStep(): Wizard\Step
                             $set('city_id', $record->street->city_id ?? '');
                             $set('street_id', $record->street_id);
                         }
-
                         return Street::where('city_id', $get('city_id'))->pluck('name', 'id');
                     }),
 
-                TextInput::make('phone')->label(__('general.labels.phone'))->required(),
+                TextInput::make('phone')
+                    ->label(__('general.labels.phone'))
+                    ->required(),
 
-                TextInput::make('whatsapp')->label(__('general.labels.whatsapp')),
-                TextInput::make('email')->label(__('general.labels.email'))->unique(ignoreRecord: true),
+                TextInput::make('whatsapp')
+                    ->label(__('general.labels.whatsapp')),
 
-                TextInput::make('address')->label(__('general.labels.address'))->maxLength(255),
+                TextInput::make('email')
+                    ->label(__('general.labels.email'))
+                    ->unique(ignoreRecord: true),
+
+                TextInput::make('address')
+                    ->label(__('general.labels.address'))
+                    ->maxLength(255),
             ])
-            ->columns(2);
-
+            ->columns(3);
     }
+
 
     protected static function educationStep(): Wizard\Step
     {
@@ -369,8 +316,8 @@ protected static function personalAndContactInformationStep(): Wizard\Step
     protected static function qrCodeModalContent(Student $record)
     {
         $url = url("student/{$record->id}/entry");
-        $localUrl = 'https://hope_studyzone.test/student/'.$record->id.'/entry';
-        $onlineUrl ='https://studyzone.sha8er.com/student/'.$record->id.'/entry';
+        $localUrl = 'https://hope_studyzone.test/student/' . $record->id . '/entry';
+        $onlineUrl = 'https://studyzone.sha8er.com/student/' . $record->id . '/entry';
         $localUrl = 'https://hope_studyzone.test/student/' . $record->id . '/entry';
         $onlineUrl = 'https://studyzone.sha8er.com/student/' . $record->id . '/entry';
         $qrCode = QrCode::size(200)->generate($url);
