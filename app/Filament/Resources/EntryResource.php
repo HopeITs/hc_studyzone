@@ -120,6 +120,11 @@ class EntryResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('student.whatsapp')
+                    ->label('واتساب')
+                    ->searchable()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('entry_type')
                     ->label('نوع الدخول')

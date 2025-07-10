@@ -35,6 +35,12 @@ class EntryExporter extends Exporter
             ExportColumn::make('name')
                 ->formatStateUsing(fn(Model $record): string => $record->student->firstname . ' ' . $record->student->father_name . ' ' . $record->student->lastname
                 ),
+            ExportColumn::make('mobile')
+                ->formatStateUsing(fn(Model $record): string => $record->student->phone
+                ),
+            ExportColumn::make('whatsapp')
+                ->formatStateUsing(fn(Model $record): string => $record->student->whatsapp
+                ),
             ExportColumn::make('entry_type')
                 ->formatStateUsing(fn(string $state): string => __("general.entry-types.{$state}")
                 ),
