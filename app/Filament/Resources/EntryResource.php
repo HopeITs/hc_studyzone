@@ -115,6 +115,12 @@ class EntryResource extends Resource
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
+                TextColumn::make('student.phone')
+                    ->label('الموبايل')
+                    ->searchable()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
                 TextColumn::make('entry_type')
                     ->label('نوع الدخول')
                     ->sortable()
