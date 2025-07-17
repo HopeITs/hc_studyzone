@@ -23,11 +23,11 @@ class StudentGenderChart extends ChartWidget
     protected function getData(): array
     {
         $startDate = !is_null($this->filters['startDate'] ?? null)
-            ? Carbon::parse($this->filters['startDate'])->startOfMonth()
+            ? Carbon::parse($this->filters['startDate'])->startOfDay()
             : now()->startOfYear();
 
         $endDate = !is_null($this->filters['endDate'] ?? null)
-            ? Carbon::parse($this->filters['endDate'])->endOfMonth()
+            ? Carbon::parse($this->filters['endDate'])->endOfDay()
             : now()->endOfMonth();
 
         $cityId = $this->filters['city'] ?? null;
