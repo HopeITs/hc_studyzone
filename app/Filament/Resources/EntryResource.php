@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Enums\Gender;
 use App\Enums\Roles;
 use App\Filament\Exports\EntryExporter;
 use App\Filament\Exports\StudentExporter;
@@ -16,6 +17,7 @@ use Filament\Tables;
 use Filament\Tables\Columns\{CheckboxColumn, TextColumn};
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Actions\ExportBulkAction;
+use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\BaseFilter;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
@@ -23,6 +25,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
+
 
 class EntryResource extends Resource
 {
@@ -120,6 +123,19 @@ class EntryResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('student.gender')
+                    ->label('الجنس')
+                    ->sortable()
+                    ->badge()
+                    ->formatStateUsing(fn(string $state) => __("general.genders.{$state}"))
+                    ->color(
+                        fn(int $state): string => match ($state) {
+                            Gender::Unknown() => 'warning',
+                            Gender::Male() => 'info',
+                            Gender::Female() => 'danger',
+                        },
+                    )
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('student.whatsapp')
                     ->label('واتساب')
                     ->searchable()
@@ -161,13 +177,15 @@ class EntryResource extends Resource
                 CheckboxColumn::make('use_mecrator')->disabled(auth()->user()->role === Roles::MealAdmin())->label('ميكراتور'),
                 CheckboxColumn::make('use_drawer')->disabled(auth()->user()->role === Roles::MealAdmin())->label('مرسم'),
             ])
+
+            ->filtersFormColumns(2)
             ->filters([
                 Filter::make('entry_time')
                     ->label('التاريخ')
                     ->form([
-                        \Filament\Forms\Components\DatePicker::make('from')->label('من')->default(today()),
-                        \Filament\Forms\Components\DatePicker::make('to')->label('إلى')->default(now()),
-                    ])
+                        \Filament\Forms\Components\DatePicker::make('from')->label('من')->default(today())->columnSpan(1),
+                        \Filament\Forms\Components\DatePicker::make('to')->label('إلى')->default(now())->columnSpan(1),
+                    ])->columnSpanFull()->columns(2)
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
                             ->when($data['from'], fn($q, $date) => $q->whereDate('entry_time', '>=', $date))
@@ -185,6 +203,18 @@ class EntryResource extends Resource
                     ->searchable()
                     ->multiple()
                     ->preload(),
+
+                SelectFilter::make('student.gender')
+                    ->label('الجنس')
+                    ->options(__('general.genders'))
+                    ->preload()
+                    ->query(function (Builder $query, array $data): Builder {
+                        return array_key_exists('value', $data)
+                            ? $query->whereHas('student', function (Builder $studentQuery) use ($data) {
+                                $studentQuery->where('gender', (int) $data['value']);
+                            })
+                            : $query;
+                    }),
                 SelectFilter::make('center.city.name')
                     ->label('المدينة')
                     ->relationship('center.city', 'name')
