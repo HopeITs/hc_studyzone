@@ -203,17 +203,18 @@ class EntryResource extends Resource
                     ->searchable()
                     ->multiple()
                     ->preload(),
-
                 SelectFilter::make('student.gender')
                     ->label('الجنس')
                     ->options(__('general.genders'))
                     ->preload()
                     ->query(function (Builder $query, array $data): Builder {
-                        return array_key_exists('value', $data)
-                            ? $query->whereHas('student', function (Builder $studentQuery) use ($data) {
+                        if (array_key_exists('value', $data) && $data['value'] !== null && $data['value'] !== '') {
+                            return $query->whereHas('student', function (Builder $studentQuery) use ($data) {
                                 $studentQuery->where('gender', (int) $data['value']);
-                            })
-                            : $query;
+                            });
+                        }
+
+                        return $query; // No filter selected → show all
                     }),
                 SelectFilter::make('center.city.name')
                     ->label('المدينة')
