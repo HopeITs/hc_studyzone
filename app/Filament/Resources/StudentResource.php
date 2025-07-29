@@ -213,13 +213,13 @@ class StudentResource extends Resource
                     return $record->educations
                         ->map(function ($education) {
                             if ($education->degree) {
-                                return $education->name . ' - ' . $education->degree->name;
+                                $translatedDegree = __('general.edu-degrees')[$education->degree->value] ?? $education->degree->name;
+                                return $education->name . ' - ' . $translatedDegree;
                             }
                             return $education->name . ' - No Degree';
                         })
                         ->implode(', ');
                 })
-
                 ->searchable(
                     query: function (Builder $query, string $search): Builder {
                         return $query->whereHas('educations', function (Builder $studentQuery) use ($search) {
