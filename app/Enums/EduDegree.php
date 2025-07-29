@@ -9,7 +9,6 @@ enum EduDegree: int
 {
     use InvokableCases, Values;
 
-    // Define enum cases with associated integer values
     case MiddleSchool = 4;
     case HighSchool = 5;
     case HigherSecondary = 6;
@@ -19,11 +18,8 @@ enum EduDegree: int
     case Masters = 10;
     case PhD = 11;
 
-    // Return the default case
     public static function default(): self
     {
         return self::University;
     }
-
-    // Return an array of all case values
 }
