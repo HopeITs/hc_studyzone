@@ -212,11 +212,8 @@ class StudentResource extends Resource
                 ->formatStateUsing(function (Model $record) {
                     return $record->educations
                         ->map(function ($education) {
-                            if ($education->degree) {
-                                $translatedDegree = __('general.edu-degrees')[$education->degree->value] ?? $education->degree->name;
-                                return $education->name . ' - ' . $translatedDegree;
-                            }
-                            return $education->name . ' - No Degree';
+                            $translatedDegree = $education->degree ? __('general.edu-degrees')[$education->degree->value] ?? $education->degree->name : 'No Degree';
+                            return $education->name . ' - ' . $translatedDegree;
                         })
                         ->implode(', ');
                 })
@@ -225,6 +222,19 @@ class StudentResource extends Resource
                         return $query->whereHas('educations', function (Builder $studentQuery) use ($search) {
                             $studentQuery->where('name', 'like', "%{$search}%");
                         });
+                    },
+                )
+                ->sortable(
+                    query: function (Builder $query, string $direction): Builder {
+                        return $query->orderBy(
+                            \App\Models\Education::select('name')
+                                ->join('student_educations', 'educations.id', '=', 'student_educations.education_id')
+                                // 👇 THIS LINE IS THE FIX 👇
+                                ->whereColumn('student_educations.student_id', 'students.id')
+                                ->orderBy('name', 'asc')
+                                ->limit(1),
+                            $direction,
+                        );
                     },
                 )
                 ->toggleable(),
