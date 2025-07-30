@@ -139,19 +139,21 @@ class StudentResource extends Resource
                     ->relationship('studentEducations')
                     ->label(__('general.labels.educations'))
                     ->schema([
-                        Select::make('degree')->label('الدرجة')->options(__('general.edu-degrees'))->required()->reactive()->dehydrated(false)->afterStateUpdated(fn(callable $set) => $set('education_id', null)),
+                        // This field is for filtering only, so we prevent saving it
+                        Select::make('degree')->label('الدرجة')->options(__('general.edu-degrees'))->reactive()->afterStateUpdated(fn(callable $set) => $set('education_id', null))->dehydrated(false), // prevent it from being saved
+
+                        // This is the actual value saved
                         Select::make('education_id')
                             ->label(__('general.labels.education'))
                             ->options(function (callable $get) {
                                 $degree = $get('degree');
-                                if (!$degree) {
-                                    return [];
-                                }
-                                return \App\Models\Education::where('degree', $degree)->pluck('name', 'id');
+                                return $degree ? \App\Models\Education::where('degree', $degree)->pluck('name', 'id') : \App\Models\Education::pluck('name', 'id');
                             })
                             ->searchable()
                             ->required(),
+
                         Select::make('level')->label(__('general.labels.education_level'))->options(__('general.edu-levels'))->required(),
+
                         Select::make('type')->label(__('general.labels.education_type'))->options(__('general.edu-types'))->required(),
                     ])
                     ->columns(2)

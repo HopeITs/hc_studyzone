@@ -13,7 +13,7 @@ use Filament\Tables\Table;
 
 class EducationsRelationManager extends RelationManager
 {
-    protected static string $relationship = 'studentEducations'; // Match the Student model relationship
+    protected static string $relationship = 'studentEducations';
 
     public function form(Form $form): Form
     {
@@ -25,35 +25,32 @@ class EducationsRelationManager extends RelationManager
                 ->searchable()
                 ->required(),
 
-            Select::make('level')
-                ->label('Education Level')
-                ->options(__('general.edu-levels'))
-                ->required(),
+            Select::make('level')->label('Education Level')->options(__('general.edu-levels'))->required(),
 
-            Select::make('type')
-                ->label('Education Type')
-                ->options(__('general.edu-types'))
-                ->required(),
+            Select::make('type')->label('Education Type')->options(__('general.edu-types'))->required(),
         ]);
     }
 
     public function table(Table $table): Table
     {
-        return $table->columns([
-            Tables\Columns\TextColumn::make('education.name')->label('Education')->sortable(),
-            Tables\Columns\TextColumn::make('level')->label('Level')
-                ->formatStateUsing(fn(string $state): string => __("general.edu-levels.{$state}"))
-                ->sortable(),
-            Tables\Columns\TextColumn::make('type')->label('Type')
-                ->formatStateUsing(fn(string $state): string => __("general.edu-types.{$state}"))
-                ->sortable(),
-        ])
-            ->headerActions([
-                Tables\Actions\CreateAction::make(),
+        return $table
+            ->columns([
+                Tables\Columns\TextColumn::make('education.name')->label('Education')->sortable(),
+
+                Tables\Columns\TextColumn::make('education.degree')
+                    ->label('Degree')
+                    ->formatStateUsing(function ($state, $record) {
+                        $degree = $record->education->degree ?? null;
+
+                        return $degree ? __('general.edu-degrees.' . $degree->value) : '-';
+                    })
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('level')->label('Level')->formatStateUsing(fn(string $state): string => __("general.edu-levels.{$state}"))->sortable(),
+
+                Tables\Columns\TextColumn::make('type')->label('Type')->formatStateUsing(fn(string $state): string => __("general.edu-types.{$state}"))->sortable(),
             ])
-            ->actions([
-                EditAction::make(),
-                DeleteAction::make(),
-            ]);
+            ->headerActions([Tables\Actions\CreateAction::make()])
+            ->actions([EditAction::make(), DeleteAction::make()]);
     }
 }
