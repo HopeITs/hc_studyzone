@@ -139,10 +139,17 @@ class StudentResource extends Resource
                     ->relationship('studentEducations')
                     ->label(__('general.labels.educations'))
                     ->schema([
-                        // This field is for filtering only, so we prevent saving it
-                        Select::make('degree')->label('الدرجة')->options(__('general.edu-degrees'))->reactive()->afterStateUpdated(fn(callable $set) => $set('education_id', null))->dehydrated(false), // prevent it from being saved
-
-                        // This is the actual value saved
+                        Select::make('degree')
+                            ->label('الدرجة')
+                            ->options(__('general.edu-degrees'))
+                            ->reactive()
+                            ->afterStateUpdated(fn(callable $set) => $set('education_id', null))
+                            ->dehydrated(false)
+                            ->afterStateHydrated(function ($set, $state, $record) {
+                                if ($record && $record->education) {
+                                    $set('degree', $record->education->degree);
+                                }
+                            }),
                         Select::make('education_id')
                             ->label(__('general.labels.education'))
                             ->options(function (callable $get) {
@@ -231,7 +238,6 @@ class StudentResource extends Resource
                         return $query->orderBy(
                             \App\Models\Education::select('name')
                                 ->join('student_educations', 'educations.id', '=', 'student_educations.education_id')
-                                // 👇 THIS LINE IS THE FIX 👇
                                 ->whereColumn('student_educations.student_id', 'students.id')
                                 ->orderBy('name', 'asc')
                                 ->limit(1),
