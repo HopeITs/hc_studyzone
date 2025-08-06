@@ -61,7 +61,7 @@ class EducationResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('name')->sortable()->searchable(),
                 Tables\Columns\TextColumn::make('degree')
-                    ->formatStateUsing(fn(string $state): string => __("general.edu-degrees.{$state}"))
+                    ->formatStateUsing(fn($state): string => __("general.edu-degrees." . (is_string($state) ? $state : $state->value)))
                     ->sortable(),
             ])
             ->filters([
