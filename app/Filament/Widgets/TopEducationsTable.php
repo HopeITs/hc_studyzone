@@ -63,32 +63,39 @@ class TopEducationsTable extends TableWidget
         $cityIds = $this->filters['city'] ?? null;
         $centerIds = $this->filters['center'] ?? null;
 
+        $applyCityFilter = function ($query) use ($cityIds) {
+            if ($cityIds) {
+                $query->whereIn('students.street_id', function ($sub) use ($cityIds) {
+                    $sub->select('id')
+                        ->from('streets')
+                        ->whereIn('city_id', (array)$cityIds);
+                });
+            }
+        };
+
+        $applyCenterFilter = function ($query) use ($centerIds) {
+            if ($centerIds) {
+                $query->whereIn('students.id', function ($sub) use ($centerIds) {
+                    $sub->select('student_id')
+                        ->from('student_entries')
+                        ->whereIn('center_id', (array)$centerIds);
+                });
+            }
+        };
+
         return Education::query()
             ->select('educations.*')
-            ->selectSub(function ($query) use ($startDate, $endDate, $cityIds, $centerIds) {
+            ->selectSub(function ($query) use ($startDate, $endDate, $applyCityFilter, $applyCenterFilter) {
                 $query->from('student_educations')
                     ->join('students', 'students.id', '=', 'student_educations.student_id')
                     ->selectRaw('count(*)')
                     ->whereColumn('student_educations.education_id', 'educations.id')
                     ->whereBetween('students.created_at', [$startDate, $endDate]);
 
-                if ($cityIds) {
-                    $query->whereIn('students.street_id', function ($sub) use ($cityIds) {
-                        $sub->select('id')
-                            ->from('streets')
-                            ->whereIn('city_id', (array)$cityIds);
-                    });
-                }
-
-                if ($centerIds) {
-                    $query->whereIn('students.id', function ($sub) use ($centerIds) {
-                        $sub->select('student_id')
-                            ->from('student_entries')
-                            ->whereIn('center_id', (array)$centerIds);
-                    });
-                }
+                $applyCityFilter($query);
+                $applyCenterFilter($query);
             }, 'total')
-            ->selectSub(function ($query) use ($startDate, $endDate, $cityIds) {
+            ->selectSub(function ($query) use ($startDate, $endDate, $applyCityFilter, $applyCenterFilter) {
                 $query->from('student_educations')
                     ->join('students', 'students.id', '=', 'student_educations.student_id')
                     ->selectRaw('count(*)')
@@ -96,15 +103,10 @@ class TopEducationsTable extends TableWidget
                     ->where('students.gender', 1)
                     ->whereBetween('students.created_at', [$startDate, $endDate]);
 
-                if ($cityIds) {
-                    $query->whereIn('students.street_id', function ($sub) use ($cityIds) {
-                        $sub->select('id')
-                            ->from('streets')
-                            ->whereIn('city_id', (array)$cityIds);
-                    });
-                }
+                $applyCityFilter($query);
+                $applyCenterFilter($query);
             }, 'males')
-            ->selectSub(function ($query) use ($startDate, $endDate, $cityIds) {
+            ->selectSub(function ($query) use ($startDate, $endDate, $applyCityFilter, $applyCenterFilter) {
                 $query->from('student_educations')
                     ->join('students', 'students.id', '=', 'student_educations.student_id')
                     ->selectRaw('count(*)')
@@ -112,15 +114,10 @@ class TopEducationsTable extends TableWidget
                     ->where('students.gender', 2)
                     ->whereBetween('students.created_at', [$startDate, $endDate]);
 
-                if ($cityIds) {
-                    $query->whereIn('students.street_id', function ($sub) use ($cityIds) {
-                        $sub->select('id')
-                            ->from('streets')
-                            ->whereIn('city_id', (array)$cityIds);
-                    });
-                }
+                $applyCityFilter($query);
+                $applyCenterFilter($query);
             }, 'females')
-            ->selectSub(function ($query) use ($startDate, $endDate, $cityIds) {
+            ->selectSub(function ($query) use ($startDate, $endDate, $applyCityFilter, $applyCenterFilter) {
                 $query->from('student_educations')
                     ->join('students', 'students.id', '=', 'student_educations.student_id')
                     ->selectRaw('count(*)')
@@ -128,13 +125,8 @@ class TopEducationsTable extends TableWidget
                     ->where('students.gender', 0)
                     ->whereBetween('students.created_at', [$startDate, $endDate]);
 
-                if ($cityIds) {
-                    $query->whereIn('students.street_id', function ($sub) use ($cityIds) {
-                        $sub->select('id')
-                            ->from('streets')
-                            ->whereIn('city_id', (array)$cityIds);
-                    });
-                }
+                $applyCityFilter($query);
+                $applyCenterFilter($query);
             }, 'unknown')
             ->orderByDesc('total')
             ->limit(10);
