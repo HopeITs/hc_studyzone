@@ -176,6 +176,7 @@ class StudentResource extends Resource
         return $table
             ->modifyQueryUsing(fn(Builder $query) => self::filterQueryByRole($query))
             ->columns(self::tableColumns())
+            ->filtersFormColumns(2)
             ->filters(self::tableFilters())
             ->recordUrl(function (Student $record): string {
                 if (auth()->user()->role === Roles::CenterAdmin()) {
@@ -318,19 +319,22 @@ class StudentResource extends Resource
         return [
             SelectFilter::make('city')
                 ->relationship('street.city', 'name')
-                ->label('Filter by City')
+                ->label('المدينة')
                 ->preload()
                 ->multiple()
                 ->options(City::all()->pluck('name', 'id'))
                 ->searchable(),
-            SelectFilter::make('street_id')->label('Filter by Street')->preload()->options($streets)->searchable(),
-            Filter::make('created_at')
-                ->form([DatePicker::make('created_from'), DatePicker::make('created_until')])
+            SelectFilter::make('street_id')->label('الشارع')->preload()->options($streets)->searchable(),
+            Filter::make('created_at')->columns(2)
+                ->form([DatePicker::make('created_from')->label('تاريخ الإضافة من'), DatePicker::make('created_until')->label('تاريخ الإضافة حتى')])
                 ->query(function (Builder $query, array $data): Builder {
                     return $query->when($data['created_from'], fn(Builder $query, $date): Builder => $query->whereDate('created_at', '>=', $date))->when($data['created_until'], fn(Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date));
                 }),
-            SelectFilter::make('educations')->label('Filter by Educations')->relationship('educations', 'name')->searchable()->multiple()->preload(),
-            SelectFilter::make('gender')->label('Filter by Gender')->options(__('general.genders')),
+            SelectFilter::make('educations')->label('المؤهلات العلمية')->relationship('educations', 'name')->searchable()->multiple()->preload(),
+            SelectFilter::make('gender')->label('الجنس')->options(__('general.genders')),
+            SelectFilter::make('religion')->label('الديانة')->options(__('general.religions')),
+
+
         ];
     }
 

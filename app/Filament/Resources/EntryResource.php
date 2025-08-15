@@ -183,13 +183,13 @@ class EntryResource extends Resource
                 Filter::make('entry_time')
                     ->label('التاريخ')
                     ->form([
-                        \Filament\Forms\Components\DatePicker::make('from')->label('من')->default(today())->columnSpan(1),
-                        \Filament\Forms\Components\DatePicker::make('to')->label('إلى')->default(now())->columnSpan(1),
+                        \Filament\Forms\Components\DateTimePicker::make('from')->label('من')->default(today())->columnSpan(1),
+                        \Filament\Forms\Components\DateTimePicker::make('to')->label('إلى')->default(now())->columnSpan(1),
                     ])->columnSpanFull()->columns(2)
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
-                            ->when($data['from'], fn($q, $date) => $q->whereDate('entry_time', '>=', $date))
-                            ->when($data['to'], fn($q, $date) => $q->whereDate('entry_time', '<=', $date));
+                            ->when($data['from'], fn($q, $date) => $q->where('entry_time', '>=', $date))
+                            ->when($data['to'], fn($q, $date) => $q->where('entry_time', '<=', $date));
                     }),
                 SelectFilter::make('entry_type')
                     ->label('نوع الدخولية')
