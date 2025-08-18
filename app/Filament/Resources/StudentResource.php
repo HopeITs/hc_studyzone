@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Enums\Gender;
+use App\Enums\Religion;
 use App\Enums\Roles;
 use App\Filament\Exports\StudentExporter;
 use App\Filament\Resources\StudentResource\Pages;
@@ -257,6 +258,18 @@ class StudentResource extends Resource
                         Gender::Unknown() => 'warning',
                         Gender::Male() => 'info',
                         Gender::Female() => 'danger',
+                    },
+                )
+                ->toggleable(isToggledHiddenByDefault: true),
+            TextColumn::make('religion')
+                ->label('Religion')
+                ->badge()
+                ->formatStateUsing(fn(string $state) => __("general.religions.{$state}"))
+                ->color(
+                    fn(int $state): string => match ($state) {
+                        Religion::Unknown() => 'warning',
+                        Religion::Christian() => 'success',
+                        Religion::Muslim() => 'secondary',
                     },
                 )
                 ->toggleable(isToggledHiddenByDefault: true),
