@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Enums\Gender;
+use App\Enums\Religion;
 use App\Enums\Roles;
 use App\Filament\Exports\EntryExporter;
 use App\Filament\Exports\StudentExporter;
@@ -136,6 +137,19 @@ class EntryResource extends Resource
                         },
                     )
                     ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('student.religion')
+                    ->label('الديانة')
+                    ->sortable()
+                    ->badge()
+                    ->formatStateUsing(fn(string $state) => __("general.religions.{$state}"))
+                    ->color(
+                        fn(int $state): string => match ($state) {
+                            Religion::Unknown() => 'warning',
+                            Religion::Christian() => 'success',
+                            Religion::Muslim() => 'secondary',
+                        },
+                    )
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('student.whatsapp')
                     ->label('واتساب')
                     ->searchable()
@@ -211,6 +225,19 @@ class EntryResource extends Resource
                         if (array_key_exists('value', $data) && $data['value'] !== null && $data['value'] !== '') {
                             return $query->whereHas('student', function (Builder $studentQuery) use ($data) {
                                 $studentQuery->where('gender', (int) $data['value']);
+                            });
+                        }
+
+                        return $query; // No filter selected → show all
+                    }),
+                SelectFilter::make('student.religion')
+                    ->label('الديانة')
+                    ->options(__('general.religions'))
+                    ->preload()
+                    ->query(function (Builder $query, array $data): Builder {
+                        if (array_key_exists('value', $data) && $data['value'] !== null && $data['value'] !== '') {
+                            return $query->whereHas('student', function (Builder $studentQuery) use ($data) {
+                                $studentQuery->where('religion', (int) $data['value']);
                             });
                         }
 
