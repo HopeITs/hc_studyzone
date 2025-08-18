@@ -183,8 +183,8 @@ class EntryResource extends Resource
                 Filter::make('entry_time')
                     ->label('التاريخ')
                     ->form([
-                        \Filament\Forms\Components\DateTimePicker::make('from')->label('من')->default(today())->columnSpan(1),
-                        \Filament\Forms\Components\DateTimePicker::make('to')->label('إلى')->default(now())->columnSpan(1),
+                        \Filament\Forms\Components\DateTimePicker::make('from')->label('من')->default(today()->startOfDay())->columnSpan(1),
+                        \Filament\Forms\Components\DateTimePicker::make('to')->label('إلى')->default(today()->endOfDay())->columnSpan(1),
                     ])->columnSpanFull()->columns(2)
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
