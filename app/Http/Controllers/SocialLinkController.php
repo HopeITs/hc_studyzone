@@ -20,7 +20,7 @@ class SocialLinkController extends Controller
             'damascus' => 'Damascus',
             'aleppo' => 'Aleppo',
             'latakia' => 'Latakia',
-            'mouzeina' => 'Mouzeina',
+//            'mouzeina' => 'Mouzeina',
             'tartus' => 'Tartus',
         ];
 

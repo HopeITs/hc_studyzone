@@ -93,7 +93,7 @@ Route::group(['middleware' => ['auth']], function () {
 });
 
 Route::get('/qr/studyzone/{city}', [SocialLinkController::class, 'show'])
-    ->where('city', 'homs|damascus|aleppo|latakia|mouzeina|tartus')
+    ->where('city', 'homs|damascus|aleppo|latakia|tartus')
     ->name('info.show');
 
 Route::get('/test-419', function () {
