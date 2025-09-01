@@ -29,7 +29,7 @@ Route::get('/clear-cache', function () {
     return redirect()->route('filament.admin.pages.dashboard')->withSuccess('Cache has been cleared');
 });
 
-Route::group(['middleware' => ['auth']], function () {
+Route::group(['middleware' => ['auth','active']], function () {
     Route::get('/download-qr-code/{uuid}', function ($uuid) {
         $student = Student::findOrFail($uuid);
         $url = url("student/{$student->id}/entry");

@@ -7,6 +7,7 @@ use App\Filament\Resources\StudentResource\Widgets\StudentCountOverTime;
 use App\Filament\Resources\StudentResource\Widgets\StudentEducationStats;
 use App\Filament\Resources\StudentResource\Widgets\StudentEntryTypeStats;
 use App\Filament\Resources\StudentResource\Widgets\StudentStats;
+use App\Http\Middleware\EnsureUserIsActive;
 use App\Models\User;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -36,7 +37,8 @@ class AdminPanelProvider extends PanelProvider
             ->authGuard('web')
             ->path('admin')
             ->login()
-
+            ->unsavedChangesAlerts()
+            ->databaseTransactions()
             ->brandLogo(asset('images/logo.png'))
             ->brandLogoHeight('2.5rem')
             ->favicon(asset('images/logo.png'))
@@ -66,6 +68,7 @@ class AdminPanelProvider extends PanelProvider
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
+                'active' => EnsureUserIsActive::class,
             ])
             ->authMiddleware([
                 Authenticate::class,

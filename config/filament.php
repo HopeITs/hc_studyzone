@@ -97,5 +97,9 @@ return [
     */
 
     'system_route_prefix' => 'filament',
+    'middleware' => [
+        'auth',
+        'active',
+    ],
 
 ];

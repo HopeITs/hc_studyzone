@@ -15,6 +15,7 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Columns\BadgeColumn;
+use Filament\Tables\Columns\CheckboxColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -131,14 +132,8 @@ class UserResource extends Resource
                     ->sortable()
                     ->searchable(),
 //                    ->hidden(fn ($record) => $record->role !== 'center_admin'),
+                CheckboxColumn::make('is_active'),
 
-                BadgeColumn::make('is_active')
-                    ->label('Status')
-                    ->colors([
-                        'success' => true,
-                        'danger' => false,
-                    ])
-                    ->formatStateUsing(fn ($state) => $state ? 'Active' : 'Inactive'),
             ])
             ->filters([
                 SelectFilter::make('role')
