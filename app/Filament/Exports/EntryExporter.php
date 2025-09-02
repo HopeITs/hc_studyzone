@@ -44,6 +44,9 @@ class EntryExporter extends Exporter
             ExportColumn::make('national_number')
                 ->formatStateUsing(fn(Model $record): string => $record->student->national_number ?? '-'
                 ),
+            ExportColumn::make('religion')
+                ->formatStateUsing(fn(Model $record): string =>  __("general.religions.{$record->student->religio}") ?? '-'
+                ),
             ExportColumn::make('entry_type')
                 ->formatStateUsing(fn(string $state): string => __("general.entry-types.{$state}")
                 ),
