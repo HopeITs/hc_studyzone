@@ -7,11 +7,11 @@ use Filament\Models\Contracts\FilamentUser;
 use Filament\Models\Contracts\HasName;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Enums\Nationality;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-
 
 class Student extends Model implements HasName
 {
@@ -22,6 +22,9 @@ class Student extends Model implements HasName
     protected $guarded = ['is_child', 'city_id'];
     protected $primaryKey = 'id';
 
+    protected $casts = [
+        'nationality' => Nationality::class,
+    ];
 
     public function entries(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
@@ -35,18 +38,15 @@ class Student extends Model implements HasName
             ->withTimestamps();
     }
 
-
     public function street(): BelongsTo
     {
         return $this->belongsTo(Street::class);
     }
 
     public function studentEducations(): HasMany
-
     {
         return $this->hasMany(StudentEducation::class, 'student_id');
     }
-
 
     // Method to get the QR code path
     public function getQrCodePath(): string
@@ -59,4 +59,3 @@ class Student extends Model implements HasName
         return "{$this->first_name} {$this->father_name} {$this->last_name}";
     }
 }
-

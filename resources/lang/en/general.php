@@ -9,7 +9,6 @@ use App\Enums\Religion;
 use App\Enums\Roles;
 
 return [
-
     'roles' => [
         Roles::Unknown() => 'unknown',
         Roles::GeneralAdmin() => 'General Admin',
@@ -44,8 +43,7 @@ return [
         EduLevel::Fifth() => 'Fifth Year',
         EduLevel::Sixth() => 'Sixth Year',
         EduLevel::Graduate() => 'Graduate',
-    ]
-    ,
+    ],
     'entry-types' => [
         EntryType::Free() => 'Free',
         EntryType::Daily() => 'Daily',
@@ -62,13 +60,17 @@ return [
         Religion::Christian() => 'Christian',
         Religion::Muslim() => 'Muslim'
     ],
-
+    'nationalities' => [
+        'syrian' => 'Syrian',
+        'other' => 'Other',
+    ],
     'labels' => [
-
         'firstname' => 'First Name',
         'lastname' => 'Last Name',
         'father_name' => "Father's Name",
         'national_number' => 'National Number',
+        'foreign_id_number' => 'Residency / Foreign ID Number',
+        'nationality' => 'Nationality',
         'gender' => 'Gender',
         'religion' => 'Religion',
         'date_of_birth' => 'Date of Birth',

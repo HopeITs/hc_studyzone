@@ -60,11 +60,17 @@ return [
         Religion::Christian() => 'مسيحي',
         Religion::Muslim() => 'مسلم',
     ],
+    'nationalities' => [
+        'syrian' => 'سوري/ة',
+        'other' => 'جنسية أخرى',
+    ],
     'labels' => [
         'firstname' => 'الاسم الأول',
         'lastname' => 'اسم العائلة',
         'father_name' => 'اسم الأب',
         'national_number' => 'الرقم الوطني',
+        'foreign_id_number' => 'رقم الإقامة / الهوية الأجنبية',
+        'nationality' => 'الجنسية',
         'gender' => 'الجنس',
         'religion' => 'الديانة',
         'date_of_birth' => 'تاريخ الميلاد',

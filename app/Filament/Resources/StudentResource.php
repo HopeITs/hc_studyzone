@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Enums\Gender;
+use App\Enums\Nationality;
 use App\Enums\Religion;
 use App\Enums\Roles;
 use App\Filament\Exports\StudentExporter;
@@ -66,10 +67,30 @@ class StudentResource extends Resource
                     TextInput::make('firstname')->label(__('general.labels.firstname'))->required()->maxLength(255)->columnSpan(1),
                     TextInput::make('lastname')->label(__('general.labels.lastname'))->required()->maxLength(255)->columnSpan(1),
                     TextInput::make('father_name')->label(__('general.labels.father_name'))->required()->maxLength(255)->columnSpan(1),
+
+                    Select::make('nationality')
+                        ->label('الجنسية')
+                        ->options([
+                            Nationality::Syrian->value => Nationality::Syrian->getLabel(),
+                            Nationality::Other->value => Nationality::Other->getLabel(),
+                        ])
+                        ->default(Nationality::Syrian->value)
+                        ->required()
+                        ->live()
+                        ->afterStateUpdated(function (Set $set) {
+                            $set('national_number', null);
+                            $set('foreign_id_number', null);
+                        })
+                        ->columnSpan(1),
+
                     TextInput::make('national_number')
                         ->label(__('general.labels.national_number'))
-                        ->required(fn(Get $get) => !$get('is_child'))
+                        ->required(fn(Get $get) => !$get('is_child') && $get('nationality') === Nationality::Syrian->value)
                         ->disabled(fn(Get $get) => $get('is_child'))
+                        ->visible(fn(Get $get) => $get('nationality') === Nationality::Syrian->value)
+                        ->numeric()
+                        ->minLength(11)
+                        ->maxLength(11)
                         ->rules([
                             fn() => function (string $attribute, $value, Closure $fail) use ($record) {
                                 $student = Student::where('national_number', $value)->first();
@@ -85,10 +106,17 @@ class StudentResource extends Resource
                             },
                         ])
                         ->columnSpan(2),
+
+                    TextInput::make('foreign_id_number')
+                        ->label('رقم الإقامة / الهوية الأجنبية')
+                        ->required(fn(Get $get) => $get('nationality') === Nationality::Other->value)
+                        ->visible(fn(Get $get) => $get('nationality') === Nationality::Other->value)
+                        ->columnSpan(2),
+
                     Checkbox::make('is_child')
                         ->label('قاصر')
                         ->default(false)
-                        ->reactive()
+                        ->live()
                         ->afterStateHydrated(function ($set, $get, $state, $livewire) {
                             $record = $livewire->record ?? null;
                             if ($record && is_null($record->national_number)) {
@@ -212,7 +240,20 @@ class StudentResource extends Resource
                     },
                 ),
             TextColumn::make('year_of_birth')->label('Date of Birth')->sortable()->toggleable(),
-            TextColumn::make('national_number')->label('National number')->searchable()->toggleable(isToggledHiddenByDefault: true),
+            TextColumn::make('national_number')
+                ->label('الرقم الوطني / الإقامة')
+                ->formatStateUsing(function (Model $record): string {
+                    if ($record->nationality === Nationality::Syrian) {
+                        return $record->national_number ?? 'لا يوجد';
+                    }
+                    return $record->foreign_id_number ?? 'لا يوجد';
+                })
+                ->searchable(query: function (Builder $query, string $search): Builder {
+                    return $query
+                        ->where('national_number', 'like', "%{$search}%")
+                        ->orWhere('foreign_id_number', 'like', "%{$search}%");
+                })
+                ->toggleable(isToggledHiddenByDefault: true),
             TextColumn::make('phone')->label('Phone')->sortable()->searchable()->toggleable(),
             TextColumn::make('email')->label('Email')->sortable()->searchable()->toggleable(isToggledHiddenByDefault: true),
             TextColumn::make('entries_count')->counts('entries')->label('Entries')->sortable()->toggleable(),
@@ -346,8 +387,6 @@ class StudentResource extends Resource
             SelectFilter::make('educations')->label('المؤهلات العلمية')->relationship('educations', 'name')->searchable()->multiple()->preload(),
             SelectFilter::make('gender')->label('الجنس')->options(__('general.genders')),
             SelectFilter::make('religion')->label('الديانة')->options(__('general.religions')),
-
-
         ];
     }
 
