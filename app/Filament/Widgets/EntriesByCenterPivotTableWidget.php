@@ -11,6 +11,7 @@ use Filament\Tables\Table;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Filament\Widgets\TableWidget;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 
@@ -24,7 +25,7 @@ class EntriesByCenterPivotTableWidget extends TableWidget
 
     protected function getQuery(): Builder
     {
-        return Center::query();
+        return Center::query()->where('id', -1);
     }
 
     public function table(Table $table): Table
@@ -62,7 +63,7 @@ class EntriesByCenterPivotTableWidget extends TableWidget
             ]);
     }
 
-    protected function getTableRows(): array
+    protected function getTableRows(): Collection
     {
         $startDate = Carbon::parse($this->filters['startDate'] ?? now()->startOfYear())->startOfDay();
         $endDate = Carbon::parse($this->filters['endDate'] ?? now())->endOfDay();
@@ -70,7 +71,9 @@ class EntriesByCenterPivotTableWidget extends TableWidget
 
         if (empty($centerIds)) {
             $centerIds = Center::pluck('id')->toArray();
-            if(empty($centerIds)) return [];
+            if (empty($centerIds)) {
+                return collect();
+            }
         }
 
         $diffInDays = $endDate->diffInDays($startDate);
@@ -115,6 +118,7 @@ class EntriesByCenterPivotTableWidget extends TableWidget
             }
         }
 
-        return array_values($pivotedData);
+        return collect(array_values($pivotedData));
     }
 }
+
