@@ -30,8 +30,8 @@ class EntriesByCenterPivotTableWidget extends TableWidget
 
     public function table(Table $table): Table
     {
-        $startDate = Carbon::parse($this->filters['startDate'] ?? now()->startOfYear());
-        $endDate = Carbon::parse($this->filters['endDate'] ?? now());
+        $startDate = Carbon::parse($this->filters['startDate'] ?? now()->startOfYear())->startOfDay();
+        $endDate = Carbon::parse($this->filters['endDate'] ?? now())->endOfDay();
         $centerIds = $this->filters['center'] ?? null;
 
         $diffInDays = $endDate->diffInDays($startDate);
