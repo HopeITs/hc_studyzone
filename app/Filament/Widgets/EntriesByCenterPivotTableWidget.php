@@ -22,10 +22,6 @@ class EntriesByCenterPivotTableWidget extends TableWidget
     protected static ?int $sort = 10;
     protected int | string | array $columnSpan = 'full';
 
-    /**
-     * This is a placeholder query to satisfy Filament's requirement.
-     * The actual data is generated and pivoted in getTableRows().
-     */
     protected function getQuery(): Builder
     {
         return Center::query();
@@ -33,14 +29,21 @@ class EntriesByCenterPivotTableWidget extends TableWidget
 
     public function table(Table $table): Table
     {
-        $startDate = Carbon::parse($this->filters['startDate'] ?? now()->startOfYear());
-        $endDate = Carbon::parse($this->filters['endDate'] ?? now());
+        $cityIds = $this->filters['city'] ?? null;
         $centerIds = $this->filters['center'] ?? null;
 
+        $centersQuery = Center::query();
+        if (!empty($centerIds)) {
+            $centersQuery->whereIn('id', $centerIds);
+        } elseif (!empty($cityIds)) {
+            $centersQuery->whereIn('city_id', $cityIds);
+        }
+        $centers = $centersQuery->get();
+
+        $startDate = Carbon::parse($this->filters['startDate'] ?? now()->startOfYear());
+        $endDate = Carbon::parse($this->filters['endDate'] ?? now());
         $diffInDays = $endDate->diffInDays($startDate);
         $groupByDay = $diffInDays <= 31;
-
-        $centers = $centerIds ? Center::whereIn('id', $centerIds)->get() : Center::all();
 
         $columns = [
             TextColumn::make('period')->label($groupByDay ? 'Day' : 'Month')->sortable(),
@@ -54,7 +57,7 @@ class EntriesByCenterPivotTableWidget extends TableWidget
         }
 
         return $table
-            ->query($this->getQuery()) // This line is added to link the placeholder query.
+            ->query($this->getQuery())
             ->columns($columns)
             ->paginated(false)
             ->headerActions([
@@ -70,11 +73,20 @@ class EntriesByCenterPivotTableWidget extends TableWidget
     {
         $startDate = Carbon::parse($this->filters['startDate'] ?? now()->startOfYear())->startOfDay();
         $endDate = Carbon::parse($this->filters['endDate'] ?? now())->endOfDay();
-        $centerIds = $this->filters['center'] ?? null;
+        $cityIds = $this->filters['city'] ?? null;
+        $centerIdsFromFilter = $this->filters['center'] ?? null;
 
-        if (empty($centerIds)) {
-            $centerIds = Center::pluck('id')->toArray();
-            if(empty($centerIds)) return [];
+        $finalCenterIds = [];
+        if (!empty($centerIdsFromFilter)) {
+            $finalCenterIds = $centerIdsFromFilter;
+        } elseif (!empty($cityIds)) {
+            $finalCenterIds = Center::whereIn('city_id', $cityIds)->pluck('id')->toArray();
+        } else {
+            $finalCenterIds = Center::pluck('id')->toArray();
+        }
+
+        if (empty($finalCenterIds)) {
+            return [];
         }
 
         $diffInDays = $endDate->diffInDays($startDate);
@@ -88,7 +100,7 @@ class EntriesByCenterPivotTableWidget extends TableWidget
                 DB::raw('COUNT(id) as count')
             )
             ->whereBetween('entry_time', [$startDate, $endDate])
-            ->whereIn('center_id', $centerIds)
+            ->whereIn('center_id', $finalCenterIds)
             ->groupBy('period', 'center_id')
             ->orderBy('period')
             ->get();
@@ -102,7 +114,7 @@ class EntriesByCenterPivotTableWidget extends TableWidget
         }
 
         foreach ($pivotedData as $period => &$row) {
-            foreach ($centerIds as $centerId) {
+            foreach ($finalCenterIds as $centerId) {
                 if (!isset($row['center_' . $centerId])) {
                     $row['center_' . $centerId] = 0;
                 }

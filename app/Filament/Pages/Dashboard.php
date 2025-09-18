@@ -23,15 +23,33 @@ class Dashboard extends BaseDashboard
             ->schema([
                 Section::make()
                     ->schema([
-                        Select::make('city')->options(City::pluck('name', 'id'))->multiple()->visible(auth()->user()->role === Roles::GeneralAdmin())->columnSpanFull(),
+                        Select::make('city')
+                            ->options(City::pluck('name', 'id'))
+                            ->multiple()
+                            ->live()
+                            ->visible(auth()->user()->role === Roles::GeneralAdmin())
+                            ->columnSpanFull(),
+
                         Select::make('center')
-                            ->options(
-                                auth()->user()->role === Roles::GeneralAdmin()
-                                    ? Center::pluck('name', 'id')
-                                    : Center::where('city_id', auth()->user()->city_id)->pluck('name', 'id')
-                            )
+                            ->options(function (Get $get) {
+                                $user = auth()->user();
+                                $selectedCities = $get('city');
+
+                                $query = Center::query();
+
+                                if ($user->role !== Roles::GeneralAdmin()) {
+                                    return Center::where('city_id', $user->city_id)->pluck('name', 'id');
+                                }
+
+                                if (!empty($selectedCities)) {
+                                    $query->whereIn('city_id', $selectedCities);
+                                }
+
+                                return $query->pluck('name', 'id');
+                            })
                             ->multiple()
                             ->columnSpanFull(),
+
                         DatePicker::make('startDate')
                             ->default(now()->startOfYear())
                             ->maxDate(fn(Get $get) => $get('endDate') ?: now()),
