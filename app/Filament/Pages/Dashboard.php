@@ -11,6 +11,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Pages\Dashboard as BaseDashboard;
+use Illuminate\Database\Eloquent\Builder;
 
 class Dashboard extends BaseDashboard
 {
@@ -26,30 +27,24 @@ class Dashboard extends BaseDashboard
                         Select::make('city')
                             ->options(City::pluck('name', 'id'))
                             ->multiple()
-                            ->live()
+                            ->live() // Added to trigger updates on change
                             ->visible(auth()->user()->role === Roles::GeneralAdmin())
                             ->columnSpanFull(),
-
                         Select::make('center')
                             ->options(function (Get $get) {
                                 $user = auth()->user();
-                                $selectedCities = $get('city');
+                                $cityIds = $get('city');
 
-                                $query = Center::query();
-
-                                if ($user->role !== Roles::GeneralAdmin()) {
-                                    return Center::where('city_id', $user->city_id)->pluck('name', 'id');
+                                if ($user->role === Roles::GeneralAdmin()) {
+                                    return Center::query()
+                                        ->when($cityIds, fn(Builder $query) => $query->whereIn('city_id', $cityIds))
+                                        ->pluck('name', 'id');
                                 }
 
-                                if (!empty($selectedCities)) {
-                                    $query->whereIn('city_id', $selectedCities);
-                                }
-
-                                return $query->pluck('name', 'id');
+                                return Center::where('city_id', $user->city_id)->pluck('name', 'id');
                             })
                             ->multiple()
                             ->columnSpanFull(),
-
                         DatePicker::make('startDate')
                             ->default(now()->startOfYear())
                             ->maxDate(fn(Get $get) => $get('endDate') ?: now()),

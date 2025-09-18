@@ -8,6 +8,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\WithMapping;
 
 class EntriesByCenterExport implements FromCollection, WithHeadings
 {
@@ -15,21 +16,17 @@ class EntriesByCenterExport implements FromCollection, WithHeadings
     protected Collection $centers;
     protected bool $groupByDay;
     protected string $periodLabel;
+    protected array $headings;
 
     public function __construct(array $filters)
     {
         $this->filters = $filters;
+        $this->prepare();
     }
 
     public function headings(): array
     {
-        $this->prepare();
-
-        $headings = [$this->periodLabel];
-        foreach ($this->centers as $center) {
-            $headings[] = $center->name;
-        }
-        return $headings;
+        return $this->headings;
     }
 
     public function collection(): Collection
@@ -49,6 +46,11 @@ class EntriesByCenterExport implements FromCollection, WithHeadings
         $diffInDays = $endDate->diffInDays($startDate);
         $this->groupByDay = $diffInDays <= 31;
         $this->periodLabel = $this->groupByDay ? 'Day' : 'Month';
+
+        $this->headings = [$this->periodLabel];
+        foreach ($this->centers as $center) {
+            $this->headings[] = $center->name;
+        }
     }
 
     protected function getPivotedData(): array
@@ -56,35 +58,37 @@ class EntriesByCenterExport implements FromCollection, WithHeadings
         $startDate = Carbon::parse($this->filters['startDate'] ?? now()->startOfYear())->startOfDay();
         $endDate = Carbon::parse($this->filters['endDate'] ?? now())->endOfDay();
 
-        $dateFormat = $this->groupByDay ? '%Y-%m-%d' : '%Y-%m';
-
-        $entries = DB::table('student_entries')
-            ->select(DB::raw("DATE_FORMAT(entry_time, '{$dateFormat}') as period"), 'center_id', DB::raw('COUNT(id) as count'))
-            ->whereBetween('entry_time', [$startDate, $endDate])
-            ->whereIn('center_id', $this->centers->pluck('id'))
-            ->groupBy('period', 'center_id')
-            ->orderBy('period')
-            ->get();
+        $dbDateFormat = $this->groupByDay ? '%Y-%m-%d' : '%Y-%m';
+        $phpDateFormat = $this->groupByDay ? 'Y-m-d' : 'Y-m';
+        $centerIdNameMap = $this->centers->pluck('name', 'id');
 
         $pivotedData = [];
-        $period = clone $startDate;
-        while ($period <= $endDate) {
-            $key = $this->groupByDay ? $period->format('Y-m-d') : $period->format('Y-m');
-            if (!isset($pivotedData[$key])) {
-                $pivotedData[$key] = [$this->periodLabel => $key];
+        $periodIterator = $startDate->clone();
+        while ($periodIterator->lte($endDate)) {
+            $periodKey = $periodIterator->format($phpDateFormat);
+            if (!isset($pivotedData[$periodKey])) {
+                $row = [$this->periodLabel => $periodKey];
                 foreach ($this->centers as $center) {
-                    $pivotedData[$key][$center->name] = 0;
+                    $row[$center->name] = 0;
                 }
+                $pivotedData[$periodKey] = $row;
             }
             if ($this->groupByDay) {
-                $period->addDay();
+                $periodIterator->addDay();
             } else {
-                $period->addMonth()->startOfMonth();
+                $periodIterator->addMonthNoOverflow()->startOfMonth();
             }
         }
 
+        $entries = DB::table('student_entries')
+            ->select(DB::raw("DATE_FORMAT(entry_time, '{$dbDateFormat}') as period"), 'center_id', DB::raw('COUNT(id) as count'))
+            ->whereBetween('entry_time', [$startDate, $endDate])
+            ->whereIn('center_id', $this->centers->pluck('id'))
+            ->groupBy('period', 'center_id')
+            ->get();
+
         foreach ($entries as $entry) {
-            $centerName = $this->centers->find($entry->center_id)?->name;
+            $centerName = $centerIdNameMap[$entry->center_id] ?? null;
             if ($centerName && isset($pivotedData[$entry->period])) {
                 $pivotedData[$entry->period][$centerName] = $entry->count;
             }
