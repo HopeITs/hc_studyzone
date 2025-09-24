@@ -2,10 +2,12 @@
 
 namespace App\Filament\Widgets;
 
+
 use App\Models\StudentEntry;
 use Carbon\Carbon;
 use Filament\Widgets\ChartWidget;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
+
 
 class AllEntriesChart extends ChartWidget
 {
@@ -102,5 +104,7 @@ class AllEntriesChart extends ChartWidget
             ],
         ];
     }
+
+
 
 }

@@ -3,14 +3,17 @@
 namespace App\Filament\Pages;
 
 use App\Enums\Roles;
+use App\Exports\EntriesByCenterExport;
 use App\Models\Center;
 use App\Models\City;
+use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Form;                                                    
+use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Pages\Dashboard as BaseDashboard;
+use Maatwebsite\Excel\Facades\Excel;
 
 class Dashboard extends BaseDashboard
 {
@@ -40,5 +43,21 @@ class Dashboard extends BaseDashboard
                     ])
                     ->columns(2),
             ]);
+    }
+    protected function getHeaderActions(): array
+    {
+        return [
+            Action::make('export')
+                ->label('Export Entries to Excel')
+                ->action(function () {
+                    $startDate = $this->filters['startDate'] ?? now()->startOfYear();
+                    $endDate   = $this->filters['endDate'] ?? now()->endOfMonth();
+
+                    return Excel::download(
+                        new EntriesByCenterExport($startDate, $endDate),
+                        'entries.xlsx'
+                    );
+                }),
+        ];
     }
 }

@@ -15,7 +15,8 @@ use App\Filament\Widgets\StudentGenderChart;
 use App\Filament\Widgets\FrequentStudentsChart;
 use App\Filament\Resources\StudentResource;
 use App\Http\Controllers\SocialLinkController;
-
+use App\Exports\EntriesByCenterExport;
+use Maatwebsite\Excel\Facades\Excel;
 Route::get('/', function () {
     return view('welcome');
 });
@@ -39,6 +40,11 @@ Route::group(['middleware' => ['auth']], function () {
             ->header('Content-Type', 'image/svg+xml')
             ->header('Content-Disposition', 'attachment; filename="qr-code-' . $uuid . '.svg"');
     })->name('download-qr-code');
+
+
+    Route::get('/export-entries', function () {
+        return Excel::download(new EntriesByCenterExport(now()->startOfYear(), now()->endOfMonth()), 'entries_by_center.xlsx');
+    });
 
 
     Route::get('/student/{uuid}/entry', [StudentEntryController::class, 'showEntryForm'])->name('student.entry');
