@@ -3,7 +3,6 @@
 namespace App\Filament\Resources;
 
 use App\Enums\Gender;
-use App\Enums\Nationality;
 use App\Enums\Religion;
 use App\Enums\Roles;
 use App\Filament\Exports\StudentExporter;
@@ -20,7 +19,7 @@ use Filament\Forms\Set;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
-use Filament\Tables\Actions\{Action, ActionGroup, ExportAction, ExportBulkAction};
+use Filament\Tables\Actions\{Action, ActionGroup, ExportBulkAction};
 use Filament\Tables\Columns\{CheckboxColumn, TextColumn};
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
@@ -32,9 +31,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Filament\Notifications\Actions\Action as NotificationAction;
-use App\Enums\EduDegree;
-
-use Livewire\Component as Livewire;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class StudentResource extends Resource
@@ -69,12 +65,9 @@ class StudentResource extends Resource
                     TextInput::make('father_name')->label(__('general.labels.father_name'))->required()->maxLength(255)->columnSpan(1),
 
                     Select::make('nationality')
-                        ->label('الجنسية')
-                        ->options([
-                            Nationality::Syrian->value => Nationality::Syrian->getLabel(),
-                            Nationality::Other->value => Nationality::Other->getLabel(),
-                        ])
-                        ->default(Nationality::Syrian->value)
+                        ->label(__('general.labels.nationality'))
+                        ->options(__('general.nationalities'))
+                        ->default('syrian')
                         ->required()
                         ->live()
                         ->afterStateUpdated(function (Set $set) {
@@ -85,14 +78,16 @@ class StudentResource extends Resource
 
                     TextInput::make('national_number')
                         ->label(__('general.labels.national_number'))
-                        ->required(fn(Get $get) => !$get('is_child') && $get('nationality') === Nationality::Syrian->value)
+                        ->required(fn(Get $get) => !$get('is_child') && $get('nationality') === 'syrian')
                         ->disabled(fn(Get $get) => $get('is_child'))
-                        ->visible(fn(Get $get) => $get('nationality') === Nationality::Syrian->value)
+                        ->visible(fn(Get $get) => $get('nationality') === 'syrian')
                         ->numeric()
-                        ->minLength(11)
-                        ->maxLength(11)
                         ->rules([
+                            'digits:11',
                             fn() => function (string $attribute, $value, Closure $fail) use ($record) {
+                                if (empty($value)) {
+                                    return;
+                                }
                                 $student = Student::where('national_number', $value)->first();
                                 if ($student && (!$record || $student->id !== $record->id)) {
                                     Notification::make()
@@ -105,13 +100,12 @@ class StudentResource extends Resource
                                 }
                             },
                         ])
+                        ->validationMessages([
+                            'digits' => 'يجب إدخال 11 خانة بالضبط للرقم الوطني.',
+                        ])
                         ->columnSpan(2),
 
-                    TextInput::make('foreign_id_number')
-                        ->label('رقم الإقامة / الهوية الأجنبية')
-                        ->required(fn(Get $get) => $get('nationality') === Nationality::Other->value)
-                        ->visible(fn(Get $get) => $get('nationality') === Nationality::Other->value)
-                        ->columnSpan(2),
+                    TextInput::make('foreign_id_number')->label(__('general.labels.foreign_id_number'))->required(fn(Get $get) => $get('nationality') === 'other')->visible(fn(Get $get) => $get('nationality') === 'other')->columnSpan(2),
 
                     Checkbox::make('is_child')
                         ->label('قاصر')
@@ -119,7 +113,7 @@ class StudentResource extends Resource
                         ->live()
                         ->afterStateHydrated(function ($set, $get, $state, $livewire) {
                             $record = $livewire->record ?? null;
-                            if ($record && is_null($record->national_number)) {
+                            if ($record && is_null($record->national_number) && is_null($record->foreign_id_number)) {
                                 $set('is_child', true);
                             }
                         }),
@@ -145,11 +139,13 @@ class StudentResource extends Resource
                         ->label(__('general.labels.street'))
                         ->placeholder(fn(Get $get): string => empty($get('city_id')) ? 'First select City' : 'Select an option')
                         ->options(function (?Student $record, Get $get, Set $set) {
-                            if (!empty($record) && empty($get('city_id'))) {
-                                $set('city_id', $record->street->city_id ?? '');
+                            $cityId = $get('city_id');
+                            if (!empty($record) && empty($cityId)) {
+                                $cityId = $record->street->city_id ?? '';
+                                $set('city_id', $cityId);
                                 $set('street_id', $record->street_id);
                             }
-                            return Street::where('city_id', $get('city_id'))->pluck('name', 'id');
+                            return Street::where('city_id', $cityId)->pluck('name', 'id');
                         }),
                     TextInput::make('phone')->label(__('general.labels.phone'))->required(),
                     TextInput::make('whatsapp')->label(__('general.labels.whatsapp')),
@@ -243,16 +239,16 @@ class StudentResource extends Resource
             TextColumn::make('national_number')
                 ->label('الرقم الوطني / الإقامة')
                 ->formatStateUsing(function (Model $record): string {
-                    if ($record->nationality === Nationality::Syrian) {
+                    if ($record->nationality?->value === 'syrian') {
                         return $record->national_number ?? 'لا يوجد';
                     }
                     return $record->foreign_id_number ?? 'لا يوجد';
                 })
-                ->searchable(query: function (Builder $query, string $search): Builder {
-                    return $query
-                        ->where('national_number', 'like', "%{$search}%")
-                        ->orWhere('foreign_id_number', 'like', "%{$search}%");
-                })
+                ->searchable(
+                    query: function (Builder $query, string $search): Builder {
+                        return $query->where('national_number', 'like', "%{$search}%")->orWhere('foreign_id_number', 'like', "%{$search}%");
+                    },
+                )
                 ->toggleable(isToggledHiddenByDefault: true),
             TextColumn::make('phone')->label('Phone')->sortable()->searchable()->toggleable(),
             TextColumn::make('email')->label('Email')->sortable()->searchable()->toggleable(isToggledHiddenByDefault: true),
@@ -278,14 +274,7 @@ class StudentResource extends Resource
                 )
                 ->sortable(
                     query: function (Builder $query, string $direction): Builder {
-                        return $query->orderBy(
-                            \App\Models\Education::select('name')
-                                ->join('student_educations', 'educations.id', '=', 'student_educations.education_id')
-                                ->whereColumn('student_educations.student_id', 'students.id')
-                                ->orderBy('name', 'asc')
-                                ->limit(1),
-                            $direction,
-                        );
+                        return $query->orderBy(\App\Models\Education::select('name')->join('student_educations', 'educations.id', '=', 'student_educations.education_id')->whereColumn('student_educations.student_id', 'students.id')->orderBy('name', 'asc')->limit(1), $direction);
                     },
                 )
                 ->toggleable(),
@@ -296,9 +285,9 @@ class StudentResource extends Resource
                 ->formatStateUsing(fn(string $state) => __("general.genders.{$state}"))
                 ->color(
                     fn(int $state): string => match ($state) {
-                        Gender::Unknown() => 'warning',
-                        Gender::Male() => 'info',
-                        Gender::Female() => 'danger',
+                        0 => 'warning',
+                        1 => 'info',
+                        2 => 'danger',
                     },
                 )
                 ->toggleable(isToggledHiddenByDefault: true),
@@ -308,9 +297,9 @@ class StudentResource extends Resource
                 ->formatStateUsing(fn(string $state) => __("general.religions.{$state}"))
                 ->color(
                     fn(int $state): string => match ($state) {
-                        Religion::Unknown() => 'warning',
-                        Religion::Christian() => 'success',
-                        Religion::Muslim() => 'secondary',
+                        0 => 'warning',
+                        1 => 'success',
+                        2 => 'secondary',
                     },
                 )
                 ->toggleable(isToggledHiddenByDefault: true),
@@ -323,14 +312,10 @@ class StudentResource extends Resource
     protected static function qrCodeModalContent(Student $record)
     {
         $url = url("student/{$record->id}/entry");
-        $localUrl = 'https://hope_studyzone.test/student/' . $record->id . '/entry';
-        $onlineUrl = 'https://studyzone.sha8er.com/student/' . $record->id . '/entry';
         $qrCode = QrCode::size(200)->generate($url);
         return view('filament.qr-code-modal', [
             'uuid' => $record->id,
             'url' => $url,
-            'offlineUrl' => $localUrl,
-            'onlineUrl' => $onlineUrl,
             'qrCode' => $qrCode,
         ]);
     }
@@ -343,7 +328,9 @@ class StudentResource extends Resource
         } else {
             $cityId = $user->city_id;
             $streetsArr = \App\Models\Street::where('city_id', $cityId)->pluck('id')->toArray();
-            $streetsArr[] = 0;
+            if (empty($streetsArr)) {
+                return $query->whereRaw('1 = 0');
+            }
             return $query->where(function ($q) use ($streetsArr, $cityId) {
                 $q->whereIn('street_id', $streetsArr)->orWhereHas('entries.center', function ($q) use ($cityId) {
                     $q->where('city_id', $cityId);
@@ -402,7 +389,7 @@ class StudentResource extends Resource
                     DateTimePicker::make('entry_time')->label(__('general.labels.entry_time'))->default(now())->columnSpan(1)->required(),
                     Fieldset::make('Services')
                         ->label('خدمات')
-                        ->schema([Checkbox::make('use_printer')->reactive()->label('خدمة طباعة')->default(false), Checkbox::make('use_drawer')->reactive()->label('خدمة مرسم')->default(false), Checkbox::make('use_mecrator')->reactive()->label('خدمة ميكراتور')->default(false)])
+                        ->schema([Checkbox::make('use_printer')->label('خدمة طباعة')->default(false), Checkbox::make('use_drawer')->label('خدمة مرسم')->default(false), Checkbox::make('use_mecrator')->label('خدمة ميكراتور')->default(false)])
                         ->columns(3),
                 ])
                 ->modalHeading(__('general.labels.record_student_entry'))
