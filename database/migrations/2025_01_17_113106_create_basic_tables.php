@@ -60,7 +60,6 @@ return new class extends Migration {
             $table->string('lastname');
             $table->string('father_name');
             $table->string('nationality')->default('syrian');
-            $table->string('foreign_id_number')->unique()->nullable();
             $table->string('national_number')->unique()->nullable();
             $table->string('phone')->unique()->nullable();
             $table->string('whatsapp')->unique()->nullable();
