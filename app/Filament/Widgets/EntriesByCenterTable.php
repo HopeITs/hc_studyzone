@@ -3,6 +3,7 @@
 namespace App\Filament\Widgets;
 
 use App\Exports\EntriesByCenterExport;
+use App\Models\Center;
 use App\Models\StudentEntry;
 use Carbon\Carbon;
 use Filament\Actions\Action;
@@ -31,37 +32,40 @@ class EntriesByCenterTable extends Widget
         $cityIds = $this->filters['city'] ?? null;
         $centerIds = $this->filters['center'] ?? null;
 
-        $results = StudentEntry::query()
-            ->selectRaw('YEAR(entry_time) as year, MONTH(entry_time) as month, center_id, COUNT(*) as total')
-            ->whereBetween('entry_time', [$startDate, $endDate]);
-        if ($centerIds) {
-            $results->whereIn('center_id', $centerIds);
-        }
+        // base query for centers
+        $centers = Center::query()
+            ->where('is_active',true)
+            ->when($centerIds, fn ($q) => $q->whereIn('id', $centerIds))
+            ->when($cityIds, fn ($q) => $q->whereIn('city_id', $cityIds))
+            ->with([
+                'entries' => function ($q) use ($startDate, $endDate) {
+                    $q->selectRaw('center_id, YEAR(entry_time) as year, MONTH(entry_time) as month, COUNT(*) as total')
+                        ->whereBetween('entry_time', [$startDate, $endDate])
+                        ->groupBy('center_id', 'year', 'month');
+                }
+            ])
+            ->get(['id', 'name']);
 
-
-        $results  ->groupBy('year', 'month', 'center_id')
-            ->with('center:id,name')
-            ->get();
-
-        $centers = $results->pluck('center.name', 'center_id')->unique();
+        // pivot rows
         $data = [];
-
         $current = $startDate->copy();
         while ($current <= $endDate) {
             $row = ['month' => $current->format('M Y')];
-            foreach ($centers as $id => $name) {
-                $match = $results->first(fn($r) =>
+            foreach ($centers as $center) {
+                $match = $center->entries->first(fn($r) =>
                     $r->year == $current->year &&
-                    $r->month == $current->month &&
-                    $r->center_id == $id
+                    $r->month == $current->month
                 );
-                $row[$name] = $match?->total ?? 0;
+                $row[$center->name] = $match?->total ?? 0;
             }
             $data[] = $row;
             $current->addMonth();
         }
 
-        return compact('data', 'centers');
+        return [
+            'data' => $data,
+            'centers' => $centers->pluck('name'),
+        ];
     }
     protected function getHeaderActions(): array
     {
