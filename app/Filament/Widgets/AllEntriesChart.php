@@ -2,10 +2,12 @@
 
 namespace App\Filament\Widgets;
 
+
 use App\Models\StudentEntry;
 use Carbon\Carbon;
 use Filament\Widgets\ChartWidget;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
+
 
 class AllEntriesChart extends ChartWidget
 {
@@ -22,19 +24,34 @@ class AllEntriesChart extends ChartWidget
     protected function getData(): array
     {
         $startDate = !empty($this->filters['startDate'] ?? null)
-            ? Carbon::parse($this->filters['startDate'])->startOfMonth()
+            ? Carbon::parse($this->filters['startDate'])->startOfDay()
             : now()->startOfYear();
 
         $endDate = !empty($this->filters['endDate'] ?? null)
-            ? Carbon::parse($this->filters['endDate'])->endOfMonth()
-            : now()->endOfMonth();
+            ? Carbon::parse($this->filters['endDate'])->endOfDay()
+            : now()->endOfDay();
 
         $cityId = $this->filters['city'] ?? null;
         $centerId = $this->filters['center'] ?? null;
 
-        $query = StudentEntry::query()
-            ->selectRaw('YEAR(entry_time) as year, MONTH(entry_time) as month, COUNT(*) as total')
-            ->whereBetween('entry_time', [$startDate, $endDate]);
+        $diffInDays = $startDate->diffInDays($endDate);
+
+        $query = StudentEntry::query();
+
+        if ($diffInDays < 31) {
+            // Daily stats
+            $query->selectRaw('DATE(entry_time) as day, COUNT(*) as total')
+                ->whereBetween('entry_time', [$startDate, $endDate])
+                ->groupBy('day')
+                ->orderBy('day');
+        } else {
+            // Monthly stats
+            $query->selectRaw('YEAR(entry_time) as year, MONTH(entry_time) as month, COUNT(*) as total')
+                ->whereBetween('entry_time', [$startDate, $endDate])
+                ->groupBy('year', 'month')
+                ->orderBy('year')
+                ->orderBy('month');
+        }
 
         if ($centerId) {
             $query->whereIn('center_id', $centerId);
@@ -44,29 +61,37 @@ class AllEntriesChart extends ChartWidget
             });
         }
 
-        $query->groupBy('year', 'month')
-              ->orderBy('year')
-              ->orderBy('month');
-
         $results = $query->get();
 
-        $dataByMonth = [];
-        foreach ($results as $row) {
-            $key = sprintf('%04d-%02d', $row->year, $row->month);
-            $dataByMonth[$key] = $row->total;
-        }
-
-        $months = [];
         $labels = [];
-        $current = $startDate->copy();
-        while ($current <= $endDate) {
-            $key = $current->format('Y-m');
-            $months[] = $key;
-            $labels[] = $current->format('M Y');
-            $current->addMonth();
-        }
+        $data = [];
 
-        $data = array_map(fn($month) => $dataByMonth[$month] ?? 0, $months);
+        if ($diffInDays < 31) {
+            // Fill missing days
+            $dataByDay = $results->pluck('total', 'day')->toArray();
+            $current = $startDate->copy();
+            while ($current <= $endDate) {
+                $key = $current->format('Y-m-d');
+                $labels[] = $current->format('d M');
+                $data[] = $dataByDay[$key] ?? 0;
+                $current->addDay();
+            }
+        } else {
+            // Fill missing months
+            $dataByMonth = [];
+            foreach ($results as $row) {
+                $key = sprintf('%04d-%02d', $row->year, $row->month);
+                $dataByMonth[$key] = $row->total;
+            }
+
+            $current = $startDate->copy()->startOfMonth();
+            while ($current <= $endDate) {
+                $key = $current->format('Y-m');
+                $labels[] = $current->format('M Y');
+                $data[] = $dataByMonth[$key] ?? 0;
+                $current->addMonth();
+            }
+        }
 
         return [
             'labels' => $labels,
@@ -79,4 +104,7 @@ class AllEntriesChart extends ChartWidget
             ],
         ];
     }
+
+
+
 }

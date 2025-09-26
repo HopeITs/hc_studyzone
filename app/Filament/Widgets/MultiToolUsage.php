@@ -96,10 +96,10 @@ class MultiToolUsage extends BaseWidget
             : 0;
 
         return [
-            Card::make('استخدام أكثر من خدمة', "{$multiToolPercentage}%")
-                ->description('من الطلاب استخدموا أكثر من خدمة في الزيارة')
-                ->color($multiToolPercentage >= 50 ? 'success' : 'warning')
-                ->icon('heroicon-o-adjustments-horizontal'),
+//            Card::make('استخدام أكثر من خدمة', "{$multiToolPercentage}%")
+//                ->description('من الطلاب استخدموا أكثر من خدمة في الزيارة')
+//                ->color($multiToolPercentage >= 50 ? 'success' : 'warning')
+//                ->icon('heroicon-o-adjustments-horizontal'),
 
             Card::make('طلاب زاروا أكثر من مركز', $studentsWithMultipleCenters)
                 ->description('عدد الطلاب الذين زاروا أكثر من مركز في المدينة المحددة')
