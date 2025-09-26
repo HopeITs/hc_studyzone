@@ -1,5 +1,10 @@
 <x-filament-widgets::widget>
     <x-filament::card>
+        <div class="flex justify-between mb-4">
+            <h1 class="font-bold">Entries per center</h1>
+
+            <a class="p-2 bg-primary-500 rounded-md dark:text-white font-bold  text-xs" href="{{route('test-export',['from' => $from, 'to'=> $to])}}">Export to Excel</a>
+        </div>
         <table class="table-auto w-full text-sm">
             <thead>
             <tr>

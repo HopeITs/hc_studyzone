@@ -44,20 +44,5 @@ class Dashboard extends BaseDashboard
                     ->columns(2),
             ]);
     }
-    protected function getHeaderActions(): array
-    {
-        return [
-            Action::make('export')
-                ->label('Export Entries to Excel')
-                ->action(function () {
-                    $startDate = $this->filters['startDate'] ?? now()->startOfYear();
-                    $endDate   = $this->filters['endDate'] ?? now()->endOfMonth();
 
-                    return Excel::download(
-                        new EntriesByCenterExport($startDate, $endDate),
-                        'entries.xlsx'
-                    );
-                }),
-        ];
-    }
 }

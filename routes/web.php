@@ -41,7 +41,15 @@ Route::group(['middleware' => ['auth']], function () {
             ->header('Content-Disposition', 'attachment; filename="qr-code-' . $uuid . '.svg"');
     })->name('download-qr-code');
 
+    Route::get('/test-export/{from}/{to}', function ($from, $to) {
 
+        $startDate = \Carbon\Carbon::parse($from)->startOfDay();
+        $endDate = \Carbon\Carbon::parse($to)->endOfDay();
+        return Excel::download(
+            new \App\Exports\EntriesByCenterExport($startDate, $endDate),
+            'entries.xlsx'
+        );
+    })->name('test-export');
     Route::get('/export-entries', function () {
         return Excel::download(new EntriesByCenterExport(now()->startOfYear(), now()->endOfMonth()), 'entries_by_center.xlsx');
     });

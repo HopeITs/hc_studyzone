@@ -9,9 +9,9 @@
     </tr>
     </thead>
     <tbody>
-    @foreach($data as $monthKey => $row)
+    @foreach($data as $row)
         <tr>
-            <td>{{ \Carbon\Carbon::parse($monthKey.'-01')->format('M Y') }}</td>
+            <td>{{ $row['month'] }}</td>
             @foreach($centers as $center)
                 <td>{{ $row[$center] ?? 0 }}</td>
             @endforeach

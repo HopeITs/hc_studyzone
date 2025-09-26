@@ -2,53 +2,61 @@
 
 namespace App\Exports;
 
-use App\Models\StudentEntry;
+use App\Models\Center;
+
+use Illuminate\Contracts\Support\Responsable;
 use Illuminate\Contracts\View\View;
 use Maatwebsite\Excel\Concerns\FromView;
 use Carbon\Carbon;
 
+use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+
 class EntriesByCenterExport implements FromView
 {
-    protected Carbon $startDate;
-    protected Carbon $endDate;
+    protected  $startDate;
+    protected  $endDate;
 
+    protected array $filters;
     public function __construct($startDate, $endDate)
     {
-        $this->startDate = Carbon::parse($startDate)->startOfMonth();
-        $this->endDate   = Carbon::parse($endDate)->endOfMonth();
+        $this->startDate = $startDate;
+        $this->endDate   = $endDate;
     }
 
     public function view(): View
     {
-        // Base query grouped by month and center
-        $results = StudentEntry::query()
-            ->selectRaw('YEAR(entry_time) as year, MONTH(entry_time) as month, center_id, COUNT(*) as total')
-            ->whereBetween('entry_time', [$this->startDate, $this->endDate])
-            ->groupBy('year', 'month', 'center_id')
-            ->with('center:id,name')
-            ->get();
 
-        // Pivot data [month => [center => total]]
+        $startDate = $this->startDate;
+        $endDate   = $this->endDate;
+
+        $centers = Center::where('is_active', true)
+            ->with(['entries' => function ($q) use ($startDate, $endDate) {
+                $q->selectRaw('center_id, DATE_FORMAT(entry_time, "%Y-%m") as ym, COUNT(*) as total')
+                    ->whereBetween('entry_time', [$startDate, $endDate])
+                    ->groupBy('center_id', 'ym');
+            }])
+            ->get(['id', 'name']);
+
+// Pivot rows
         $data = [];
-        $centers = $results->pluck('center.name', 'center_id')->unique();
+        $current = Carbon::parse($startDate)->startOfMonth();
+        while ($current <= $endDate) {
+            $ym = $current->format('Y-m');
+            $row = ['month' => $current->format('M Y')];
 
-        $current = $this->startDate->copy();
-        while ($current <= $this->endDate) {
-            $monthKey = $current->format('Y-m');
-            foreach ($centers as $id => $name) {
-                $match = $results->first(fn($r) =>
-                    $r->year == $current->year &&
-                    $r->month == $current->month &&
-                    $r->center_id == $id
-                );
-                $data[$monthKey][$name] = $match?->total ?? 0;
+            foreach ($centers as $center) {
+                $match = $center->entries->firstWhere('ym', $ym);
+                $row[$center->name] = $match->total ?? 0;
             }
+
+            $data[] = $row;
             $current->addMonth();
         }
-
         return view('exports.entries_by_center', [
             'data' => $data,
-            'centers' => $centers->values(),
+            'centers' => $centers->pluck('name'),
         ]);
     }
+
 }
