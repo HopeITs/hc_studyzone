@@ -74,6 +74,7 @@ class StudentResource extends Resource
                             $set('national_number', null);
                             $set('foreign_id_number', null);
                         })
+
                         ->columnSpan(1),
 
                     TextInput::make('national_number')
@@ -238,6 +239,7 @@ class StudentResource extends Resource
             TextColumn::make('year_of_birth')->label('Date of Birth')->sortable()->toggleable(),
             TextColumn::make('national_number')
                 ->label('الرقم الوطني / الإقامة')
+                ->sortable()
                 ->formatStateUsing(function (Model $record): string {
                     if ($record->nationality?->value === 'syrian') {
                         return $record->national_number ?? 'لا يوجد';
