@@ -22,25 +22,13 @@ class Dashboard extends BaseDashboard
             ->schema([
                 Section::make()
                     ->schema([
-                        Select::make('city')
-                            ->options(City::pluck('name', 'id'))
-                            ->multiple()
-                            ->live() // Added to trigger updates on change
-                            ->visible(auth()->user()->role === Roles::GeneralAdmin())
-                            ->columnSpanFull(),
+                        Select::make('city')->options(City::pluck('name', 'id'))->multiple()->visible(auth()->user()->role === Roles::GeneralAdmin())->columnSpanFull(),
                         Select::make('center')
-                            ->options(function (Get $get) {
-                                $user = auth()->user();
-                                $cityIds = $get('city');
-
-                                if ($user->role === Roles::GeneralAdmin()) {
-                                    return Center::query()
-                                        ->when($cityIds, fn(Builder $query) => $query->whereIn('city_id', $cityIds))
-                                        ->pluck('name', 'id');
-                                }
-
-                                return Center::where('city_id', $user->city_id)->pluck('name', 'id');
-                            })
+                            ->options(
+                                auth()->user()->role === Roles::GeneralAdmin()
+                                    ? Center::pluck('name', 'id')
+                                    : Center::where('city_id', auth()->user()->city_id)->pluck('name', 'id')
+                            )
                             ->multiple()
                             ->columnSpanFull(),
                         DatePicker::make('startDate')
