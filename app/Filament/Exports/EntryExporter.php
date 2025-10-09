@@ -42,8 +42,12 @@ class EntryExporter extends Exporter
                 ->formatStateUsing(fn(Model $record): string => $record->student->whatsapp ?? '-'
                 ),
             ExportColumn::make('national_number')
-                ->formatStateUsing(fn(Model $record): string => $record->student->national_number ?? '-'
-                ),
+                ->formatStateUsing(function (Model $record): string {
+                    if ($record->student->nationality?->value === 'syrian') {
+                        return $record->student->national_number ?? 'لا يوجد';
+                    }
+                    return $record->student->foreign_id_number ?? 'لا يوجد';
+                }),
             ExportColumn::make('religion')
                 ->formatStateUsing(fn(Model $record): string =>  __("general.religions.{$record->student->religion}") ?? '-'
                 ),

@@ -113,11 +113,19 @@ class EntryResource extends Resource
                         });
                     }),
 
+
                 TextColumn::make('student.national_number')
-                    ->label('الرقم الوطني')
-                    ->searchable()
+                    ->label('الرقم الوطني / الإقامة')
                     ->sortable()
+                    ->formatStateUsing(function (Model $record): string {
+                        if ($record->student->nationality?->value === 'syrian') {
+                            return $record->student->national_number ?? 'لا يوجد';
+                        }
+                        return $record->student->foreign_id_number ?? 'لا يوجد';
+                    })
+
                     ->toggleable(isToggledHiddenByDefault: true),
+
 
                 TextColumn::make('student.phone')
                     ->label('الموبايل')
