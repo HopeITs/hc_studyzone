@@ -49,6 +49,7 @@ return [
         EntryType::Daily() => 'يومي',
         EntryType::Monthly() => 'شهري',
         EntryType::Course() => 'دورة - ورشة',
+        EntryType::Hall() => 'قاعة',
     ],
     'genders' => [
         Gender::Unknown() => 'غير معرف',

@@ -13,11 +13,8 @@ enum EntryType: int
     case Free  = 0;
     case Daily  = 1;
     case Monthly  = 2;
-
     case Course = 3;
-
-
-
+    case Hall = 4;
 
     // Return the default case
     public static function default(): self

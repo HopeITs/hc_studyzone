@@ -48,7 +48,8 @@ return [
         EntryType::Free() => 'Free',
         EntryType::Daily() => 'Daily',
         EntryType::Monthly() => 'Monthly',
-        EntryType::Course() => 'Course - Workshop'
+        EntryType::Course() => 'Course - Workshop',
+        EntryType::Hall() => 'Hall',
     ],
     'genders' => [
         Gender::Unknown() => 'Unknown',
