@@ -5,13 +5,13 @@
         <p>
             <strong>{{ __('general.labels.url') . ' (Online)' }}:</strong>
             <br>
-            <a href="{{ $onlineUrl }}" target="_blank" class="text-blue-600 underline">{{ $onlineUrl }}</a>
+            <a href="{{ $url }}" target="_blank" class="text-blue-600 underline">{{ $url }}</a>
         </p>
-        <p>
-            <strong>{{ __('general.labels.url') . ' (Offline)' }}:</strong>
-            <br>
-            <a href="{{ $offlineUrl }}" target="_blank" class="text-blue-600 underline">{{ $offlineUrl }}</a>
-        </p>
+{{--        <p>--}}
+{{--            <strong>{{ __('general.labels.url') . ' (Offline)' }}:</strong>--}}
+{{--            <br>--}}
+{{--            <a href="{{ $offlineUrl }}" target="_blank" class="text-blue-600 underline">{{ $offlineUrl }}</a>--}}
+{{--        </p>--}}
     </div>
 
     <div class="mt-4">
