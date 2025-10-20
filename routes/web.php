@@ -17,17 +17,11 @@ use App\Filament\Resources\StudentResource;
 use App\Http\Controllers\SocialLinkController;
 use App\Exports\EntriesByCenterExport;
 use Maatwebsite\Excel\Facades\Excel;
-Route::get('/', function () {
-    return view('welcome');
-});
 
-Route::get('/login', function () {
-    return redirect()->route('filament.admin.auth.login');
-})->name('login');
 Route::get('/clear-cache', function () {
     Artisan::call('optimize:clear'); // instead of cache:clear
     session()->flash('success', 'Cache');
-    return redirect()->route('filament.admin.pages.dashboard')->withSuccess('Cache has been cleared');
+    return redirect()->route('filament.pages.dashboard')->withSuccess('Cache has been cleared');
 });
 
 Route::group(['middleware' => ['auth']], function () {
@@ -101,9 +95,9 @@ Route::group(['middleware' => ['auth']], function () {
     })->name('filament.widgets.export-frequent-students');
 
 
-    Route::get('/admin/students/scan', function () {
+    Route::get('/students/scan', function () {
         return view('filament.qr-code-scanner');
-    })->name('filament.admin.resources.students.scan')->middleware('auth');
+    })->name('filament.resources.students.scan')->middleware('auth');
 });
 
 Route::get('/qr/studyzone/{city}', [SocialLinkController::class, 'show'])

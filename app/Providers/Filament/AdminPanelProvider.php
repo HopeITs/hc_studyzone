@@ -3,18 +3,15 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Pages;
-use App\Filament\Resources\StudentResource\Widgets\StudentCountOverTime;
-use App\Filament\Resources\StudentResource\Widgets\StudentEducationStats;
-use App\Filament\Resources\StudentResource\Widgets\StudentEntryTypeStats;
-use App\Filament\Resources\StudentResource\Widgets\StudentStats;
+
 use App\Http\Middleware\EnsureUserIsActive;
-use App\Models\User;
+
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Navigation\NavigationGroup;
-use Filament\Navigation\NavigationItem;
+
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\SpatieLaravelTranslatablePlugin;
@@ -35,7 +32,7 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->authGuard('web')
-            ->path('admin')
+//            ->path('admin')
             ->login()
             ->unsavedChangesAlerts()
             ->databaseTransactions()
@@ -52,7 +49,7 @@ class AdminPanelProvider extends PanelProvider
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
                 Pages\Dashboard::class,
-                Pages\SyncData::class,
+
             ])
 
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')

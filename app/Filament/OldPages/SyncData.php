@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Filament\Pages;
+namespace App\Filament\OldPages;
 
+use App\Helpers\SyncHelper;
+use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Illuminate\Support\Facades\Artisan;
-use Filament\Notifications\Notification;
-use App\Helpers\SyncHelper;
 
 class SyncData extends Page
 {
