@@ -237,11 +237,11 @@ class StudentResource extends Resource
                     },
                 ),
             TextColumn::make('year_of_birth')->label('Date of Birth')->sortable()->toggleable(),
-            TextColumn::make('national_number')
+            TextColumn::make('nationality')
                 ->label('الرقم الوطني / الإقامة')
                 ->sortable()
                 ->formatStateUsing(function (Model $record): string {
-                    if ($record->nationality?->value === 'syrian') {
+                    if ($record->nationality === 'syrian') {
                         return $record->national_number ?? 'لا يوجد';
                     }
                     return $record->foreign_id_number ?? 'لا يوجد';
@@ -251,7 +251,7 @@ class StudentResource extends Resource
                         return $query->where('national_number', 'like', "%{$search}%")->orWhere('foreign_id_number', 'like', "%{$search}%");
                     },
                 )
-                ->toggleable(isToggledHiddenByDefault: true),
+                ->toggleable(),
             TextColumn::make('phone')->label('Phone')->sortable()->searchable()->toggleable(),
             TextColumn::make('email')->label('Email')->sortable()->searchable()->toggleable(isToggledHiddenByDefault: true),
             TextColumn::make('entries_count')->counts('entries')->label('Entries')->sortable()->toggleable(),
@@ -368,7 +368,8 @@ class StudentResource extends Resource
                 ->options(City::all()->pluck('name', 'id'))
                 ->searchable(),
             SelectFilter::make('street_id')->label('الشارع')->preload()->options($streets)->searchable(),
-            Filter::make('created_at')->columns(2)
+            Filter::make('created_at')
+                ->columns(2)
                 ->form([DatePicker::make('created_from')->label('تاريخ الإضافة من'), DatePicker::make('created_until')->label('تاريخ الإضافة حتى')])
                 ->query(function (Builder $query, array $data): Builder {
                     return $query->when($data['created_from'], fn(Builder $query, $date): Builder => $query->whereDate('created_at', '>=', $date))->when($data['created_until'], fn(Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date));

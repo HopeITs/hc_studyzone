@@ -27,7 +27,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 
-
 class EntryResource extends Resource
 {
     protected static ?string $model = StudentEntry::class;
@@ -61,39 +60,15 @@ class EntryResource extends Resource
     public static function form(Form $form): Form
     {
         return $form->schema([
+            Placeholder::make('student_full_name')->label('الاسم')->content(fn($record) => $record?->student ? $record->student->firstname . ' ' . $record->student->father_name . ' ' . $record->student->lastname : '-'),
+            Select::make('center_id')->relationship('center', 'name')->label('المركز')->searchable()->preload()->required(),
 
-            Placeholder::make('student_full_name')
-                ->label('الاسم')
-                ->content(fn ($record) => $record?->student
-                    ? $record->student->firstname . ' ' . $record->student->father_name . ' ' . $record->student->lastname
-                    : '-'),
-            Select::make('center_id')
-                ->relationship('center', 'name')
-                ->label('المركز')
-                ->searchable()
-                ->preload()
-                ->required(),
-
-            Select::make('entry_type')
-                ->label(__('general.labels.entry_type'))->default(1)
-                ->options(__('general.entry-types'))->columnSpan(1)
-                ->required(),
-            DateTimePicker::make('entry_time')->label(__('general.labels.entry_time'))
-                ->default(now())
-                ->columnSpan(1)
-                ->required(),
-            Fieldset::make('Services')->label('خدمات')
-                ->schema([
-                    Checkbox::make('use_printer')->reactive()
-                        ->label('خدمة طباعة')
-                        ->default(false),
-                    Checkbox::make('use_drawer')->reactive()
-                        ->label('خدمة مرسم')
-                        ->default(false),
-                    Checkbox::make('use_mecrator')->reactive()
-                        ->label('خدمة ميكراتور')
-                        ->default(false),
-                ])->columns(3),
+            Select::make('entry_type')->label(__('general.labels.entry_type'))->default(1)->options(__('general.entry-types'))->columnSpan(1)->required(),
+            DateTimePicker::make('entry_time')->label(__('general.labels.entry_time'))->default(now())->columnSpan(1)->required(),
+            Fieldset::make('Services')
+                ->label('خدمات')
+                ->schema([Checkbox::make('use_printer')->reactive()->label('خدمة طباعة')->default(false), Checkbox::make('use_drawer')->reactive()->label('خدمة مرسم')->default(false), Checkbox::make('use_mecrator')->reactive()->label('خدمة ميكراتور')->default(false)])
+                ->columns(3),
         ]);
     }
 
@@ -101,37 +76,29 @@ class EntryResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('student.firstname')
-                    ->label('اسم الطالب')
-                    ->formatStateUsing(fn(Model $record) => $record->student->firstname . ' ' . $record->student->father_name . ' ' . $record->student->lastname)
-                    ->sortable()
-                    ->searchable(query: function (Builder $query, string $search): Builder {
+                TextColumn::make('student.firstname')->label('اسم الطالب')->formatStateUsing(fn(Model $record) => $record->student->firstname . ' ' . $record->student->father_name . ' ' . $record->student->lastname)->sortable()->searchable(
+                    query: function (Builder $query, string $search): Builder {
                         return $query->whereHas('student', function (Builder $studentQuery) use ($search) {
-                            $studentQuery->where('firstname', 'like', "%{$search}%")
+                            $studentQuery
+                                ->where('firstname', 'like', "%{$search}%")
                                 ->orWhere('lastname', 'like', "%{$search}%")
                                 ->orWhere('father_name', 'like', "%{$search}%");
                         });
-                    }),
+                    },
+                ),
 
-
-                TextColumn::make('student.national_number')
+                TextColumn::make('student.nationality')
                     ->label('الرقم الوطني / الإقامة')
                     ->sortable()
                     ->formatStateUsing(function (Model $record): string {
-                        if ($record->student->nationality?->value === 'syrian') {
+                        if ($record->student->nationality === 'syrian') {
                             return $record->student->national_number ?? 'لا يوجد';
                         }
                         return $record->student->foreign_id_number ?? 'لا يوجد';
                     })
+                    ->toggleable(),
 
-                    ->toggleable(isToggledHiddenByDefault: true),
-
-
-                TextColumn::make('student.phone')
-                    ->label('الموبايل')
-                    ->searchable()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('student.phone')->label('الموبايل')->searchable()->sortable()->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('student.gender')
                     ->label('الجنس')
                     ->sortable()
@@ -158,30 +125,25 @@ class EntryResource extends Resource
                         },
                     )
                     ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('student.whatsapp')
-                    ->label('واتساب')
-                    ->searchable()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('student.whatsapp')->label('واتساب')->searchable()->sortable()->toggleable(isToggledHiddenByDefault: true),
 
-                TextColumn::make('entry_type')
-                    ->label('نوع الدخول')
-                    ->sortable()
-                    ->formatStateUsing(fn($state) => __('general.entry-types.' . $state)),
+                TextColumn::make('entry_type')->label('نوع الدخول')->sortable()->formatStateUsing(fn($state) => __('general.entry-types.' . $state)),
 
                 TextColumn::make('student.educations')
                     ->label('المؤهل العلمي')
                     ->formatStateUsing(function ($record) {
                         return $record->student->educations->take(3)->pluck('name')->implode(', ');
-                    })->searchable(query: function (Builder $query, string $search): Builder {
-                        return $query->whereHas('student.educations', function (Builder $studentQuery) use ($search) {
-                            $studentQuery->where('name', 'like', "%{$search}%");
-                        });
-                    })->toggleable(),
+                    })
+                    ->searchable(
+                        query: function (Builder $query, string $search): Builder {
+                            return $query->whereHas('student.educations', function (Builder $studentQuery) use ($search) {
+                                $studentQuery->where('name', 'like', "%{$search}%");
+                            });
+                        },
+                    )
+                    ->toggleable(),
 
-                TextColumn::make('entry_time')
-                    ->label('تاريخ الدخول')->sortable()
-                    ->dateTime('Y-m-d H:i'),
+                TextColumn::make('entry_time')->label('تاريخ الدخول')->sortable()->dateTime('Y-m-d H:i'),
 
                 TextColumn::make('center.city.name')
                     ->label('المدينة')
@@ -195,9 +157,15 @@ class EntryResource extends Resource
                     ->hidden(auth()->user()->role === Roles::CenterAdmin())
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                CheckboxColumn::make('use_printer')->disabled(auth()->user()->role === Roles::MealAdmin())->label('طباعة'),
-                CheckboxColumn::make('use_mecrator')->disabled(auth()->user()->role === Roles::MealAdmin())->label('ميكراتور'),
-                CheckboxColumn::make('use_drawer')->disabled(auth()->user()->role === Roles::MealAdmin())->label('مرسم'),
+                CheckboxColumn::make('use_printer')
+                    ->disabled(auth()->user()->role === Roles::MealAdmin())
+                    ->label('طباعة'),
+                CheckboxColumn::make('use_mecrator')
+                    ->disabled(auth()->user()->role === Roles::MealAdmin())
+                    ->label('ميكراتور'),
+                CheckboxColumn::make('use_drawer')
+                    ->disabled(auth()->user()->role === Roles::MealAdmin())
+                    ->label('مرسم'),
             ])
 
             ->filtersFormColumns(2)
@@ -205,26 +173,22 @@ class EntryResource extends Resource
                 Filter::make('entry_time')
                     ->label('التاريخ')
                     ->form([
-                        \Filament\Forms\Components\DateTimePicker::make('from')->label('من')->default(today()->startOfDay())->columnSpan(1),
-                        \Filament\Forms\Components\DateTimePicker::make('to')->label('إلى')->default(today()->endOfDay())->columnSpan(1),
-                    ])->columnSpanFull()->columns(2)
+                        \Filament\Forms\Components\DateTimePicker::make('from')
+                            ->label('من')
+                            ->default(today()->startOfDay())
+                            ->columnSpan(1),
+                        \Filament\Forms\Components\DateTimePicker::make('to')
+                            ->label('إلى')
+                            ->default(today()->endOfDay())
+                            ->columnSpan(1),
+                    ])
+                    ->columnSpanFull()
+                    ->columns(2)
                     ->query(function (Builder $query, array $data): Builder {
-                        return $query
-                            ->when($data['from'], fn($q, $date) => $q->where('entry_time', '>=', $date))
-                            ->when($data['to'], fn($q, $date) => $q->where('entry_time', '<=', $date));
+                        return $query->when($data['from'], fn($q, $date) => $q->where('entry_time', '>=', $date))->when($data['to'], fn($q, $date) => $q->where('entry_time', '<=', $date));
                     }),
-                SelectFilter::make('entry_type')
-                    ->label('نوع الدخولية')
-                    ->options(__('general.entry-types'))
-                    ->searchable()
-                    ->multiple()
-                    ->preload(),
-                SelectFilter::make('student.educations')
-                    ->label('المؤهل العلمي')
-                    ->relationship('student.educations', 'name')
-                    ->searchable()
-                    ->multiple()
-                    ->preload(),
+                SelectFilter::make('entry_type')->label('نوع الدخولية')->options(__('general.entry-types'))->searchable()->multiple()->preload(),
+                SelectFilter::make('student.educations')->label('المؤهل العلمي')->relationship('student.educations', 'name')->searchable()->multiple()->preload(),
                 SelectFilter::make('student.gender')
                     ->label('الجنس')
                     ->options(__('general.genders'))
@@ -236,7 +200,7 @@ class EntryResource extends Resource
                             });
                         }
 
-                        return $query; // No filter selected → show all
+                        return $query;
                     }),
                 SelectFilter::make('student.religion')
                     ->label('الديانة')
@@ -249,7 +213,7 @@ class EntryResource extends Resource
                             });
                         }
 
-                        return $query; // No filter selected → show all
+                        return $query;
                     }),
                 SelectFilter::make('center.city.name')
                     ->label('المدينة')
@@ -266,22 +230,13 @@ class EntryResource extends Resource
                     ->multiple()
                     ->preload(),
             ])
-            ->filtersTriggerAction(
-                fn(Action $action) => $action
-                    ->button()
-                    ->label('فلتر'),
-            )
-            ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
-            ])
+            ->filtersTriggerAction(fn(Action $action) => $action->button()->label('فلتر'))
+            ->actions([Tables\Actions\EditAction::make(), Tables\Actions\DeleteAction::make()])
             ->bulkActions([
                 ExportBulkAction::make()
                     ->exporter(EntryExporter::class)
                     ->formats([ExportFormat::Xlsx]),
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
+                Tables\Actions\BulkActionGroup::make([Tables\Actions\DeleteBulkAction::make()]),
             ])
             ->paginated([20, 50, 100, 200]);
     }
@@ -300,9 +255,7 @@ class EntryResource extends Resource
 
     public static function getWidgets(): array
     {
-        return [
-            EntryStats::class,
-        ];
+        return [EntryStats::class];
     }
     public static function canEdit(Model $record): bool
     {
@@ -313,5 +266,4 @@ class EntryResource extends Resource
     {
         return auth()->user()->role !== Roles::MealAdmin();
     }
-
 }
