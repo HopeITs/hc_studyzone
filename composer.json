@@ -18,8 +18,7 @@
         "maatwebsite/excel": "^3.1",
         "mvenghaus/filament-plugin-translatable-inline": "^3.0",
         "rmsramos/activitylog": "^1.0",
-        "simplesoftwareio/simple-qrcode": "^4.2",
-        "spatie/laravel-permission": "^6.21"
+        "simplesoftwareio/simple-qrcode": "^4.2"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
