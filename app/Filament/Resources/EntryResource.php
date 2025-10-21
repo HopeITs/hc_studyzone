@@ -92,10 +92,18 @@ class EntryResource extends Resource
                     ->label('الرقم الوطني / الإقامة')
                     ->sortable()
                     ->formatStateUsing(function (Model $record): string {
-                        if ($record->student->nationality === 'syrian') {
-                            return $record->student->national_number ?? 'لا يوجد';
+                        $national = $record->student->national_number;
+                        $foreign = $record->student->foreign_id_number;
+
+                        if (!is_null($national) && $national !== '') {
+                            return $national;
                         }
-                        return $record->student->foreign_id_number ?? 'لا يوجد';
+
+                        if (!is_null($foreign) && $foreign !== '') {
+                            return $foreign;
+                        }
+
+                        return 'لا يوجد';
                     })
                     ->toggleable(),
 
