@@ -9,7 +9,6 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('students', function (Blueprint $table) {
-            $table->string('nationality')->default('syrian')->after('father_name');
             $table->string('foreign_id_number')->unique()->nullable()->after('nationality');
         });
     }
@@ -17,7 +16,6 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('students', function (Blueprint $table) {
-            $table->dropColumn('nationality');
             $table->dropColumn('foreign_id_number');
         });
     }

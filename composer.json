@@ -7,6 +7,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "ext-xlswriter": "*",
         "archtechx/enums": "^1.1",
         "blade-ui-kit/blade-icons": "^1.8",
         "eightynine/filament-advanced-widgets": "^3.0",
@@ -18,7 +19,7 @@
         "mvenghaus/filament-plugin-translatable-inline": "^3.0",
         "rmsramos/activitylog": "^1.0",
         "simplesoftwareio/simple-qrcode": "^4.2",
-        "ext-xlswriter": "*"
+        "spatie/laravel-permission": "^6.21"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
