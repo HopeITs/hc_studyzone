@@ -241,10 +241,18 @@ class StudentResource extends Resource
                 ->label('الرقم الوطني / الإقامة')
                 ->sortable()
                 ->formatStateUsing(function (Model $record): string {
-                    if ($record->nationality === 'syrian') {
-                        return $record->national_number ?? 'لا يوجد';
+                    $national = $record->national_number;
+                    $foreign = $record->foreign_id_number;
+
+                    if (!is_null($national) && $national !== '') {
+                        return $national;
                     }
-                    return $record->foreign_id_number ?? 'لا يوجد';
+
+                    if (!is_null($foreign) && $foreign !== '') {
+                        return $foreign;
+                    }
+
+                    return 'لا يوجد';
                 })
                 ->searchable(
                     query: function (Builder $query, string $search): Builder {

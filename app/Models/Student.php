@@ -17,13 +17,15 @@ class Student extends Model implements HasName
 {
     use HasUuids, HasFactory, ActivityLog;
 
-    public $incrementing = false; // Disable auto-increment
-    protected $keyType = 'string'; // UUIDs are stored as strings
+    public $incrementing = false;
+    protected $keyType = 'string';
     protected $guarded = ['is_child', 'city_id'];
     protected $primaryKey = 'id';
 
     protected $casts = [
         'nationality' => Nationality::class,
+        'national_number' => 'string',
+        'foreign_id_number' => 'string',
     ];
 
     public function entries(): \Illuminate\Database\Eloquent\Relations\HasMany
@@ -48,7 +50,6 @@ class Student extends Model implements HasName
         return $this->hasMany(StudentEducation::class, 'student_id');
     }
 
-    // Method to get the QR code path
     public function getQrCodePath(): string
     {
         return $this->qr_code ?? '';
@@ -56,6 +57,6 @@ class Student extends Model implements HasName
 
     public function getFilamentName(): string
     {
-        return "{$this->first_name} {$this->father_name} {$this->last_name}";
+        return "{$this->firstname} {$this->father_name} {$this->lastname}";
     }
 }
