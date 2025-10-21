@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Enums\Roles;
 use App\Models\Center;
 use App\Models\City;
 use App\Models\User;
@@ -25,7 +26,8 @@ class CenterSeeder extends Seeder
                    'name' => 'Center Admin '.$center->name,
                    'city_id' => $city->id,
                    'center_id' => $center->id,
-               ])->assignRole('center_admin');
+                   'role' => Roles::CenterAdmin
+               ]);
            }
 
 

@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Enums\Roles;
 use App\Models\Education;
 use App\Models\User;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
@@ -16,17 +17,19 @@ class DatabaseSeeder extends Seeder
     {
         $this->call(CitySeeder::class);
         $this->call(StreetSeeder::class);
-        $this->call(RoleSeeder::class);
+
         User::factory()->create([
             'name' => 'Administrator',
             'email' => 'admin@sz.com',
-        ])->assignRole('general_admin');
+            'role' => Roles::GeneralAdmin
+        ]);
 
         User::factory()->create([
             'name' => 'Administrator',
             'email' => 'admin_city@sz.com',
             'city_id' => 2,
-        ])->assignRole('city_admin');
+            'role' => Roles::CityAdmin
+        ]);
         $this->call(CenterSeeder::class);
         $this->call(EducationSeeder::class);
         $this->call(StudentSeeder::class);
