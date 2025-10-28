@@ -12,6 +12,7 @@ use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class Reports extends Page
@@ -125,7 +126,6 @@ class Reports extends Page
                                 });
                             }
                         })
-                        ->with(['entries.center'])
                         ->withCount([
                             'entries as entries_in_period_count' => function (Builder $q) use ($from, $to, $cityId, $centerIds) {
                                 if ($from) {
@@ -144,9 +144,34 @@ class Reports extends Page
                             },
                         ]);
 
+                    $subquery =
+                        "
+    (
+        SELECT GROUP_CONCAT(
+            DISTINCT JSON_UNQUOTE(JSON_EXTRACT(c.name, '$.en'))
+            ORDER BY JSON_UNQUOTE(JSON_EXTRACT(c.name, '$.en'))
+            SEPARATOR ', '
+        )
+        FROM hcsz_centers c
+        INNER JOIN hcsz_student_entries e ON c.id = e.center_id
+        WHERE e.student_id = hcsz_students.id
+        " .
+                        ($from ? "AND DATE(e.entry_time) >= '$from' " : '') .
+                        "
+        " .
+                        ($to ? "AND DATE(e.entry_time) <= '$to' " : '') .
+                        "
+        " .
+                        (!empty($centerIds) ? 'AND e.center_id IN (' . implode(',', $centerIds) . ')' : '') .
+                        "
+    ) AS center_names
+";
+
+                    $query->addSelect(DB::raw($subquery));
+
                     $query = $this->applyRoleScope($query);
 
-                    $students = $query->distinct('students.id')->orderBy('firstname')->orderBy('father_name')->orderBy('lastname')->get();
+                    $students = $query->orderBy('firstname')->orderBy('father_name')->orderBy('lastname')->get();
 
                     $headers = [
                         'Content-Type' => 'text/csv; charset=UTF-8',
@@ -154,63 +179,41 @@ class Reports extends Page
                         'Cache-Control' => 'no-store, no-cache',
                     ];
 
-                    return response()->streamDownload(function () use ($students) {
-                        $out = fopen('php://output', 'w');
-                        fwrite($out, chr(0xEF) . chr(0xBB) . chr(0xBF));
-                        fputcsv($out, [
-                            'الاسم الثلاثي',
-                            'اسم المركز',
-                            'تاريخ الميلاد',
-                            'الرقم الوطني/الإقامة',
-                            'رقم الهاتف/واتساب',
-                            'عدد الدخوليات',
-                            'الديانة',
-                            'الاختصاص',
-                            'مكان الإقامة',
-                            'الجنس',
-                            'الحالة (طالب/موظف)',
-                            'تاريخ الإنشاء',
-                        ]);
+                    return response()->streamDownload(
+                        function () use ($students) {
+                            $out = fopen('php://output', 'w');
+                            fwrite($out, chr(0xef) . chr(0xbb) . chr(0xbf));
+                            fputcsv($out, ['الاسم الثلاثي', 'اسم المركز', 'تاريخ الميلاد', 'الرقم الوطني/الإقامة', 'رقم الهاتف/واتساب', 'عدد الدخوليات', 'الديانة', 'الاختصاص', 'مكان الإقامة', 'الجنس', 'الحالة (طالب/موظف)', 'تاريخ الإنشاء']);
 
-                        foreach ($students as $s) {
-                            $fullName = trim($s->firstname . ' ' . $s->father_name . ' ' . $s->lastname);
-                            $centerName = optional($s->entries->first()?->center)->name ?? '';
-                            $dob = $s->year_of_birth ? (string) $s->year_of_birth : '';
-                            $idNum = $s->national_number ?: ($s->foreign_id_number ?: '');
-                            $phoneWhats = trim(($s->phone ?? '') . (($s->phone && $s->whatsapp) ? ' / ' : '') . ($s->whatsapp ?? ''));
-                            $entriesCount = (int) ($s->entries_in_period_count ?? 0);
-                            $religion = __("general.religions." . (string) $s->religion);
-                            $specialization = $s->educations->pluck('name')->take(3)->implode(', ');
-                            $residence = ($s->street->city->name ?? '') . ' - ' . ($s->street->name ?? '');
-                            $gender = __("general.genders." . (string) $s->gender);
-                            $statusParts = [];
-                            if ($s->is_student) {
-                                $statusParts[] = __('general.labels.is_student');
+                            foreach ($students as $s) {
+                                $fullName = trim($s->firstname . ' ' . $s->father_name . ' ' . $s->lastname);
+                                $centerName = $s->center_names ?? '';
+                                $dob = $s->year_of_birth ? (string) $s->year_of_birth : '';
+                                $idNum = $s->national_number ?: ($s->foreign_id_number ?: '');
+                                $phoneWhats = trim(($s->phone ?? '') . ($s->phone && $s->whatsapp ? ' / ' : '') . ($s->whatsapp ?? ''));
+                                $entriesCount = (int) ($s->entries_in_period_count ?? 0);
+                                $religion = __('general.religions.' . (string) $s->religion);
+                                $specialization = $s->educations->pluck('name')->take(3)->implode(', ');
+                                $residence = ($s->street->city->name ?? '') . ' - ' . ($s->street->name ?? '');
+                                $gender = __('general.genders.' . (string) $s->gender);
+                                $statusParts = [];
+                                if ($s->is_student) {
+                                    $statusParts[] = __('general.labels.is_student');
+                                }
+                                if ($s->is_employed) {
+                                    $statusParts[] = __('general.labels.is_employed');
+                                }
+                                $status = implode('/', $statusParts);
+                                $created = $s->created_at ? $s->created_at->format('Y-m-d') : '';
+
+                                fputcsv($out, [$fullName, $centerName, $dob, $idNum, $phoneWhats, $entriesCount, $religion, $specialization, $residence, $gender, $status, $created]);
                             }
-                            if ($s->is_employed) {
-                                $statusParts[] = __('general.labels.is_employed');
-                            }
-                            $status = implode('/', $statusParts);
-                            $created = $s->created_at ? $s->created_at->format('Y-m-d') : '';
 
-                            fputcsv($out, [
-                                $fullName,
-                                $centerName,
-                                $dob,
-                                $idNum,
-                                $phoneWhats,
-                                $entriesCount,
-                                $religion,
-                                $specialization,
-                                $residence,
-                                $gender,
-                                $status,
-                                $created,
-                            ]);
-                        }
-
-                        fclose($out);
-                    }, null, $headers);
+                            fclose($out);
+                        },
+                        null,
+                        $headers,
+                    );
                 }),
         ];
     }
