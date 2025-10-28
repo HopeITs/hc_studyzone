@@ -148,8 +148,8 @@ class Reports extends Page
                         "
     (
         SELECT GROUP_CONCAT(
-            DISTINCT JSON_UNQUOTE(JSON_EXTRACT(c.name, '$.en'))
-            ORDER BY JSON_UNQUOTE(JSON_EXTRACT(c.name, '$.en'))
+            DISTINCT JSON_UNQUOTE(JSON_EXTRACT(c.name, '$.ar'))
+            ORDER BY JSON_UNQUOTE(JSON_EXTRACT(c.name, '$.ar'))
             SEPARATOR ', '
         )
         FROM hcsz_centers c
