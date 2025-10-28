@@ -28,7 +28,7 @@ class Reports extends Page
 
     public ?array $data = [
         'city_id' => null,
-        'center_id' => null,
+        'center_id' => [],
         'from' => null,
         'to' => null,
     ];
@@ -58,11 +58,11 @@ class Reports extends Page
                             ->options(City::pluck('name', 'id'))
                             ->live()
                             ->visible(auth()->user()->role === Roles::GeneralAdmin())
-                            ->afterStateUpdated(fn(callable $set) => $set('center_id', null))
+                            ->afterStateUpdated(fn(callable $set) => $set('center_id', []))
                             ->columnSpanFull(),
 
                         Select::make('center_id')
-                            ->label('المركز')
+                            ->label('المراكز')
                             ->options(function (callable $get) {
                                 $cityId = $get('city_id');
                                 if (auth()->user()->role === Roles::CityAdmin()) {
@@ -73,6 +73,7 @@ class Reports extends Page
                                 }
                                 return Center::pluck('name', 'id');
                             })
+                            ->multiple()
                             ->searchable()
                             ->columnSpanFull(),
 
@@ -105,35 +106,36 @@ class Reports extends Page
                     $from = $state['from'];
                     $to = $state['to'];
                     $cityId = $state['city_id'];
-                    $centerId = $state['center_id'];
+                    $centerIds = $state['center_id'];
 
                     $query = Student::query()
                         ->with(['street.city', 'educations'])
-                        ->whereHas('entries', function (Builder $q) use ($from, $to, $cityId, $centerId) {
+                        ->whereHas('entries', function (Builder $q) use ($from, $to, $cityId, $centerIds) {
                             if ($from) {
                                 $q->whereDate('entry_time', '>=', $from);
                             }
                             if ($to) {
                                 $q->whereDate('entry_time', '<=', $to);
                             }
-                            if ($centerId) {
-                                $q->where('center_id', $centerId);
+                            if (!empty($centerIds)) {
+                                $q->whereIn('center_id', $centerIds);
                             } elseif ($cityId) {
                                 $q->whereHas('center', function ($qq) use ($cityId) {
                                     $qq->where('city_id', $cityId);
                                 });
                             }
                         })
+                        ->with(['entries.center'])
                         ->withCount([
-                            'entries as entries_in_period_count' => function (Builder $q) use ($from, $to, $cityId, $centerId) {
+                            'entries as entries_in_period_count' => function (Builder $q) use ($from, $to, $cityId, $centerIds) {
                                 if ($from) {
                                     $q->whereDate('entry_time', '>=', $from);
                                 }
                                 if ($to) {
                                     $q->whereDate('entry_time', '<=', $to);
                                 }
-                                if ($centerId) {
-                                    $q->where('center_id', $centerId);
+                                if (!empty($centerIds)) {
+                                    $q->whereIn('center_id', $centerIds);
                                 } elseif ($cityId) {
                                     $q->whereHas('center', function ($qq) use ($cityId) {
                                         $qq->where('city_id', $cityId);
@@ -157,6 +159,7 @@ class Reports extends Page
                         fwrite($out, chr(0xEF) . chr(0xBB) . chr(0xBF));
                         fputcsv($out, [
                             'الاسم الثلاثي',
+                            'اسم المركز',
                             'تاريخ الميلاد',
                             'الرقم الوطني/الإقامة',
                             'رقم الهاتف/واتساب',
@@ -171,6 +174,7 @@ class Reports extends Page
 
                         foreach ($students as $s) {
                             $fullName = trim($s->firstname . ' ' . $s->father_name . ' ' . $s->lastname);
+                            $centerName = optional($s->entries->first()?->center)->name ?? '';
                             $dob = $s->year_of_birth ? (string) $s->year_of_birth : '';
                             $idNum = $s->national_number ?: ($s->foreign_id_number ?: '');
                             $phoneWhats = trim(($s->phone ?? '') . (($s->phone && $s->whatsapp) ? ' / ' : '') . ($s->whatsapp ?? ''));
@@ -191,6 +195,7 @@ class Reports extends Page
 
                             fputcsv($out, [
                                 $fullName,
+                                $centerName,
                                 $dob,
                                 $idNum,
                                 $phoneWhats,
