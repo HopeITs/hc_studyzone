@@ -106,8 +106,8 @@ class Reports extends Page
 
                     $from = $state['from'];
                     $to = $state['to'];
-                    $cityId = $state['city_id'];
-                    $centerIds = $state['center_id'];
+                    $cityId = $state['city_id'] ?? Auth::user()->city_id;
+                    $centerIds = $state['center_id'] ?? [];
 
                     $query = Student::query()
                         ->with(['street.city', 'educations'])
