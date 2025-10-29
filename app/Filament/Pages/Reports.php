@@ -37,7 +37,11 @@ class Reports extends Page
     public static function shouldRegisterNavigation(): bool
     {
         $user = Auth::user();
-        return $user && in_array($user->role, [Roles::GeneralAdmin(), Roles::CityAdmin()], true);
+        return $user && in_array($user->role, [
+            Roles::GeneralAdmin(),
+            Roles::CityAdmin(),
+            Roles::CenterAdmin(),
+        ], true);
     }
 
     public function mount(): void
@@ -66,17 +70,30 @@ class Reports extends Page
                             ->label('المراكز')
                             ->options(function (callable $get) {
                                 $cityId = $get('city_id');
-                                if (auth()->user()->role === Roles::CityAdmin()) {
-                                    return Center::where('city_id', auth()->user()->city_id)->pluck('name', 'id');
+                                $user = auth()->user();
+
+                                if ($user->role === Roles::CityAdmin()) {
+                                    return Center::where('city_id', $user->city_id)->pluck('name', 'id');
                                 }
+
+                                if ($user->role === Roles::CenterAdmin()) {
+                                    return Center::where('id', $user->center_id)->pluck('name', 'id');
+                                }
+
                                 if ($cityId) {
                                     return Center::where('city_id', $cityId)->pluck('name', 'id');
                                 }
+
                                 return Center::pluck('name', 'id');
                             })
                             ->multiple()
                             ->searchable()
-                            ->columnSpanFull(),
+                            ->columnSpanFull()
+                            ->disabled(auth()->user()->role === Roles::CenterAdmin())
+                            ->default(function () {
+                                $user = auth()->user();
+                                return $user->role === Roles::CenterAdmin() ? [$user->center_id] : [];
+                            }),
 
                         DatePicker::make('from')
                             ->label('من')
@@ -144,31 +161,24 @@ class Reports extends Page
                             },
                         ]);
 
-                    $subquery =
-                        "
-    (
-        SELECT GROUP_CONCAT(
-            DISTINCT JSON_UNQUOTE(JSON_EXTRACT(c.name, '$.ar'))
-            ORDER BY JSON_UNQUOTE(JSON_EXTRACT(c.name, '$.ar'))
-            SEPARATOR ', '
-        )
-        FROM hcsz_centers c
-        INNER JOIN hcsz_student_entries e ON c.id = e.center_id
-        WHERE e.student_id = hcsz_students.id
-        " .
-                        ($from ? "AND DATE(e.entry_time) >= '$from' " : '') .
-                        "
-        " .
+                    $subquery = "
+                        (
+                            SELECT GROUP_CONCAT(
+                                DISTINCT JSON_UNQUOTE(JSON_EXTRACT(c.name, '$.ar'))
+                                ORDER BY JSON_UNQUOTE(JSON_EXTRACT(c.name, '$.ar'))
+                                SEPARATOR ', '
+                            )
+                            FROM hcsz_centers c
+                            INNER JOIN hcsz_student_entries e ON c.id = e.center_id
+                            WHERE e.student_id = hcsz_students.id
+                            " . ($from ? "AND DATE(e.entry_time) >= '$from' " : '') .
                         ($to ? "AND DATE(e.entry_time) <= '$to' " : '') .
-                        "
-        " .
                         (!empty($centerIds) ? 'AND e.center_id IN (' . implode(',', $centerIds) . ')' : '') .
                         "
-    ) AS center_names
-";
+                        ) AS center_names
+                    ";
 
                     $query->addSelect(DB::raw($subquery));
-
                     $query = $this->applyRoleScope($query);
 
                     $students = $query->orderBy('firstname')->orderBy('father_name')->orderBy('lastname')->get();
@@ -227,8 +237,15 @@ class Reports extends Page
         }
 
         if ($user->role === Roles::CityAdmin()) {
-            $cityId = $user->city_id;
-            return $query->whereHas('entries.center', fn($q) => $q->where('city_id', $cityId));
+            return $query->whereHas('entries.center', fn($q) =>
+                $q->where('city_id', $user->city_id)
+            );
+        }
+
+        if ($user->role === Roles::CenterAdmin()) {
+            return $query->whereHas('entries', fn($q) =>
+                $q->where('center_id', $user->center_id)
+            );
         }
 
         return $query->whereRaw('1 = 0');
