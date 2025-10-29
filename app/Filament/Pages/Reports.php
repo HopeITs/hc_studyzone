@@ -41,6 +41,7 @@ class Reports extends Page
             Roles::GeneralAdmin(),
             Roles::CityAdmin(),
             Roles::CenterAdmin(),
+                Roles::MealAdmin(),
         ], true);
     }
 
@@ -69,15 +70,18 @@ class Reports extends Page
                         Select::make('center_id')
                             ->label('المراكز')
                             ->options(function (callable $get) {
-                                $cityId = $get('city_id');
-                                $user = auth()->user();
 
+                                $user = auth()->user();
+                                $cityId = $get('city_id') ;
                                 if ($user->role === Roles::CityAdmin()) {
                                     return Center::where('city_id', $user->city_id)->pluck('name', 'id');
                                 }
 
                                 if ($user->role === Roles::CenterAdmin()) {
                                     return Center::where('id', $user->center_id)->pluck('name', 'id');
+                                }
+                                if ($user->role === Roles::MealAdmin()) {
+                                    return Center::where('city_id', $user->city_id)->pluck('name', 'id');
                                 }
 
                                 if ($cityId) {
@@ -89,7 +93,7 @@ class Reports extends Page
                             ->multiple()
                             ->searchable()
                             ->columnSpanFull()
-                            ->disabled(auth()->user()->role === Roles::CenterAdmin())
+                            ->hidden(auth()->user()->role === Roles::CenterAdmin())
                             ->default(function () {
                                 $user = auth()->user();
                                 return $user->role === Roles::CenterAdmin() ? [$user->center_id] : [];
@@ -123,7 +127,7 @@ class Reports extends Page
 
                     $from = $state['from'];
                     $to = $state['to'];
-                    $cityId = $state['city_id'] ?? Auth::user()->city_id;
+                    $cityId = $state['city_id'] ?? auth()->user()->city_id;
                     $centerIds = $state['center_id'] ?? [];
 
                     $query = Student::query()
@@ -236,7 +240,7 @@ class Reports extends Page
             return $query;
         }
 
-        if ($user->role === Roles::CityAdmin()) {
+        if ($user->role === Roles::CityAdmin() || $user->role === Roles::MealAdmin()) {
             return $query->whereHas('entries.center', fn($q) =>
                 $q->where('city_id', $user->city_id)
             );
