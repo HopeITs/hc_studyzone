@@ -62,7 +62,7 @@ class StudentResource extends Resource
                 fn(?Student $record) => [
                     TextInput::make('firstname')->label(__('general.labels.firstname'))->required()->maxLength(255)->columnSpan(1),
                     TextInput::make('lastname')->label(__('general.labels.lastname'))->required()->maxLength(255)->columnSpan(1),
-                    TextInput::make('father_name')->label(__('general.labels.father_name'))->maxLength(255)->columnSpan(1),
+                    TextInput::make('father_name')->label(__('general.labels.father_name'))->required()->maxLength(255)->columnSpan(1),
 
                     Select::make('nationality')
                         ->label(__('general.labels.nationality'))
@@ -148,7 +148,7 @@ class StudentResource extends Resource
                             }
                             return Street::where('city_id', $cityId)->pluck('name', 'id');
                         }),
-                    TextInput::make('phone')->label(__('general.labels.phone')),
+                    TextInput::make('phone')->label(__('general.labels.phone'))->required(),
                     TextInput::make('whatsapp')->label(__('general.labels.whatsapp')),
                     TextInput::make('email')->label(__('general.labels.email'))->unique(ignoreRecord: true),
                     TextInput::make('address')->label(__('general.labels.address'))->maxLength(255),
