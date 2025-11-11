@@ -23,6 +23,7 @@ use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\BaseFilter;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -88,23 +89,9 @@ class EntryResource extends Resource
                     },
                 ),
 
-                TextColumn::make('student.nationality')
+                TextColumn::make('student.national_number')
                     ->label('الرقم الوطني / الإقامة')
                     ->sortable()
-                    ->formatStateUsing(function (Model $record): string {
-                        $national = $record->student->national_number;
-                        $foreign = $record->student->foreign_id_number;
-
-                        if (!is_null($national) && $national !== '') {
-                            return $national;
-                        }
-
-                        if (!is_null($foreign) && $foreign !== '') {
-                            return $foreign;
-                        }
-
-                        return 'لا يوجد';
-                    })
                     ->toggleable(),
 
                 TextColumn::make('student.phone')->label('الموبايل')->searchable()->sortable()->toggleable(isToggledHiddenByDefault: true),
@@ -238,6 +225,21 @@ class EntryResource extends Resource
                     ->hidden(auth()->user()->role === Roles::CenterAdmin())
                     ->multiple()
                     ->preload(),
+                TernaryFilter::make('student.national_number')
+                    ->label('الرقم الوطني / الإقامة')
+                    ->placeholder('الكل')
+                    ->trueLabel('يوجد')
+                    ->falseLabel('لا يوجد')
+                    ->queries(
+                        true: fn (Builder $query) => $query->whereHas('student' , function ($query){
+                            $query->whereNotNull('national_number');
+                        }),
+                        false: fn (Builder $query) => $query->whereHas('student' , function ($query){
+                            $query->whereNull('national_number');
+                        }),
+
+                        blank: fn (Builder $query) => $query, // In this example, we do not want to filter the query when it is blank.
+                    )
             ])
             ->filtersTriggerAction(fn(Action $action) => $action->button()->label('فلتر'))
             ->actions([
