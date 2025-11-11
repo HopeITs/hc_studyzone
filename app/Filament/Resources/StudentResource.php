@@ -23,6 +23,7 @@ use Filament\Tables\Actions\{Action, ActionGroup, ExportBulkAction};
 use Filament\Tables\Columns\{CheckboxColumn, TextColumn};
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Illuminate\Database\Eloquent\Builder;
@@ -72,7 +73,6 @@ class StudentResource extends Resource
                         ->live()
                         ->afterStateUpdated(function (Set $set) {
                             $set('national_number', null);
-                            $set('foreign_id_number', null);
                         })
 
                         ->columnSpan(1),
@@ -106,7 +106,7 @@ class StudentResource extends Resource
                         ])
                         ->columnSpan(2),
 
-                    TextInput::make('foreign_id_number')->label(__('general.labels.foreign_id_number'))->required(fn(Get $get) => $get('nationality') === 'other')->visible(fn(Get $get) => $get('nationality') === 'other')->columnSpan(2),
+                    TextInput::make('national_number')->label(__('general.labels.foreign_id_number'))->required(fn(Get $get) => $get('nationality') === 'other')->visible(fn(Get $get) => $get('nationality') === 'other')->columnSpan(2),
 
                     Checkbox::make('is_child')
                         ->label('قاصر')
@@ -114,7 +114,7 @@ class StudentResource extends Resource
                         ->live()
                         ->afterStateHydrated(function ($set, $get, $state, $livewire) {
                             $record = $livewire->record ?? null;
-                            if ($record && is_null($record->national_number) && is_null($record->foreign_id_number)) {
+                            if ($record && is_null($record->national_number)) {
                                 $set('is_child', true);
                             }
                         }),
@@ -210,7 +210,7 @@ class StudentResource extends Resource
                 }
                 return static::getUrl('view', ['record' => $record]);
             })
-            ->toggleColumnsTriggerAction(fn(Action $action) => $action->button()->label('Toggle columns'))
+            ->toggleColumnsTriggerAction(fn(Action $action) => $action->button())
             ->actions(self::tableActions())
             ->bulkActions([
                 ExportBulkAction::make()
@@ -237,28 +237,10 @@ class StudentResource extends Resource
                     },
                 ),
             TextColumn::make('year_of_birth')->label('Date of Birth')->sortable()->toggleable(),
-            TextColumn::make('nationality')
+            TextColumn::make('national_number')
                 ->label('الرقم الوطني / الإقامة')
                 ->sortable()
-                ->formatStateUsing(function (Model $record): string {
-                    $national = $record->national_number;
-                    $foreign = $record->foreign_id_number;
-
-                    if (!is_null($national) && $national !== '') {
-                        return $national;
-                    }
-
-                    if (!is_null($foreign) && $foreign !== '') {
-                        return $foreign;
-                    }
-
-                    return 'لا يوجد';
-                })
-                ->searchable(
-                    query: function (Builder $query, string $search): Builder {
-                        return $query->where('national_number', 'like', "%{$search}%")->orWhere('foreign_id_number', 'like', "%{$search}%");
-                    },
-                )
+                ->searchable()
                 ->toggleable(),
             TextColumn::make('phone')->label('Phone')->sortable()->searchable()->toggleable(),
             TextColumn::make('email')->label('Email')->sortable()->searchable()->toggleable(isToggledHiddenByDefault: true),
@@ -291,7 +273,7 @@ class StudentResource extends Resource
             TextColumn::make('street.city.name')->label('City')->sortable()->searchable()->toggleable(isToggledHiddenByDefault: true),
             TextColumn::make('gender')
                 ->label('Gender')
-                ->badge()
+                ->badge()->sortable()
                 ->formatStateUsing(fn(string $state) => __("general.genders.{$state}"))
                 ->color(
                     fn(int $state): string => match ($state) {
@@ -303,7 +285,7 @@ class StudentResource extends Resource
                 ->toggleable(isToggledHiddenByDefault: true),
             TextColumn::make('religion')
                 ->label('Religion')
-                ->badge()
+                ->badge()->sortable()
                 ->formatStateUsing(fn(string $state) => __("general.religions.{$state}"))
                 ->color(
                     fn(int $state): string => match ($state) {
@@ -385,6 +367,16 @@ class StudentResource extends Resource
             SelectFilter::make('educations')->label('المؤهلات العلمية')->relationship('educations', 'name')->searchable()->multiple()->preload(),
             SelectFilter::make('gender')->label('الجنس')->options(__('general.genders')),
             SelectFilter::make('religion')->label('الديانة')->options(__('general.religions')),
+            TernaryFilter::make('national_number')
+                ->label('الرقم الوطني / الإقامة')
+                ->placeholder('الكل')
+                ->trueLabel('يوجد')
+                ->falseLabel('لا يوجد')
+                ->queries(
+                    true: fn (Builder $query) => $query->whereNotNull('national_number'),
+                    false: fn (Builder $query) => $query->whereNull('national_number'),
+                    blank: fn (Builder $query) => $query, // In this example, we do not want to filter the query when it is blank.
+                )
         ];
     }
 
