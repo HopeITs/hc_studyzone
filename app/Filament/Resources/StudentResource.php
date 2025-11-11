@@ -237,6 +237,11 @@ class StudentResource extends Resource
                     },
                 ),
             TextColumn::make('year_of_birth')->label('Date of Birth')->sortable()->toggleable(),
+            TextColumn::make('nationality')->label('Nationality')
+                ->label('الجنسية')
+                ->sortable()
+                ->searchable()
+                ->toggleable(),
             TextColumn::make('national_number')
                 ->label('الرقم الوطني / الإقامة')
                 ->sortable()
