@@ -100,7 +100,7 @@ Route::group(['middleware' => ['auth']], function () {
     })->name('filament.resources.students.scan')->middleware('auth');
 });
 
-Route::get('/qr/studyzone/{city}', [SocialLinkController::class, 'show'])
+Route::get('/qr/{city}', [SocialLinkController::class, 'show'])
     ->where('city', 'homs|damascus|aleppo|latakia|tartus')
     ->name('info.show');
 
