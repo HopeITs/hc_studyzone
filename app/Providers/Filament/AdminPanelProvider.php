@@ -32,7 +32,7 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->authGuard('web')
-//            ->path('admin')
+            ->path('/')
             ->login()
             ->unsavedChangesAlerts()
             ->databaseTransactions()
