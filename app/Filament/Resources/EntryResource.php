@@ -64,13 +64,17 @@ class EntryResource extends Resource
         return $form->schema([
             Placeholder::make('student_full_name')->label('الاسم')->content(fn($record) => $record?->student ? $record->student->firstname . ' ' . $record->student->father_name . ' ' . $record->student->lastname : '-'),
             Select::make('center_id')->relationship('center', 'name')->label('المركز')->searchable()->preload()->required(),
-
             Select::make('entry_type')->label(__('general.labels.entry_type'))->default(1)->options(__('general.entry-types'))->columnSpan(1)->required(),
             DateTimePicker::make('entry_time')->label(__('general.labels.entry_time'))->default(now())->columnSpan(1)->required(),
             Fieldset::make('Services')
                 ->label('خدمات')
-                ->schema([Checkbox::make('use_printer')->reactive()->label('خدمة طباعة')->default(false), Checkbox::make('use_drawer')->reactive()->label('خدمة مرسم')->default(false), Checkbox::make('use_mecrator')->reactive()->label('خدمة ميكراتور')->default(false)])
-                ->columns(3),
+                ->schema([
+                    Checkbox::make('use_printer')->reactive()->label('خدمة طباعة')->default(false),
+                    Checkbox::make('use_drawer')->reactive()->label('خدمة مرسم')->default(false),
+                    Checkbox::make('use_mecrator')->reactive()->label('خدمة ميكراتور')->default(false),
+                    Checkbox::make('use_plotter')->reactive()->label('خدمة بلوتر')->default(false),
+                ])
+                ->columns(4),
         ]);
     }
 
@@ -88,12 +92,10 @@ class EntryResource extends Resource
                         });
                     },
                 ),
-
                 TextColumn::make('student.national_number')
                     ->label('الرقم الوطني / الإقامة')
                     ->sortable()
                     ->toggleable(),
-
                 TextColumn::make('student.phone')->label('الموبايل')->searchable()->sortable()->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('student.gender')
                     ->label('الجنس')
@@ -122,9 +124,7 @@ class EntryResource extends Resource
                     )
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('student.whatsapp')->label('واتساب')->searchable()->sortable()->toggleable(isToggledHiddenByDefault: true),
-
                 TextColumn::make('entry_type')->label('نوع الدخول')->sortable()->formatStateUsing(fn($state) => __('general.entry-types.' . $state)),
-
                 TextColumn::make('student.educations')
                     ->label('المؤهل العلمي')
                     ->formatStateUsing(function ($record) {
@@ -138,21 +138,17 @@ class EntryResource extends Resource
                         },
                     )
                     ->toggleable(),
-
                 TextColumn::make('entry_time')->label('تاريخ الدخول')->sortable()->dateTime('Y-m-d H:i'),
-
                 TextColumn::make('center.city.name')
                     ->label('المدينة')
                     ->sortable()
                     ->visible(auth()->user()->role === Roles::GeneralAdmin())
                     ->toggleable(isToggledHiddenByDefault: true),
-
                 TextColumn::make('center.name')
                     ->label('المركز')
                     ->sortable()
                     ->hidden(auth()->user()->role === Roles::CenterAdmin())
                     ->toggleable(isToggledHiddenByDefault: true),
-
                 CheckboxColumn::make('use_printer')
                     ->disabled(auth()->user()->role === Roles::MealAdmin())
                     ->label('طباعة'),
@@ -162,8 +158,10 @@ class EntryResource extends Resource
                 CheckboxColumn::make('use_drawer')
                     ->disabled(auth()->user()->role === Roles::MealAdmin())
                     ->label('مرسم'),
+                CheckboxColumn::make('use_plotter')
+                    ->disabled(auth()->user()->role === Roles::MealAdmin())
+                    ->label('بلوتر'),
             ])
-
             ->filtersFormColumns(2)
             ->filters([
                 Filter::make('entry_time')
@@ -195,7 +193,6 @@ class EntryResource extends Resource
                                 $studentQuery->where('gender', (int) $data['value']);
                             });
                         }
-
                         return $query;
                     }),
                 SelectFilter::make('student.religion')
@@ -208,7 +205,6 @@ class EntryResource extends Resource
                                 $studentQuery->where('religion', (int) $data['value']);
                             });
                         }
-
                         return $query;
                     }),
                 SelectFilter::make('center.city.name')
@@ -237,8 +233,7 @@ class EntryResource extends Resource
                         false: fn (Builder $query) => $query->whereHas('student' , function ($query){
                             $query->whereNull('national_number');
                         }),
-
-                        blank: fn (Builder $query) => $query, // In this example, we do not want to filter the query when it is blank.
+                        blank: fn (Builder $query) => $query,
                     )
             ])
             ->filtersTriggerAction(fn(Action $action) => $action->button()->label('فلتر'))
@@ -276,6 +271,7 @@ class EntryResource extends Resource
     {
         return [EntryStats::class];
     }
+
     public static function canEdit(Model $record): bool
     {
         return auth()->user()->role !== Roles::MealAdmin();

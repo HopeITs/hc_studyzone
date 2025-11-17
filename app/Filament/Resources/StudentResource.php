@@ -9,7 +9,6 @@ use App\Filament\Exports\StudentExporter;
 use App\Filament\Resources\StudentResource\Pages;
 use App\Filament\Resources\StudentResource\RelationManagers;
 use App\Models\{City, Education, Street, Student, StudentEntry};
-
 use Filament\Forms\Components\{Checkbox, DatePicker, DateTimePicker, Fieldset, Select, Textarea, TextInput, Toggle, Wizard};
 use Closure;
 use Filament\Actions\Exports\Enums\ExportFormat;
@@ -27,7 +26,6 @@ use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Illuminate\Database\Eloquent\Builder;
-
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
@@ -64,7 +62,6 @@ class StudentResource extends Resource
                     TextInput::make('firstname')->label(__('general.labels.firstname'))->required()->maxLength(255)->columnSpan(1),
                     TextInput::make('lastname')->label(__('general.labels.lastname'))->required()->maxLength(255)->columnSpan(1),
                     TextInput::make('father_name')->label(__('general.labels.father_name'))->required()->maxLength(255)->columnSpan(1),
-
                     Select::make('nationality')
                         ->label(__('general.labels.nationality'))
                         ->options(__('general.nationalities'))
@@ -74,9 +71,7 @@ class StudentResource extends Resource
                         ->afterStateUpdated(function (Set $set) {
                             $set('national_number', null);
                         })
-
                         ->columnSpan(1),
-
                     TextInput::make('national_number')
                         ->label(__('general.labels.national_number'))
                         ->required(fn(Get $get) => !$get('is_child') && $get('nationality') === 'syrian')
@@ -105,9 +100,7 @@ class StudentResource extends Resource
                             'digits' => 'يجب إدخال 11 خانة بالضبط للرقم الوطني.',
                         ])
                         ->columnSpan(2),
-
                     TextInput::make('national_number')->label(__('general.labels.foreign_id_number'))->required(fn(Get $get) => $get('nationality') === 'other')->visible(fn(Get $get) => $get('nationality') === 'other')->columnSpan(2),
-
                     Checkbox::make('is_child')
                         ->label('قاصر')
                         ->default(false)
@@ -184,9 +177,7 @@ class StudentResource extends Resource
                             })
                             ->searchable()
                             ->required(),
-
                         Select::make('level')->label(__('general.labels.education_level'))->options(__('general.edu-levels'))->required(),
-
                         Select::make('type')->label(__('general.labels.education_type'))->options(__('general.edu-types'))->required(),
                     ])
                     ->columns(2)
@@ -380,7 +371,7 @@ class StudentResource extends Resource
                 ->queries(
                     true: fn (Builder $query) => $query->whereNotNull('national_number'),
                     false: fn (Builder $query) => $query->whereNull('national_number'),
-                    blank: fn (Builder $query) => $query, // In this example, we do not want to filter the query when it is blank.
+                    blank: fn (Builder $query) => $query,
                 )
         ];
     }
@@ -397,8 +388,13 @@ class StudentResource extends Resource
                     DateTimePicker::make('entry_time')->label(__('general.labels.entry_time'))->default(now())->columnSpan(1)->required(),
                     Fieldset::make('Services')
                         ->label('خدمات')
-                        ->schema([Checkbox::make('use_printer')->label('خدمة طباعة')->default(false), Checkbox::make('use_drawer')->label('خدمة مرسم')->default(false), Checkbox::make('use_mecrator')->label('خدمة ميكراتور')->default(false)])
-                        ->columns(3),
+                        ->schema([
+                            Checkbox::make('use_printer')->label('خدمة طباعة')->default(false),
+                            Checkbox::make('use_drawer')->label('خدمة مرسم')->default(false),
+                            Checkbox::make('use_mecrator')->label('خدمة ميكراتور')->default(false),
+                            Checkbox::make('use_plotter')->label('خدمة بلوتر')->default(false),
+                        ])
+                        ->columns(4),
                 ])
                 ->modalHeading(__('general.labels.record_student_entry'))
                 ->modalButton(__('general.labels.save_entry'))
@@ -412,6 +408,7 @@ class StudentResource extends Resource
                         'use_drawer' => $data['use_drawer'],
                         'use_printer' => $data['use_printer'],
                         'use_mecrator' => $data['use_mecrator'],
+                        'use_plotter' => $data['use_plotter'],
                     ]),
                 )
                 ->successNotificationTitle(__('general.labels.entry_recorded_successfully')),

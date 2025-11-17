@@ -2,100 +2,69 @@
 
 namespace App\Filament\Resources\StudentResource\RelationManagers;
 
-use App\Enums\Roles;
-use Filament\Forms\Components\Checkbox;
-use Filament\Forms\Components\Fieldset;
-use Filament\Forms\Components\Select;
+use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
-use Filament\Tables\Actions\CreateAction;
-use Filament\Tables\Actions\DeleteAction;
-use Filament\Tables\Actions\EditAction;
-use Filament\Tables\Actions\ViewAction;
-use Filament\Tables\Columns\CheckboxColumn;
-use Filament\Tables\Columns\TextColumn;
+use Filament\Tables;
 use Filament\Tables\Table;
-use Filament\Forms;
-use Illuminate\Support\Facades\Auth;
-use App\Filament\Resources\StudentResource\RelationManagers\Pages;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\CheckboxColumn;
+use Filament\Tables\Actions;
 
 class EntriesRelationManager extends RelationManager
 {
     protected static string $relationship = 'entries';
-
+    protected static ?string $title = 'الدخوليات';
 
     public function form(Form $form): Form
     {
-        $user = Auth::user();
-        $isCenterAdmin = $user->role === Roles::CenterAdmin();
         return $form->schema([
-
-            Forms\Components\Hidden::make('user_id')
-                ->default($user->id), // ✅ Always set center_id
-
-            Forms\Components\Select::make('center_id')
-                ->relationship('center', 'name')
-                ->default($isCenterAdmin ? $user->center_id : null)
-                ->required()->columnSpanFull(),
             Forms\Components\Select::make('entry_type')
+                ->label(__('general.labels.entry_type'))
                 ->options(__('general.entry-types'))
-                ->default(1)
-                ->required()->columnSpanFull(),
+                ->required(),
             Forms\Components\DateTimePicker::make('entry_time')
-                ->default(now())
-                ->required()->columnSpanFull(),
-            Fieldset::make('Services')->label('خدمات')
+                ->label(__('general.labels.entry_time'))
+                ->required(),
+            Forms\Components\Fieldset::make('خدمات')
                 ->schema([
-                    Checkbox::make('use_printer')->reactive()
-                        ->label('خدمة طباعة')
-                        ->default(false)
-                    ,
-                    Checkbox::make('use_drawer')->reactive()
-                        ->label('خدمة مرسم')
-                        ->default(false)
-                    ,
-                    Checkbox::make('use_mecrator')->reactive()
-                        ->label('خدمة ميكراتور')
-                        ->default(false)
-                    ,
-                ])->columns(3)
+                    Forms\Components\Checkbox::make('use_printer')->label('خدمة طباعة'),
+                    Forms\Components\Checkbox::make('use_mecrator')->label('خدمة ميكراتور'),
+                    Forms\Components\Checkbox::make('use_drawer')->label('خدمة مرسم'),
+                    Forms\Components\Checkbox::make('use_plotter')->label('خدمة بلوتر'),
+                ])
+                ->columns(4),
         ]);
     }
 
-
     public function table(Table $table): Table
     {
-        return $table->columns([
-            TextColumn::make('entry_type')->label('النوع')
-                ->formatStateUsing(fn(string $state): string => __("general.entry-types.{$state}"))
-                ->sortable(),
-            TextColumn::make('center.name')->label('المركز'),
-            TextColumn::make('entry_time')->label('التاريخ')->date()->sortable()->dateTime('Y-m-d H:i'),
-            CheckboxColumn::make('use_printer')->disabled(auth()->user()->role === Roles::MealAdmin())->label('طباعة'),
-            CheckboxColumn::make('use_mecrator')->disabled(auth()->user()->role === Roles::MealAdmin())->label('ميكراتور'),
-            CheckboxColumn::make('use_drawer')->disabled(auth()->user()->role === Roles::MealAdmin())->label('مرسم'),
-
-        ])
+        return $table
+            ->recordTitleAttribute('entry_time')
+            ->columns([
+                TextColumn::make('entry_type')
+                    ->label('النوع')
+                    ->formatStateUsing(fn($state) => __('general.entry-types.' . $state))
+                    ->sortable(),
+                TextColumn::make('center.name')->label('المركز')->sortable(),
+                TextColumn::make('entry_time')->label('التاريخ')->dateTime('Y-m-d H:i')->sortable(),
+                CheckboxColumn::make('use_printer')->label('طباعة')->disabled(),
+                CheckboxColumn::make('use_mecrator')->label('ميكراتور')->disabled(),
+                CheckboxColumn::make('use_drawer')->label('مرسم')->disabled(),
+                CheckboxColumn::make('use_plotter')->label('بلوتر')->disabled(),
+            ])
             ->headerActions([
-//                CreateAction::make(),
-                CreateAction::make()
-                    ->openUrlInNewTab(),
+                Actions\CreateAction::make(),
             ])
             ->actions([
-                ViewAction::make(),
-                EditAction::make(),
-                DeleteAction::make(),
-
+                Actions\ViewAction::make(),
+                Actions\EditAction::make(),
+                Actions\DeleteAction::make(),
+            ])
+            ->bulkActions([
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make(),
+                ]),
             ]);
     }
-
-    public static function getPages(): array
-    {
-        return [
-            'create' => Pages\CreateEntry::route('/create'),
-            'edit' => Pages\EditEntry::route('/{record}/edit'),
-        ];
-    }
-
-
 }
