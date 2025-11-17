@@ -168,7 +168,7 @@ class EntryResource extends Resource
                     ->sortable(),
             ])
             ->filtersLayout(FiltersLayout::Modal)
-            ->filtersFormColumns(3)
+            ->filtersFormColumns(4)
             ->filters([
                 Filter::make('entry_time')
                     ->label('التاريخ')
@@ -182,13 +182,46 @@ class EntryResource extends Resource
                             ->default(today()->endOfDay())
                             ->columnSpan(1),
                     ])
-                    ->columnSpanFull()
+                    ->columnSpan(2)
                     ->columns(2)
                     ->query(function (Builder $query, array $data): Builder {
                         return $query->when($data['from'], fn($q, $date) => $q->where('entry_time', '>=', $date))->when($data['to'], fn($q, $date) => $q->where('entry_time', '<=', $date));
                     }),
-                SelectFilter::make('entry_type')->label('نوع الدخولية')->options(__('general.entry-types'))->searchable()->multiple()->preload(),
+                SelectFilter::make('entry_type')->label('نوع الدخولية')->options(__('general.entry-types'))->searchable()->multiple()->preload()->columnSpan(2),
+
+                SelectFilter::make('center.city.name')
+                    ->label('المدينة')
+                    ->relationship('center.city', 'name')
+                    ->searchable()
+                    ->columnSpan(2)
+                    ->visible(auth()->user()->role === Roles::GeneralAdmin())
+
+                    ->multiple()
+                    ->preload(),
+                SelectFilter::make('center_id')
+                    ->label('المركز')
+                    ->relationship('center', 'name')
+                    ->searchable()
+                    ->columnSpan(auth()->user()->role === Roles::GeneralAdmin() ? 2: 4)
+                    ->hidden(auth()->user()->role === Roles::CenterAdmin())
+                    ->multiple()
+                    ->preload(),
                 SelectFilter::make('student.educations')->label('المؤهل العلمي')->relationship('student.educations', 'name')->searchable()->multiple()->preload(),
+                TernaryFilter::make('student.national_number')
+                    ->label('الرقم الوطني / الإقامة')
+                    ->placeholder('الكل')
+                    ->trueLabel('يوجد')
+                    ->falseLabel('لا يوجد')
+
+                    ->queries(
+                        true: fn (Builder $query) => $query->whereHas('student' , function ($query){
+                            $query->whereNotNull('national_number');
+                        }),
+                        false: fn (Builder $query) => $query->whereHas('student' , function ($query){
+                            $query->whereNull('national_number');
+                        }),
+                        blank: fn (Builder $query) => $query,
+                    ),
                 SelectFilter::make('student.gender')
                     ->label('الجنس')
                     ->options(__('general.genders'))
@@ -201,6 +234,7 @@ class EntryResource extends Resource
                         }
                         return $query;
                     }),
+
                 SelectFilter::make('student.religion')
                     ->label('الديانة')
                     ->options(__('general.religions'))
@@ -213,34 +247,8 @@ class EntryResource extends Resource
                         }
                         return $query;
                     }),
-                SelectFilter::make('center.city.name')
-                    ->label('المدينة')
-                    ->relationship('center.city', 'name')
-                    ->searchable()
-                    ->visible(auth()->user()->role === Roles::GeneralAdmin())
-                    ->multiple()
-                    ->preload(),
-                SelectFilter::make('center_id')
-                    ->label('المركز')
-                    ->relationship('center', 'name')
-                    ->searchable()
-                    ->hidden(auth()->user()->role === Roles::CenterAdmin())
-                    ->multiple()
-                    ->preload(),
-                TernaryFilter::make('student.national_number')
-                    ->label('الرقم الوطني / الإقامة')
-                    ->placeholder('الكل')
-                    ->trueLabel('يوجد')
-                    ->falseLabel('لا يوجد')
-                    ->queries(
-                        true: fn (Builder $query) => $query->whereHas('student' , function ($query){
-                            $query->whereNotNull('national_number');
-                        }),
-                        false: fn (Builder $query) => $query->whereHas('student' , function ($query){
-                            $query->whereNull('national_number');
-                        }),
-                        blank: fn (Builder $query) => $query,
-                    ),
+
+
                 TernaryFilter::make('use_printer')
                     ->label(__('general.labels.print-service'))
                     ->placeholder('الكل')

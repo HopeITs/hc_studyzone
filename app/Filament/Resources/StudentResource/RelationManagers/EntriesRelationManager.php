@@ -48,10 +48,10 @@ class EntriesRelationManager extends RelationManager
                     ->sortable(),
                 TextColumn::make('center.name')->label('المركز')->sortable(),
                 TextColumn::make('entry_time')->label('التاريخ')->dateTime('Y-m-d H:i')->sortable(),
-                CheckboxColumn::make('use_printer')->label('طباعة')->disabled(),
-                CheckboxColumn::make('use_mecrator')->label('ميكراتور')->disabled(),
-                CheckboxColumn::make('use_drawer')->label('مرسم')->disabled(),
-                CheckboxColumn::make('use_plotter')->label('بلوتر')->disabled(),
+                CheckboxColumn::make('use_printer')->label('طباعة')->sortable(),
+                CheckboxColumn::make('use_mecrator')->label('ميكراتور')->sortable(),
+                CheckboxColumn::make('use_drawer')->label('مرسم')->sortable(),
+                CheckboxColumn::make('use_plotter')->label('بلوتر')->sortable(),
             ])
             ->headerActions([
                 Actions\CreateAction::make(),
