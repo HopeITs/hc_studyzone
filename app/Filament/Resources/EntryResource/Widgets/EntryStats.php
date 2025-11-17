@@ -9,7 +9,6 @@ use Filament\Widgets\Concerns\InteractsWithPageTable;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
-
 class EntryStats extends BaseWidget
 {
     use InteractsWithPageTable;
@@ -28,10 +27,7 @@ class EntryStats extends BaseWidget
 
     protected function getStats(): array
     {
-
-
         return [
-
             Stat::make('إجمالي الدخوليات', $this->getPageTableQuery()->count()),
 
             Stat::make(__('general.entry-types.' . EntryType::Free()), $this->getPageTableQuery()->where('entry_type', EntryType::Free())->count()),
@@ -43,10 +39,10 @@ class EntryStats extends BaseWidget
             Stat::make(__('general.labels.print-service'), $this->getPageTableQuery()->where('use_printer', true)->count()),
             Stat::make(__('general.labels.mecrator-service'), $this->getPageTableQuery()->where('use_mecrator', true)->count()),
             Stat::make(__('general.labels.drawer-service'), $this->getPageTableQuery()->where('use_drawer', true)->count()),
+            Stat::make(__('general.labels.plotter-service'), $this->getPageTableQuery()->where('use_plotter', true)->count()),
 
             Stat::make('طلاب العمارة', $this->getPageTableQuery()->whereHas('student.educations', fn($q) => $q->where('educations.id', 65)->distinct('student_id'))->count()),
             Stat::make('طلاب الاسنان', $this->getPageTableQuery()->whereHas('student.educations', fn($q) => $q->whereIn('educations.id', [77, 136])->distinct('student_id'))->count()),
         ];
-
     }
 }
