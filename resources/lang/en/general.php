@@ -59,7 +59,7 @@ return [
     'religions' => [
         Religion::Unknown() => 'Unknown',
         Religion::Christian() => 'Christian',
-        Religion::Muslim() => 'Muslim'
+        Religion::Muslim() => 'Muslim',
     ],
     'nationalities' => [
         'syrian' => 'Syrian',
@@ -107,5 +107,6 @@ return [
         'print-service' => 'Print Service',
         'mecrator-service' => 'Micro motor service',
         'drawer-service' => 'Drafting table service',
-    ]
+        'plotter-service' => 'Plotter Service',
+    ],
 ];

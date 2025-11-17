@@ -10,7 +10,7 @@ use App\Filament\Exports\StudentExporter;
 use App\Filament\Resources\EntryResource\Pages;
 use App\Filament\Resources\EntryResource\Widgets\EntryStats;
 use App\Models\StudentEntry;
-use Filament\Forms\Components\{Checkbox, DateTimePicker, Fieldset, Placeholder, Select, TextInput, Toggle};
+use Filament\Forms\Components\{Checkbox, DateTimePicker, Fieldset, Placeholder, Select};
 use Filament\Actions\Exports\Enums\ExportFormat;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -20,7 +20,6 @@ use Filament\Tables\Actions\Action;
 use Filament\Tables\Actions\ExportBulkAction;
 use Filament\Tables\Actions\ViewAction;
 use Filament\Tables\Enums\FiltersLayout;
-use Filament\Tables\Filters\BaseFilter;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
@@ -62,7 +61,9 @@ class EntryResource extends Resource
     public static function form(Form $form): Form
     {
         return $form->schema([
-            Placeholder::make('student_full_name')->label('الاسم')->content(fn($record) => $record?->student ? $record->student->firstname . ' ' . $record->student->father_name . ' ' . $record->student->lastname : '-'),
+            Placeholder::make('student_full_name')
+                ->label('الاسم')
+                ->content(fn($record) => $record?->student ? $record->student->firstname . ' ' . $record->student->father_name . ' ' . $record->student->lastname : '-'),
             Select::make('center_id')->relationship('center', 'name')->label('المركز')->searchable()->preload()->required(),
             Select::make('entry_type')->label(__('general.labels.entry_type'))->default(1)->options(__('general.entry-types'))->columnSpan(1)->required(),
             DateTimePicker::make('entry_time')->label(__('general.labels.entry_time'))->default(now())->columnSpan(1)->required(),
@@ -151,18 +152,23 @@ class EntryResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
                 CheckboxColumn::make('use_printer')
                     ->disabled(auth()->user()->role === Roles::MealAdmin())
-                    ->label('طباعة'),
+                    ->label('طباعة')
+                    ->sortable(),
                 CheckboxColumn::make('use_mecrator')
                     ->disabled(auth()->user()->role === Roles::MealAdmin())
-                    ->label('ميكراتور'),
+                    ->label('ميكراتور')
+                    ->sortable(),
                 CheckboxColumn::make('use_drawer')
                     ->disabled(auth()->user()->role === Roles::MealAdmin())
-                    ->label('مرسم'),
+                    ->label('مرسم')
+                    ->sortable(),
                 CheckboxColumn::make('use_plotter')
                     ->disabled(auth()->user()->role === Roles::MealAdmin())
-                    ->label('بلوتر'),
+                    ->label('بلوتر')
+                    ->sortable(),
             ])
-            ->filtersFormColumns(2)
+            ->filtersLayout(FiltersLayout::Modal)
+            ->filtersFormColumns(3)
             ->filters([
                 Filter::make('entry_time')
                     ->label('التاريخ')
@@ -234,7 +240,47 @@ class EntryResource extends Resource
                             $query->whereNull('national_number');
                         }),
                         blank: fn (Builder $query) => $query,
-                    )
+                    ),
+                TernaryFilter::make('use_printer')
+                    ->label(__('general.labels.print-service'))
+                    ->placeholder('الكل')
+                    ->trueLabel('مفعّل')
+                    ->falseLabel('غير مفعّل')
+                    ->queries(
+                        true: fn (Builder $query) => $query->where('use_printer', true),
+                        false: fn (Builder $query) => $query->where('use_printer', false),
+                        blank: fn (Builder $query) => $query,
+                    ),
+                TernaryFilter::make('use_mecrator')
+                    ->label(__('general.labels.mecrator-service'))
+                    ->placeholder('الكل')
+                    ->trueLabel('مفعّل')
+                    ->falseLabel('غير مفعّل')
+                    ->queries(
+                        true: fn (Builder $query) => $query->where('use_mecrator', true),
+                        false: fn (Builder $query) => $query->where('use_mecrator', false),
+                        blank: fn (Builder $query) => $query,
+                    ),
+                TernaryFilter::make('use_drawer')
+                    ->label(__('general.labels.drawer-service'))
+                    ->placeholder('الكل')
+                    ->trueLabel('مفعّل')
+                    ->falseLabel('غير مفعّل')
+                    ->queries(
+                        true: fn (Builder $query) => $query->where('use_drawer', true),
+                        false: fn (Builder $query) => $query->where('use_drawer', false),
+                        blank: fn (Builder $query) => $query,
+                    ),
+                TernaryFilter::make('use_plotter')
+                    ->label(__('general.labels.plotter-service'))
+                    ->placeholder('الكل')
+                    ->trueLabel('مفعّل')
+                    ->falseLabel('غير مفعّل')
+                    ->queries(
+                        true: fn (Builder $query) => $query->where('use_plotter', true),
+                        false: fn (Builder $query) => $query->where('use_plotter', false),
+                        blank: fn (Builder $query) => $query,
+                    ),
             ])
             ->filtersTriggerAction(fn(Action $action) => $action->button()->label('فلتر'))
             ->actions([

@@ -107,5 +107,6 @@ return [
         'print-service' => 'خدمة الطباعة',
         'mecrator-service' => 'خدمة المكراتور',
         'drawer-service' => 'خدمة المرسم',
+        'plotter-service' => 'خدمة البلوتر',
     ],
 ];
