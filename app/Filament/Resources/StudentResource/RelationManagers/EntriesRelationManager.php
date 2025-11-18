@@ -28,6 +28,7 @@ class EntriesRelationManager extends RelationManager
             Forms\Components\Select::make('entry_type')
                 ->label(__('general.labels.entry_type'))
                 ->options(__('general.entry-types'))
+                ->default(1)
                 ->required(),
 
             Forms\Components\DateTimePicker::make('entry_time')
