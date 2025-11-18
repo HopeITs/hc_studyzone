@@ -4,6 +4,7 @@ namespace App\Filament\Resources\StudentResource\RelationManagers;
 
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Forms\Components\Hidden;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -19,6 +20,8 @@ class EntriesRelationManager extends RelationManager
     public function form(Form $form): Form
     {
         return $form->schema([
+            Hidden::make('center_id')->default(fn() => auth()->user()->center_id)->required(),
+            Hidden::make('user_id')->default(fn() => auth()->id())->required(),
             Forms\Components\Select::make('entry_type')
                 ->label(__('general.labels.entry_type'))
                 ->options(__('general.entry-types'))
