@@ -8,7 +8,7 @@ use App\Enums\Roles;
 use App\Filament\Exports\StudentExporter;
 use App\Filament\Resources\StudentResource\Pages;
 use App\Filament\Resources\StudentResource\RelationManagers;
-use App\Models\{City, Education, Street, Student, StudentEntry};
+use App\Models\{Center, City, Education, Street, Student, StudentEntry};
 use Filament\Forms\Components\{Checkbox, DatePicker, DateTimePicker, Fieldset, Select, Textarea, TextInput, Toggle, Wizard};
 use Closure;
 use Filament\Actions\Exports\Enums\ExportFormat;
@@ -384,8 +384,18 @@ class StudentResource extends Resource
                 ->label(__('general.labels.entry'))
                 ->icon('heroicon-o-document-text')
                 ->form([
-                    Select::make('entry_type')->label(__('general.labels.entry_type'))->default(1)->options(__('general.entry-types'))->columnSpan(1)->required(),
-                    DateTimePicker::make('entry_time')->label(__('general.labels.entry_time'))->default(now())->columnSpan(1)->required(),
+                    Fieldset::make('تفاصيل')
+                        ->schema([
+                            Select::make('center_id')
+                                ->label(__('general.labels.center'))
+                                ->options(Center::where('is_active', 1)->when(auth()->user()->city_id, function ($query, $cityId) {
+                                    return $query->where('city_id', $cityId);
+                                })->pluck('name', 'id'))
+                                ->default(fn() => Auth::user()->center_id)
+                                ->required(),
+                            Select::make('entry_type')->label(__('general.labels.entry_type'))->default(1)->options(__('general.entry-types'))->columnSpan(1)->required(),
+                            DateTimePicker::make('entry_time')->label(__('general.labels.entry_time'))->default(now())->columnSpan(1)->required(),
+                    ]) ->columns(3),
                     Fieldset::make('Services')
                         ->label('خدمات')
                         ->schema([
@@ -402,7 +412,7 @@ class StudentResource extends Resource
                     fn(array $data, Student $record) => StudentEntry::create([
                         'student_id' => $record->id,
                         'user_id' => Auth::id(),
-                        'center_id' => Auth::user()->center_id ?? 1,
+                        'center_id' => $data['center_id'],
                         'entry_type' => $data['entry_type'],
                         'entry_time' => $data['entry_time'],
                         'use_drawer' => $data['use_drawer'],
