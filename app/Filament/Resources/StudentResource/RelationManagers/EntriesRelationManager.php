@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\StudentResource\RelationManagers;
 
+use App\Models\Center;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Components\Hidden;
@@ -22,9 +23,13 @@ class EntriesRelationManager extends RelationManager
     {
         return $form->schema([
             Forms\Components\Hidden::make('student_id')->default(fn($livewire) => $livewire->ownerRecord->id),
-            Forms\Components\Hidden::make('center_id')->default(fn() => Auth::user()->center_id)->required(),
+//            Forms\Components\Hidden::make('center_id')->default(fn() => Auth::user()->center_id)->required(),
             Forms\Components\Hidden::make('user_id')->default(fn() => Auth::id())->required(),
-
+            Forms\Components\Select::make('center_id')
+                ->label(__('general.labels.center'))
+                ->options(Center::where('is_active', 1)->get()->pluck('name', 'id'))
+                ->default(fn() => Auth::user()->center_id)
+                ->required(),
             Forms\Components\Select::make('entry_type')
                 ->label(__('general.labels.entry_type'))
                 ->options(__('general.entry-types'))
@@ -44,7 +49,7 @@ class EntriesRelationManager extends RelationManager
                     Forms\Components\Checkbox::make('use_plotter')->label('خدمة بلوتر')->default(false),
                 ])
                 ->columns(4),
-        ]);
+        ])->columns(3);
     }
 
     public function table(Table $table): Table

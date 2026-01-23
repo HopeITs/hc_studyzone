@@ -108,5 +108,6 @@ return [
         'mecrator-service' => 'خدمة المكراتور',
         'drawer-service' => 'خدمة المرسم',
         'plotter-service' => 'خدمة البلوتر',
+        'center' => 'المركز',
     ],
 ];

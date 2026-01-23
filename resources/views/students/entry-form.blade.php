@@ -39,10 +39,11 @@
 
                 <div class="col-span-1">
                     <label for="center_id" class="block text-sm font-medium text-gray-700 mb-1">
-                        المركز
+                        @lang('general.labels.center')
                     </label>
                     <select id="center_id" name="center_id" required
                             class="block h-10 w-full rounded-md  border border-gray-400 shadow-sm focus:border-primary-500 focus:ring focus:ring-primary-500 focus:ring-opacity-50 text-sm">
+                        <option disabled @selected(Auth::user()->center_id === null) >اختر مركز</option>
                         @foreach ($centers as  $center)
                             <option
                                 value="{{ $center->id }}" {{ $center->id == Auth::user()->center_id ? 'selected' : '' }}>
@@ -76,7 +77,7 @@
 
                 <fieldset class="border border-gray-300 p-4 rounded-md col-span-3">
                     <legend class="text-sm font-medium text-gray-700 mb-2">الخدمات</legend>
-                    <div class="grid grid-cols-3 gap-2">
+                    <div class="grid grid-cols-4 gap-2">
                         <label class="flex items-center space-x-6">
                             <input type="checkbox" name="use_printer" class="size-4 me-3" value="1">
                             <span>خدمة طباعة</span>
@@ -88,6 +89,10 @@
                         <label class="flex items-center space-x-2">
                             <input type="checkbox" name="use_mecrator" class="size-4 me-3" value="1">
                             <span>خدمة ميكراتور</span>
+                        </label>
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" name="use_plotter" class="size-4 me-3" value="1">
+                            <span>خدمة بلوتر</span>
                         </label>
                     </div>
                 </fieldset>

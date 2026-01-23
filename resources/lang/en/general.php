@@ -108,5 +108,6 @@ return [
         'mecrator-service' => 'Micro motor service',
         'drawer-service' => 'Drafting table service',
         'plotter-service' => 'Plotter Service',
+        'center' => 'المركز',
     ],
 ];

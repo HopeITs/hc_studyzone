@@ -20,26 +20,31 @@ class StudentEntryController extends Controller
 
     public function store(Request $request, string $uuid)
     {
+
         $student = Student::findOrFail($uuid);
 
         $validated = $request->validate([
-            'entry_type' => 'required|in:0,1,2',
+
+            'entry_type' => 'required|in:0,1,2,3,4',
+            'center_id' => 'required|exists:centers,id',
             'entry_time' => 'required',
             'use_drawer' => 'nullable|boolean',
             'use_printer' => 'nullable|boolean',
             'use_mecrator' => 'nullable|boolean',
+            'use_plotter' => 'nullable|boolean',
         ]);
 
 
         StudentEntry::create([
             'student_id' => $student->id,
             'user_id' => Auth::id(),
-            'center_id' => Auth::user()->center_id ?? 1,
+            'center_id' => $validated['center_id'],
             'entry_type' => $validated['entry_type'],
             'entry_time' => now(),
             'use_drawer' => $validated['use_drawer'] ?? false,
             'use_printer' => $validated['use_printer'] ?? false,
             'use_mecrator' => $validated['use_mecrator'] ?? false,
+            'use_plotter' => $validated['use_plotter'] ?? false,
         ]);
 
         return redirect()->back()->with('success', 'تم تسجيل الدخولية بنجاح');
