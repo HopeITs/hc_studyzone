@@ -26,7 +26,6 @@ use Mvenghaus\FilamentPluginTranslatableInline\Forms\Components\TranslatableCont
 
 class CenterResource extends Resource
 {
-
     use Translatable;
 
     protected static ?string $model = Center::class;
@@ -40,70 +39,45 @@ class CenterResource extends Resource
     protected static ?string $pluralModelLabel = 'المراكز';
     protected static ?int $navigationSort = 4;
 
+    public static function canCreate(): bool
+    {
+        return auth()->user()->role !== Roles::Observer();
+    }
+
     public static function canViewAny(): bool
     {
-        return auth()->user()->role === Roles::GeneralAdmin();
+        return auth()->user()->role === Roles::GeneralAdmin() || auth()->user()->role === Roles::Observer();
     }
 
     public static function form(Form $form): Form
     {
-        return $form->schema([
-            TranslatableContainer::make(
-                Forms\Components\TextInput::make('name')->required()
-            ),
-            Forms\Components\TextInput::make('phone')->required(),
-            Forms\Components\TextInput::make('address')->required(),
-            Forms\Components\Select::make('city_id')
-                ->relationship('city', 'name')
-                ->required(),
-        ]);
+        return $form->schema([TranslatableContainer::make(Forms\Components\TextInput::make('name')->required()), Forms\Components\TextInput::make('phone')->required(), Forms\Components\TextInput::make('address')->required(), Forms\Components\Select::make('city_id')->relationship('city', 'name')->required()]);
     }
 
     public static function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $query) => $query->orderByDesc('is_active')->orderBy('city_id'))
-            ->columns([
-                TextColumn::make('name')->sortable()->searchable(),
-                TextColumn::make('city.name')->sortable()->searchable(),
-                TextColumn::make('phone'),
-                TextColumn::make('entries_count')->counts('entries')->label('Total Entries Count')->sortable()->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('users_count')->counts('users')->label('Employees Count')->sortable()->toggleable(isToggledHiddenByDefault: true),
-                CheckboxColumn::make('is_active'),
-                TextColumn::make('address')->sortable()->searchable()->toggleable(isToggledHiddenByDefault: true),
-            ])
+            ->modifyQueryUsing(fn(Builder $query) => $query->orderByDesc('is_active')->orderBy('city_id'))
+            ->columns([TextColumn::make('name')->sortable()->searchable(), TextColumn::make('city.name')->sortable()->searchable(), TextColumn::make('phone'), TextColumn::make('entries_count')->counts('entries')->label('Total Entries Count')->sortable()->toggleable(isToggledHiddenByDefault: true), TextColumn::make('users_count')->counts('users')->label('Employees Count')->sortable()->toggleable(isToggledHiddenByDefault: true), CheckboxColumn::make('is_active')->disabled(fn() => auth()->user()->role === Roles::Observer()), TextColumn::make('address')->sortable()->searchable()->toggleable(isToggledHiddenByDefault: true)])
             ->filters([
                 SelectFilter::make('city_id')
                     ->label('Filter by City')
                     ->options(City::all()->pluck('name', 'id'))
                     ->searchable(),
             ])
-            ->actions([
-                ActionGroup::make([
-                    ViewAction::make(),
-                    EditAction::make(),
-                    DeleteAction::make(),
-                ])->icon('heroicon-m-ellipsis-horizontal'),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
-            ]);
+            ->actions([ActionGroup::make([ViewAction::make(), EditAction::make()->hidden(fn() => auth()->user()->role === Roles::Observer()), DeleteAction::make()->hidden(fn() => auth()->user()->role === Roles::Observer())])->icon('heroicon-m-ellipsis-horizontal')])
+            ->bulkActions([Tables\Actions\BulkActionGroup::make([Tables\Actions\DeleteBulkAction::make()->hidden(fn() => auth()->user()->role === Roles::Observer())])->hidden(fn() => auth()->user()->role === Roles::Observer())]);
     }
 
     public static function getRelations(): array
     {
-        return [
-            //
-        ];
+        return [];
     }
 
     public static function getPages(): array
     {
         return [
             'index' => Pages\ListCenters::route('/'),
-
         ];
     }
 }

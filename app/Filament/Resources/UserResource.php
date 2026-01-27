@@ -14,6 +14,7 @@ use Filament\Forms\Components\Wizard;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Tables\Actions\ViewAction;
 use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\CheckboxColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -42,7 +43,7 @@ class UserResource extends Resource
     {
         $user = auth()->user();
 
-        if ($user->role === Roles::GeneralAdmin()) {
+        if ($user->role === Roles::GeneralAdmin() || $user->role === Roles::Observer()) {
             return $query; // See all users
         } elseif ($user->role === Roles::CityAdmin()) {
             return $query->where('city_id', $user->city_id);
@@ -132,7 +133,7 @@ class UserResource extends Resource
                     ->sortable()
                     ->searchable(),
 //                    ->hidden(fn ($record) => $record->role !== 'center_admin'),
-                CheckboxColumn::make('is_active'),
+                CheckboxColumn::make('is_active')->disabled(fn() => auth()->user()->role === Roles::Observer()),
 
             ])
             ->filters([
@@ -157,12 +158,13 @@ class UserResource extends Resource
                     ]),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                ViewAction::make(),
+                Tables\Actions\EditAction::make()->hidden(fn() => auth()->user()->role === Roles::Observer()),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
+                    Tables\Actions\DeleteBulkAction::make()->hidden(fn() => auth()->user()->role === Roles::Observer()),
+                ])->hidden(fn() => auth()->user()->role === Roles::Observer()),
             ]);
     }
 
@@ -184,20 +186,20 @@ class UserResource extends Resource
 
     public static function canCreate(): bool
     {
-        return auth()->user()->role === Roles::GeneralAdmin();
+        return auth()->user()->role === Roles::GeneralAdmin() && auth()->user()->role !== Roles::Observer();
     }
 
     public static function canEdit(Model $record): bool
     {
-        return auth()->user()->role === Roles::GeneralAdmin();
+        return auth()->user()->role === Roles::GeneralAdmin() && auth()->user()->role !== Roles::Observer();
     }
 
     public static function canDelete(Model $record): bool
     {
-        return auth()->user()->role === Roles::GeneralAdmin();
+        return auth()->user()->role === Roles::GeneralAdmin() && auth()->user()->role !== Roles::Observer();
     }
     public static function canViewAny(): bool
     {
-        return auth()->user()->role === Roles::GeneralAdmin();
+        return auth()->user()->role === Roles::GeneralAdmin() || auth()->user()->role === Roles::Observer();
     }
 }

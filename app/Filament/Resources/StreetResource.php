@@ -13,6 +13,7 @@ use Filament\Forms\Form;
 use Filament\Resources\Concerns\Translatable;
 use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Tables\Actions\ViewAction;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -41,64 +42,52 @@ class StreetResource extends Resource
     {
         return ['en', 'ar'];
     }
+
+    public static function canCreate(): bool
+    {
+        return auth()->user()->role === Roles::GeneralAdmin() && auth()->user()->role !== Roles::Observer();
+    }
+
     public static function canViewAny(): bool
     {
-        return auth()->user()->role === Roles::GeneralAdmin();
+        return auth()->user()->role === Roles::GeneralAdmin() || auth()->user()->role === Roles::Observer();
     }
 
     public static function form(Form $form): Form
     {
-        return $form
-            ->schema([
-                Select::make('city_id')->relationship('city', 'name')->required(),
-                TranslatableContainer::make(
-                    Forms\Components\TextInput::make('name')
-                        ->maxLength(255)
-                        ->required()
-                )
-                    ->onlyMainLocaleRequired() // optional
-                    ->requiredLocales(['en', 'ar']) // optional
-                ,
-            ]);
+        return $form->schema([
+            Select::make('city_id')->relationship('city', 'name')->required(),
+            TranslatableContainer::make(Forms\Components\TextInput::make('name')->maxLength(255)->required())
+                ->onlyMainLocaleRequired() // optional
+                ->requiredLocales(['en', 'ar']), // optional
+        ]);
     }
 
     public static function table(Table $table): Table
     {
         return $table
-            ->columns([
-
-                Tables\Columns\TextColumn::make('name')->label('Name')
-                    ->formatStateUsing(fn(Model $record) => $record->getTranslation('name' , 'ar') . ' - '.$record->getTranslation('name','en'))->sortable()->searchable(),
-                Tables\Columns\TextColumn::make('city.name')->sortable()->searchable(),
-            ])
+            ->columns([Tables\Columns\TextColumn::make('name')->label('Name')->formatStateUsing(fn(Model $record) => $record->getTranslation('name', 'ar') . ' - ' . $record->getTranslation('name', 'en'))->sortable()->searchable(), Tables\Columns\TextColumn::make('city.name')->sortable()->searchable()])
             ->filters([
                 SelectFilter::make('city_id')
                     ->label('Filter by City')
                     ->options(City::all()->pluck('name', 'id'))
                     ->searchable(),
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
-            ]);
+            ->actions([ViewAction::make(), Tables\Actions\EditAction::make()->hidden(fn() => auth()->user()->role === Roles::Observer())])
+            ->bulkActions([Tables\Actions\BulkActionGroup::make([Tables\Actions\DeleteBulkAction::make()->hidden(fn() => auth()->user()->role === Roles::Observer())])->hidden(fn() => auth()->user()->role === Roles::Observer())]);
     }
 
     public static function getRelations(): array
     {
         return [
-            //
-        ];
+                //
+            ];
     }
 
     public static function getPages(): array
     {
         return [
             'index' => Pages\ListStreets::route('/'),
-
         ];
     }
 }

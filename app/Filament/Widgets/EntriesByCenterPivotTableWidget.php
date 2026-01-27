@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use App\Enums\Roles;
 use App\Exports\EntriesByCenterExport;
 use App\Models\Center;
 use Carbon\Carbon;
@@ -59,7 +60,8 @@ class EntriesByCenterPivotTableWidget extends TableWidget
                     ->label('Export to Excel')
                     ->color('success')
                     ->icon('heroicon-o-document-arrow-down')
-                    ->action(fn() => Excel::download(new EntriesByCenterExport($this->filters), 'entries_by_center.xlsx')),
+                    ->action(fn() => Excel::download(new EntriesByCenterExport($this->filters), 'entries_by_center.xlsx'))
+                    ->hidden(fn() => auth()->user()->role === Roles::Observer()),
             ]);
     }
 
@@ -121,4 +123,3 @@ class EntriesByCenterPivotTableWidget extends TableWidget
         return collect(array_values($pivotedData));
     }
 }
-

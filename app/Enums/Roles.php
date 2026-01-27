@@ -13,8 +13,8 @@ enum Roles: int
     case GeneralAdmin = 1;
     case CityAdmin    = 2;
     case CenterAdmin  = 3;
-
     case MealAdmin    = 4;
+    case Observer     = 5;
 
     public static function default(): self
     {
@@ -29,6 +29,7 @@ enum Roles: int
             self::CityAdmin    => 'City Admin',
             self::CenterAdmin  => 'Center Admin',
             self::MealAdmin  => 'MEAL Admin',
+            self::Observer     => 'Observer',
         };
     }
 

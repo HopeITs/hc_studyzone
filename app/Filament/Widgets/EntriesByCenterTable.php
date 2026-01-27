@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use App\Enums\Roles;
 use App\Exports\EntriesByCenterExport;
 use App\Models\Center;
 use App\Models\StudentEntry;
@@ -70,6 +71,7 @@ class EntriesByCenterTable extends Widget
             'centers' => $centers->pluck('name'),
             'from' => $startDate->format('Y-m-d'),
             'to' => $endDate->format('Y-m-d'),
+            'canExport' => auth()->user()->role !== Roles::Observer(),
         ];
     }
 

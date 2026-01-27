@@ -41,7 +41,7 @@ class EntryResource extends Resource
     {
         $user = Auth::user();
 
-        if ($user->role === Roles::GeneralAdmin()) {
+        if ($user->role === Roles::GeneralAdmin() || $user->role === Roles::Observer()) {
             return parent::getEloquentQuery();
         }
 
@@ -81,6 +81,9 @@ class EntryResource extends Resource
 
     public static function table(Table $table): Table
     {
+        $isObserver = auth()->user()->role === Roles::Observer();
+        $isMealAdmin = auth()->user()->role === Roles::MealAdmin();
+
         return $table
             ->columns([
                 TextColumn::make('student.firstname')->label('اسم الطالب')->formatStateUsing(fn(Model $record) => $record->student->firstname . ' ' . $record->student->father_name . ' ' . $record->student->lastname)->sortable()->searchable(
@@ -151,19 +154,19 @@ class EntryResource extends Resource
                     ->hidden(auth()->user()->role === Roles::CenterAdmin())
                     ->toggleable(isToggledHiddenByDefault: true),
                 CheckboxColumn::make('use_printer')
-                    ->disabled(auth()->user()->role === Roles::MealAdmin())
+                    ->disabled($isObserver || $isMealAdmin)
                     ->label('طباعة')
                     ->sortable(),
                 CheckboxColumn::make('use_mecrator')
-                    ->disabled(auth()->user()->role === Roles::MealAdmin())
+                    ->disabled($isObserver || $isMealAdmin)
                     ->label('ميكراتور')
                     ->sortable(),
                 CheckboxColumn::make('use_drawer')
-                    ->disabled(auth()->user()->role === Roles::MealAdmin())
+                    ->disabled($isObserver || $isMealAdmin)
                     ->label('مرسم')
                     ->sortable(),
                 CheckboxColumn::make('use_plotter')
-                    ->disabled(auth()->user()->role === Roles::MealAdmin())
+                    ->disabled($isObserver || $isMealAdmin)
                     ->label('بلوتر')
                     ->sortable(),
             ])
@@ -297,14 +300,15 @@ class EntryResource extends Resource
                     ->color('info')
                     ->icon('heroicon-o-user')
                     ->url(fn(Model $record) => \App\Filament\Resources\StudentResource::getUrl('view', ['record' => $record->student_id])),
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make()
+                Tables\Actions\EditAction::make()->hidden(fn() => auth()->user()->role === Roles::Observer()),
+                Tables\Actions\DeleteAction::make()->hidden(fn() => auth()->user()->role === Roles::Observer())
             ])
             ->bulkActions([
                 ExportBulkAction::make()
                     ->exporter(EntryExporter::class)
-                    ->formats([ExportFormat::Xlsx]),
-                Tables\Actions\BulkActionGroup::make([Tables\Actions\DeleteBulkAction::make()]),
+                    ->formats([ExportFormat::Xlsx])
+                    ->hidden(fn() => auth()->user()->role === Roles::Observer()),
+                Tables\Actions\BulkActionGroup::make([Tables\Actions\DeleteBulkAction::make()->hidden(fn() => auth()->user()->role === Roles::Observer())])->hidden(fn() => auth()->user()->role === Roles::Observer()),
             ])
             ->paginated([20, 50, 100, 200]);
     }
@@ -328,11 +332,11 @@ class EntryResource extends Resource
 
     public static function canEdit(Model $record): bool
     {
-        return auth()->user()->role !== Roles::MealAdmin();
+        return auth()->user()->role !== Roles::MealAdmin() && auth()->user()->role !== Roles::Observer();
     }
 
     public static function canDelete(Model $record): bool
     {
-        return auth()->user()->role !== Roles::MealAdmin();
+        return auth()->user()->role !== Roles::MealAdmin() && auth()->user()->role !== Roles::Observer();
     }
 }

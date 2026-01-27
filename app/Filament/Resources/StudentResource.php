@@ -206,8 +206,9 @@ class StudentResource extends Resource
             ->bulkActions([
                 ExportBulkAction::make()
                     ->exporter(StudentExporter::class)
-                    ->formats([ExportFormat::Xlsx]),
-                Tables\Actions\BulkActionGroup::make([Tables\Actions\DeleteBulkAction::make()]),
+                    ->formats([ExportFormat::Xlsx])
+                    ->hidden(fn() => auth()->user()->role === Roles::Observer()),
+                Tables\Actions\BulkActionGroup::make([Tables\Actions\DeleteBulkAction::make()->hidden(fn() => auth()->user()->role === Roles::Observer())])->hidden(fn() => auth()->user()->role === Roles::Observer()),
             ])
             ->paginated([20, 50, 100, 200]);
     }
@@ -311,7 +312,7 @@ class StudentResource extends Resource
     protected static function filterQueryByRole(Builder $query): Builder
     {
         $user = Auth::user();
-        if ($user->role === Roles::GeneralAdmin()) {
+        if ($user->role === Roles::GeneralAdmin() || $user->role === Roles::Observer()) {
             return $query;
         } else {
             $cityId = $user->city_id;
@@ -378,8 +379,10 @@ class StudentResource extends Resource
 
     protected static function tableActions(): array
     {
+        $isObserver = auth()->user()->role === Roles::Observer();
+
         return [
-            Tables\Actions\Action::make('view_qr_code')->label(__('general.labels.view_qr_code'))->icon('heroicon-o-qr-code')->modalHeading(__('general.labels.qr_code_modal_heading'))->modalContent(fn(Student $record) => self::qrCodeModalContent($record))->modalCancelAction(false)->modalSubmitAction(false),
+            Tables\Actions\Action::make('view_qr_code')->label(__('general.labels.view_qr_code'))->icon('heroicon-o-qr-code')->modalHeading(__('general.labels.qr_code_modal_heading'))->modalContent(fn(Student $record) => self::qrCodeModalContent($record))->modalCancelAction(false)->modalSubmitAction(false)->hidden($isObserver),
             Tables\Actions\Action::make('entry')
                 ->label(__('general.labels.entry'))
                 ->icon('heroicon-o-document-text')
@@ -421,8 +424,13 @@ class StudentResource extends Resource
                         'use_plotter' => $data['use_plotter'],
                     ]),
                 )
-                ->successNotificationTitle(__('general.labels.entry_recorded_successfully')),
-            ActionGroup::make([Tables\Actions\ViewAction::make(), Tables\Actions\EditAction::make(), Tables\Actions\DeleteAction::make()])->icon('heroicon-m-ellipsis-horizontal'),
+                ->successNotificationTitle(__('general.labels.entry_recorded_successfully'))
+                ->hidden($isObserver),
+            ActionGroup::make([
+                Tables\Actions\ViewAction::make(),
+                Tables\Actions\EditAction::make()->hidden($isObserver),
+                Tables\Actions\DeleteAction::make()->hidden($isObserver)
+            ])->icon('heroicon-m-ellipsis-horizontal'),
         ];
     }
 
@@ -449,16 +457,16 @@ class StudentResource extends Resource
 
     public static function canCreate(): bool
     {
-        return auth()->user()->role === Roles::CenterAdmin();
+        return auth()->user()->role === Roles::CenterAdmin() && auth()->user()->role !== Roles::Observer();
     }
 
     public static function canEdit(Model $record): bool
     {
-        return auth()->user()->role !== Roles::MealAdmin();
+        return auth()->user()->role !== Roles::MealAdmin() && auth()->user()->role !== Roles::Observer();
     }
 
     public static function canDelete(Model $record): bool
     {
-        return auth()->user()->role === Roles::CenterAdmin();
+        return auth()->user()->role === Roles::CenterAdmin() && auth()->user()->role !== Roles::Observer();
     }
 }

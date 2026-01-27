@@ -3,6 +3,7 @@
 namespace App\Filament\Widgets;
 
 use App\Enums\Gender;
+use App\Enums\Roles;
 use App\Models\StudentEducation;
 use Carbon\Carbon;
 use Filament\Tables\Actions\Action;
@@ -49,7 +50,8 @@ class TopLevels extends TableWidget
                         return Excel::download(new TopLevelsExport(
                             $this->filters
                         ), 'top_levels.xlsx');
-                    }),
+                    })
+                    ->hidden(fn() => auth()->user()->role === Roles::Observer()),
             ]);
     }
 

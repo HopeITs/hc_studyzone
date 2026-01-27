@@ -28,55 +28,27 @@ class CityResource extends Resource
     protected static ?string $pluralModelLabel = 'المحافظات';
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
+    public static function canCreate(): bool
+    {
+        return auth()->user()->role === Roles::GeneralAdmin() && auth()->user()->role !== Roles::Observer();
+    }
+
     public static function canViewAny(): bool
     {
-        return auth()->user()->role === Roles::GeneralAdmin();
+        return auth()->user()->role === Roles::GeneralAdmin() || auth()->user()->role === Roles::Observer();
     }
 
     public static function form(Form $form): Form
     {
-        return $form->schema([
-            TranslatableContainer::make(
-                Forms\Components\TextInput::make('name')->required()
-            ),
-            Forms\Components\TextInput::make('code')->required(),
-            Forms\Components\TextInput::make('facebook')->label('Facebook URL')->url(),
-            Forms\Components\TextInput::make('instagram')->label('Instagram URL')->url(),
-            Forms\Components\TextInput::make('whatsapp')->label('WhatsApp URL')->url(),
-            Forms\Components\TextInput::make('telegram')->label('Telegram URL')->url(),
-            Forms\Components\TextInput::make('website')->label('Website URL')->url(),
-        ]);
+        return $form->schema([TranslatableContainer::make(Forms\Components\TextInput::make('name')->required()), Forms\Components\TextInput::make('code')->required(), Forms\Components\TextInput::make('facebook')->label('Facebook URL')->url(), Forms\Components\TextInput::make('instagram')->label('Instagram URL')->url(), Forms\Components\TextInput::make('whatsapp')->label('WhatsApp URL')->url(), Forms\Components\TextInput::make('telegram')->label('Telegram URL')->url(), Forms\Components\TextInput::make('website')->label('Website URL')->url()]);
     }
 
     public static function table(Table $table): Table
     {
         return $table
-            ->columns([
-                Tables\Columns\TextColumn::make('name')->sortable()->searchable(),
-                Tables\Columns\TextColumn::make('code')->sortable(),
-            ])
-            ->actions([
-
-                    ViewAction::make(),
-                    EditAction::make(),
-                    Action::make('Manage Social Links')
-                        ->label('Social Links')
-                        ->icon('heroicon-o-link')
-                        ->url(fn($record) => $record->socialLink
-                            ? route('filament.admin.resources.social-links.edit', ['record' => $record->socialLink->id])
-                            : route('info.show', ['city' => $record->code])
-                        )
-                        ->visible(fn($record) => auth()->user()->role === Roles::GeneralAdmin() ||
-                            auth()->user()->city === $record->name
-                        )
-                        ->color('info'),
-
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
-            ]);
+            ->columns([Tables\Columns\TextColumn::make('name')->sortable()->searchable(), Tables\Columns\TextColumn::make('code')->sortable()])
+            ->actions([ViewAction::make(), EditAction::make()->hidden(fn() => auth()->user()->role === Roles::Observer()), Action::make('Manage Social Links')->label('Social Links')->icon('heroicon-o-link')->url(fn($record) => $record->socialLink ? route('filament.admin.resources.social-links.edit', ['record' => $record->socialLink->id]) : route('info.show', ['city' => $record->code]))->visible(fn($record) => (auth()->user()->role === Roles::GeneralAdmin() || auth()->user()->city === $record->name) && auth()->user()->role !== Roles::Observer())->color('info')])
+            ->bulkActions([Tables\Actions\BulkActionGroup::make([Tables\Actions\DeleteBulkAction::make()->hidden(fn() => auth()->user()->role === Roles::Observer())])->hidden(fn() => auth()->user()->role === Roles::Observer())]);
     }
 
     public static function getRelations(): array

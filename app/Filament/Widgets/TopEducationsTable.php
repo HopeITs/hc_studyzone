@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use App\Enums\Roles;
 use App\Exports\EducationExport;
 use App\Models\Education;
 use Carbon\Carbon;
@@ -46,7 +47,8 @@ class TopEducationsTable extends TableWidget
                         return Excel::download(new EducationExport(
                             $this->filters
                         ), 'top_educations.xlsx');
-                    }),
+                    })
+                    ->hidden(fn() => auth()->user()->role === Roles::Observer()),
             ]);
     }
 
