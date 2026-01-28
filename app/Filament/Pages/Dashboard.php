@@ -26,8 +26,8 @@ class Dashboard extends BaseDashboard
                         Select::make('center')
                             ->options(
                                 auth()->user()->role === Roles::GeneralAdmin()
-                                    ? Center::pluck('name', 'id')
-                                    : Center::where('city_id', auth()->user()->city_id)->pluck('name', 'id')
+                                    ? Center::orderBy('is_active','desc')->orderBy('order')->pluck('name', 'id')
+                                    : Center::where('city_id', auth()->user()->city_id)->orderBy('order')->orderBy('is_active','desc')->pluck('name', 'id')
                             )
                             ->multiple()
                             ->columnSpanFull(),

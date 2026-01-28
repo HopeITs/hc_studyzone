@@ -43,12 +43,7 @@ class ActiveDaysByCenter extends Widget
             ->when($cityIds, fn($q) => $q->whereIn('city_id', $cityIds))
             ->with([
                 'entries' => function ($q) use ($startDate, $endDate) {
-                    $q->selectRaw('
-                center_id,
-                YEAR(entry_time) as year,
-                MONTH(entry_time) as month,
-                COUNT(DISTINCT DATE(entry_time)) as active_days_count
-            ')
+                    $q->selectRaw('center_id, YEAR(entry_time) as year, MONTH(entry_time) as month, COUNT(DISTINCT DATE(entry_time)) as active_days_count')
                         ->whereBetween('entry_time', [$startDate, $endDate])
                         ->groupBy('center_id', 'year', 'month');
                 }
