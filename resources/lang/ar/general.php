@@ -10,12 +10,12 @@ use App\Enums\Roles;
 
 return [
     'roles' => [
-        Roles::Unknown() => 'unknown',
-        Roles::GeneralAdmin() => 'General Admin',
-        Roles::CityAdmin() => 'City Admin',
-        Roles::CenterAdmin() => 'Center Admin',
-        Roles::MealAdmin() => 'MEAL Admin',
-        Roles::Observer() => 'Observer',
+        Roles::Unknown() => 'غير معروف',
+        Roles::GeneralAdmin() => 'مدير عام',
+        Roles::CityAdmin() => 'مدير محافظة',
+        Roles::CenterAdmin() => 'مدير مركز',
+        Roles::MealAdmin() => 'مدير الميل',
+        Roles::Observer() => 'مراقب',
     ],
 
     'edu-degrees' => [
