@@ -77,8 +77,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->plugins([
                     ActivitylogPlugin::make(),
-                    SpatieLaravelTranslatablePlugin::make()
-                        ->defaultLocales(['ar']),
+                    SpatieLaravelTranslatablePlugin::make()  ->defaultLocales(['en', 'ar']),
                 ] )
             ->renderHook('panels::body.start', fn() => view('filament.hooks.qr-code-script'));
     }

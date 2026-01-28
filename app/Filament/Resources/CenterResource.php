@@ -45,27 +45,31 @@ class CenterResource extends Resource
         return auth()->user()->role === Roles::GeneralAdmin();
     }
 
+
     public static function form(Form $form): Form
     {
         return $form->schema([
             TranslatableContainer::make(
                 Forms\Components\TextInput::make('name')->required()
-            ),
+            )   ->onlyMainLocaleRequired() ,
             Forms\Components\TextInput::make('phone')->required(),
-            Forms\Components\TextInput::make('address')->required(),
+            Forms\Components\TextInput::make('order')->integer()->required(),
+
             Forms\Components\Select::make('city_id')
                 ->relationship('city', 'name')
                 ->required(),
+            Forms\Components\TextInput::make('address')->required()->columnSpanFull(),
         ]);
     }
 
     public static function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $query) => $query->orderByDesc('is_active')->orderBy('city_id'))
+            ->modifyQueryUsing(fn (Builder $query) => $query->orderByDesc('is_active')->orderBy('order')->orderBy('city_id'))
             ->columns([
                 TextColumn::make('name')->sortable()->searchable(),
                 TextColumn::make('city.name')->sortable()->searchable(),
+                TextColumn::make('order')->sortable(),
                 TextColumn::make('phone'),
                 TextColumn::make('entries_count')->counts('entries')->label('Total Entries Count')->sortable()->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('users_count')->counts('users')->label('Employees Count')->sortable()->toggleable(isToggledHiddenByDefault: true),
@@ -79,11 +83,11 @@ class CenterResource extends Resource
                     ->searchable(),
             ])
             ->actions([
-                ActionGroup::make([
+//                ActionGroup::make([
                     ViewAction::make(),
                     EditAction::make(),
                     DeleteAction::make(),
-                ])->icon('heroicon-m-ellipsis-horizontal'),
+//                ])->icon('heroicon-m-ellipsis-horizontal'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

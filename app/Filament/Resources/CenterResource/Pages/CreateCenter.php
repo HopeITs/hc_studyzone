@@ -8,5 +8,14 @@ use Filament\Resources\Pages\CreateRecord;
 
 class CreateCenter extends CreateRecord
 {
+
     protected static string $resource = CenterResource::class;
+
+    protected function getHeaderActions(): array
+    {
+        return [
+//            Actions\LocaleSwitcher::make(),
+
+        ];
+    }
 }
