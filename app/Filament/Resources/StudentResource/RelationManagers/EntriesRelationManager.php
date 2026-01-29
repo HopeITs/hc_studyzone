@@ -2,8 +2,10 @@
 
 namespace App\Filament\Resources\StudentResource\RelationManagers;
 
+use App\Enums\Roles;
 use App\Models\Center;
 use Filament\Forms;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Form;
 use Filament\Forms\Components\Hidden;
 use Filament\Resources\RelationManagers\RelationManager;
@@ -25,11 +27,27 @@ class EntriesRelationManager extends RelationManager
             Forms\Components\Hidden::make('student_id')->default(fn($livewire) => $livewire->ownerRecord->id),
 //            Forms\Components\Hidden::make('center_id')->default(fn() => Auth::user()->center_id)->required(),
             Forms\Components\Hidden::make('user_id')->default(fn() => Auth::id())->required(),
-            Forms\Components\Select::make('center_id')
+            Select::make('center_id')
                 ->label(__('general.labels.center'))
-                ->options(Center::where('is_active', 1)->get()->pluck('name', 'id'))
-                ->default(fn() => Auth::user()->center_id)
-                ->required(),
+                ->options(function () {
+                    return Center::where('is_active', 1)
+                        ->when(auth()->user()->city_id, fn($query, $cityId) => $query->where('city_id', $cityId))
+                        ->get()
+                        ->mapWithKeys(function ($center) {
+                            // Manually extract the translation based on current app locale
+                            // If 'name' is an array, we pick the current locale or fallback
+                            $locale = app()->getLocale();
+                            $name = is_array($center->name)
+                                ? ($center->name[$locale] ?? ($center->name['ar'] ?? 'No Name'))
+                                : $center->name;
+
+                            return [$center->id => $name];
+                        });
+                })
+                ->default(fn() => auth()->user()->center_id)
+                ->visible(auth()->user()->role !== Roles::CenterAdmin())
+                ->required()
+                ->searchable(),
             Forms\Components\Select::make('entry_type')
                 ->label(__('general.labels.entry_type'))
                 ->options(__('general.entry-types'))

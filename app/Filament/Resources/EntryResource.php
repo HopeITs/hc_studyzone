@@ -9,6 +9,7 @@ use App\Filament\Exports\EntryExporter;
 use App\Filament\Exports\StudentExporter;
 use App\Filament\Resources\EntryResource\Pages;
 use App\Filament\Resources\EntryResource\Widgets\EntryStats;
+use App\Models\Center;
 use App\Models\StudentEntry;
 use Filament\Forms\Components\{Checkbox, DateTimePicker, Fieldset, Placeholder, Select};
 use Filament\Actions\Exports\Enums\ExportFormat;
@@ -64,7 +65,27 @@ class EntryResource extends Resource
             Placeholder::make('student_full_name')
                 ->label('الاسم')
                 ->content(fn($record) => $record?->student ? $record->student->firstname . ' ' . $record->student->father_name . ' ' . $record->student->lastname : '-'),
-            Select::make('center_id')->relationship('center', 'name')->label('المركز')->searchable()->preload()->required(),
+            Select::make('center_id')
+                ->label(__('general.labels.center'))
+                ->options(function () {
+                    return Center::where('is_active', 1)
+                        ->when(auth()->user()->city_id, fn($query, $cityId) => $query->where('city_id', $cityId))
+                        ->get()
+                        ->mapWithKeys(function ($center) {
+                            // Manually extract the translation based on current app locale
+                            // If 'name' is an array, we pick the current locale or fallback
+                            $locale = app()->getLocale();
+                            $name = is_array($center->name)
+                                ? ($center->name[$locale] ?? ($center->name['ar'] ?? 'No Name'))
+                                : $center->name;
+
+                            return [$center->id => $name];
+                        });
+                })
+                ->default(fn() => auth()->user()->center_id)
+                ->visible(auth()->user()->role !== Roles::CenterAdmin())
+                ->required()
+                ->searchable(),
             Select::make('entry_type')->label(__('general.labels.entry_type'))->default(1)->options(__('general.entry-types'))->columnSpan(1)->required(),
             DateTimePicker::make('entry_time')->label(__('general.labels.entry_time'))->default(now())->columnSpan(1)->required(),
             Fieldset::make('Services')

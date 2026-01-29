@@ -406,11 +406,25 @@ class StudentResource extends Resource
                         ->schema([
                             Select::make('center_id')
                                 ->label(__('general.labels.center'))
-                                ->options(Center::where('is_active', 1)->when(auth()->user()->city_id, function ($query, $cityId) {
-                                    return $query->where('city_id', $cityId);
-                                })->pluck('name', 'id'))
-                                ->default(fn() => Auth::user()->center_id)
-                                ->required(),
+                                ->options(function () {
+                                    return Center::where('is_active', 1)
+                                        ->when(auth()->user()->city_id, fn($query, $cityId) => $query->where('city_id', $cityId))
+                                        ->get()
+                                        ->mapWithKeys(function ($center) {
+                                            // Manually extract the translation based on current app locale
+                                            // If 'name' is an array, we pick the current locale or fallback
+                                            $locale = app()->getLocale();
+                                            $name = is_array($center->name)
+                                                ? ($center->name[$locale] ?? ($center->name['ar'] ?? 'No Name'))
+                                                : $center->name;
+
+                                            return [$center->id => $name];
+                                        });
+                                })
+                                ->default(fn() => auth()->user()->center_id)
+                                ->visible(auth()->user()->role !== Roles::CenterAdmin())
+                                ->required()
+                                ->searchable(),
                             Select::make('entry_type')->label(__('general.labels.entry_type'))->default(1)->options(__('general.entry-types'))->columnSpan(1)->required(),
                             DateTimePicker::make('entry_time')->label(__('general.labels.entry_time'))->default(now())->columnSpan(1)->required(),
                     ]) ->columns(3),
@@ -430,7 +444,7 @@ class StudentResource extends Resource
                     fn(array $data, Student $record) => StudentEntry::create([
                         'student_id' => $record->id,
                         'user_id' => Auth::id(),
-                        'center_id' => $data['center_id'],
+                        'center_id' => $data['center_id'] ?? auth()->user()->center_id,
                         'entry_type' => $data['entry_type'],
                         'entry_time' => $data['entry_time'],
                         'use_drawer' => $data['use_drawer'],
