@@ -30,6 +30,13 @@ class DatabaseSeeder extends Seeder
             'city_id' => 2,
             'role' => Roles::CityAdmin
         ]);
+
+        User::factory()->create([
+            'name' => 'Observer',
+            'email' => 'observer@sz.com',
+            'role' => Roles::Observer
+        ]);
+
         $this->call(CenterSeeder::class);
         $this->call(EducationSeeder::class);
         $this->call(StudentSeeder::class);

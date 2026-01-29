@@ -36,63 +36,39 @@ class EducationResource extends Resource
     protected static ?string $pluralModelLabel = 'المؤهلات العلمية';
     protected static ?int $navigationSort = 5;
 
+    public static function canCreate(): bool
+    {
+        return auth()->user()->role === Roles::GeneralAdmin() && auth()->user()->role !== Roles::Observer();
+    }
+
     public static function canViewAny(): bool
     {
-        return auth()->user()->role === Roles::GeneralAdmin();
+        return auth()->user()->role === Roles::GeneralAdmin() || auth()->user()->role === Roles::Observer();
     }
 
     public static function form(Form $form): Form
     {
-        return $form
-            ->schema([
-                TranslatableContainer::make(
-                    Forms\Components\TextInput::make('name')->required(),
-                ),
-                Forms\Components\Select::make('degree')
-                    ->options(__('general.edu-degrees'))
-                    ->required(),
-
-            ]);
+        return $form->schema([TranslatableContainer::make(Forms\Components\TextInput::make('name')->required()), Forms\Components\Select::make('degree')->options(__('general.edu-degrees'))->required()]);
     }
 
     public static function table(Table $table): Table
     {
         return $table
-            ->columns([
-                Tables\Columns\TextColumn::make('name')->sortable()->searchable(),
-                Tables\Columns\TextColumn::make('degree')
-                    ->formatStateUsing(fn($state): string => __("general.edu-degrees." . (is_string($state) ? $state : $state->value)))
-                    ->sortable(),
-            ])
-            ->filters([
-                SelectFilter::make('degree')
-                    ->label('Filter by Degree')
-                    ->options(__('general.edu-degrees'))
-                    ->searchable(),
-            ])
-            ->actions([
-                    EditAction::make(),
-                    DeleteAction::make(),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
-            ]);
+            ->columns([Tables\Columns\TextColumn::make('name')->sortable()->searchable(), Tables\Columns\TextColumn::make('degree')->formatStateUsing(fn($state): string => __('general.edu-degrees.' . (is_string($state) ? $state : $state->value)))->sortable()])
+            ->filters([SelectFilter::make('degree')->label('Filter by Degree')->options(__('general.edu-degrees'))->searchable()])
+            ->actions([ViewAction::make(), EditAction::make()->hidden(fn() => auth()->user()->role === Roles::Observer()), DeleteAction::make()->hidden(fn() => auth()->user()->role === Roles::Observer())])
+            ->bulkActions([Tables\Actions\BulkActionGroup::make([Tables\Actions\DeleteBulkAction::make()->hidden(fn() => auth()->user()->role === Roles::Observer())])->hidden(fn() => auth()->user()->role === Roles::Observer())]);
     }
 
     public static function getRelations(): array
     {
-        return [
-            //
-        ];
+        return [];
     }
 
     public static function getPages(): array
     {
         return [
             'index' => Pages\ListEducation::route('/'),
-
         ];
     }
 }
