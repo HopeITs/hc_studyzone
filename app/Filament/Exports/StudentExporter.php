@@ -32,8 +32,10 @@ class StudentExporter extends Exporter
     {
         $columns = [
             ExportColumn::make('name')
-                ->formatStateUsing(fn(Model $record): string => $record->firstname . ' ' . $record->father_name . ' ' . $record->lastname
+                ->formatStateUsing(fn(Model $record): string => $record->firstname .  ' ' . $record->lastname
                 ),
+            ExportColumn::make('father_name')
+              ,
             ExportColumn::make('national_number')->formatStateUsing(function (Model $record): string {
                 if ($record->nationality?->value === 'syrian') {
                     return $record->national_number ?? 'لا يوجد';

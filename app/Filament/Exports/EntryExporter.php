@@ -33,8 +33,10 @@ class EntryExporter extends Exporter
     {
         $columns = [
             ExportColumn::make('name')
-                ->formatStateUsing(fn(Model $record): string => $record->student->firstname . ' ' . $record->student->father_name . ' ' . $record->student->lastname
+                ->formatStateUsing(fn(Model $record): string => $record->student->firstname . ' ' . $record->student->lastname
                 ),
+            ExportColumn::make('father_name')
+                ,
             ExportColumn::make('mobile')
                 ->formatStateUsing(fn(Model $record): string => $record->student->phone ?? '-'
                 ),
@@ -65,7 +67,7 @@ class EntryExporter extends Exporter
                 ),
             ExportColumn::make('center')
                 ->label('Center')
-                ->formatStateUsing(fn(Model $record): string => optional($record->center)->name ?? '-'
+                ->formatStateUsing(fn(Model $record): string => optional($record->center)->name['ar'] ?? '-'
                 ),
 
             ExportColumn::make('use_printer')->formatStateUsing(fn(string $state): string => $state ? 'نعم' : '-'),
