@@ -100,7 +100,25 @@ class StudentResource extends Resource
                             'digits' => 'يجب إدخال 11 خانة بالضبط للرقم الوطني.',
                         ])
                         ->columnSpan(2),
-                    TextInput::make('national_number')->label(__('general.labels.foreign_id_number'))->required(fn(Get $get) => $get('nationality') === 'other')->visible(fn(Get $get) => $get('nationality') === 'other')->columnSpan(2),
+                    TextInput::make('national_number')->label(__('general.labels.foreign_id_number'))
+                        ->rules([
+                            fn() => function (string $attribute, $value, Closure $fail) use ($record) {
+                                if (empty($value)) {
+                                    return;
+                                }
+                                $student = Student::where('national_number', $value)->first();
+                                if ($student && (!$record || $student->id !== $record->id)) {
+                                    Notification::make()
+                                        ->title("الطالب {$student->firstname} موجود في محافظة {$student->street->city->name}")
+                                        ->danger()
+                                        ->persistent()
+                                        ->actions([NotificationAction::make('view')->button()->label('عرض الطالب')->url(route('filament.admin.resources.students.view', $student), shouldOpenInNewTab: true)])
+                                        ->send();
+                                    $fail("الطالب {$student->firstname} موجود مسبقاً.");
+                                }
+                            },
+                        ])
+                        ->required(fn(Get $get) => $get('nationality') === 'other')->visible(fn(Get $get) => $get('nationality') === 'other')->columnSpan(2),
                     Checkbox::make('is_child')
                         ->label('قاصر')
                         ->default(false)
