@@ -49,7 +49,7 @@ class ActiveCenterEntriesChart extends ChartWidget
         $results = $entries->map(function ($entry) use ($centers) {
             $center = $centers->where('id', $entry->center_id)->first();
             $name = $center
-                ? $center->getTranslation('name', app()->getLocale())
+                ? $center->name[app()->getLocale()]
                 : 'Unnamed Center';
             return [
                 'name' => $name,
