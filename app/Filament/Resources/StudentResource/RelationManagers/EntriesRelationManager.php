@@ -23,10 +23,11 @@ class EntriesRelationManager extends RelationManager
 
     public function form(Form $form): Form
     {
+        $user = Auth::user();
         return $form->schema([
             Forms\Components\Hidden::make('student_id')->default(fn($livewire) => $livewire->ownerRecord->id),
-//            Forms\Components\Hidden::make('center_id')->default(fn() => Auth::user()->center_id)->required(),
-            Forms\Components\Hidden::make('user_id')->default(fn() => Auth::id())->required(),
+            Forms\Components\Hidden::make('center_id')->default(fn() => $user->center_id)->visible($user->role === Roles::CenterAdmin())->required(),
+            Forms\Components\Hidden::make('user_id')->default(fn() => $user->id)->required(),
             Select::make('center_id')
                 ->label(__('general.labels.center'))
                 ->options(function () {
