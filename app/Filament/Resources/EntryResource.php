@@ -83,7 +83,7 @@ class EntryResource extends Resource
                         });
                 })
                 ->default(fn() => auth()->user()->center_id)
-                ->visible(auth()->user()->role !== Roles::CenterAdmin)
+                ->visible(auth()->user()->role !== Roles::CenterAdmin())
                 ->required()
                 ->searchable(),
             Select::make('entry_type')->label(__('general.labels.entry_type'))->default(1)->options(__('general.entry-types'))->columnSpan(1)->required(),
