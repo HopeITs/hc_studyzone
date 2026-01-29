@@ -18,14 +18,16 @@ class Dashboard extends BaseDashboard
     protected static ?string $title = 'احصائيات';
     public function filtersForm(Form $form): Form
     {
+        $userRole = auth()->user()->role;
         return $form
             ->schema([
                 Section::make()
                     ->schema([
-                        Select::make('city')->options(City::pluck('name', 'id'))->multiple()->visible(auth()->user()->role === Roles::GeneralAdmin())->columnSpanFull(),
+                        Select::make('city')->options(City::pluck('name', 'id'))->multiple()
+                            ->visible($userRole === Roles::GeneralAdmin() || $userRole === Roles::Observer())->columnSpanFull(),
                         Select::make('center')
                             ->options(
-                                auth()->user()->role === Roles::GeneralAdmin()
+                                $userRole === Roles::GeneralAdmin() || $userRole === Roles::Observer()
                                     ? Center::orderBy('is_active','desc')->orderBy('order')->pluck('name', 'id')
                                     : Center::where('city_id', auth()->user()->city_id)->orderBy('order')->orderBy('is_active','desc')->pluck('name', 'id')
                             )
