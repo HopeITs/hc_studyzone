@@ -73,23 +73,16 @@ class StudentResource extends Resource
                         })
                         ->columnSpan(1),
                     TextInput::make('national_number')
-                        // 1. Dynamic Label
                         ->label(fn (Get $get) => $get('nationality') === 'syrian'
                             ? __('general.labels.national_number')
                             : __('general.labels.foreign_id_number')
                         )
-                        // 2. Visibility & State Management
                         ->required(fn (Get $get) => !$get('is_child'))
                         ->disabled(fn (Get $get) => $get('is_child'))
                         ->numeric(fn (Get $get) => $get('nationality') === 'syrian')
-                        ->live() // Ensures the UI updates when dependencies change
-
-                        // 3. Dynamic Rules
+                        ->live()
                         ->rules([
-                            // Apply 11 digits only if Syrian
                             fn (Get $get): string => $get('nationality') === 'syrian' ? 'digits:11' : '',
-
-                            // Custom Unique Check
                             fn (Get $get) => function (string $attribute, $value, Closure $fail) use ($get, $record) {
                                 if (empty($value)) return;
 
@@ -127,7 +120,7 @@ class StudentResource extends Resource
                             }
                         }),
                     Select::make('gender')->label(__('general.labels.gender'))->options(__('general.genders'))->required()->columnSpan(1),
-                    Select::make('religion')->label(__('general.labels.religion'))->options(__('general.religions'))->default(0)->columnSpan(1),
+                    Select::make('religion')->label(__('general.labels.religion'))->options(__('general.religions'))->default(0)->columnSpan(1)->required(),
                     DatePicker::make('year_of_birth')->label(__('general.labels.date_of_birth'))->columnSpan(1),
                     Toggle::make('is_student')->label(__('general.labels.is_student'))->columnSpan(1),
                     Toggle::make('is_employed')->label(__('general.labels.is_employed'))->columnSpan(1),
@@ -156,8 +149,28 @@ class StudentResource extends Resource
                             }
                             return Street::where('city_id', $cityId)->pluck('name', 'id');
                         }),
-                    TextInput::make('phone')->label(__('general.labels.phone'))->required(),
-                    TextInput::make('whatsapp')->label(__('general.labels.whatsapp')),
+                    TextInput::make('phone')
+                        ->label(__('general.labels.phone'))
+                        ->required()
+                        ->rules([
+                            fn (Get $get) => function (string $attribute, $value, Closure $fail) use ($get) {
+                                if ($get('nationality') === 'syrian' && !preg_match('/^09\d{8}$/', $value)) {
+                                    $fail('رقم الهاتف السوري يجب أن يبدأ بالرقم 09 ويحتوي على 10 أرقام.');
+                                }
+                            },
+                        ])
+                        ->validationMessages([
+                            'required' => 'رقم الهاتف مطلوب.',
+                        ]),
+                    TextInput::make('whatsapp')
+                        ->label(__('general.labels.whatsapp'))
+                        ->rules([
+                            fn (Get $get) => function (string $attribute, $value, Closure $fail) use ($get) {
+                                if ($value && $get('nationality') === 'syrian' && !preg_match('/^09\d{8}$/', $value)) {
+                                    $fail('رقم الواتساب السوري يجب أن يبدأ بالرقم 09 ويحتوي على 10 أرقام.');
+                                }
+                            },
+                        ]),
                     TextInput::make('email')->label(__('general.labels.email'))->unique(ignoreRecord: true),
                     TextInput::make('address')->label(__('general.labels.address'))->maxLength(255),
                 ],
@@ -411,8 +424,6 @@ class StudentResource extends Resource
                                         ->when(auth()->user()->city_id, fn($query, $cityId) => $query->where('city_id', $cityId))
                                         ->get()
                                         ->mapWithKeys(function ($center) {
-                                            // Manually extract the translation based on current app locale
-                                            // If 'name' is an array, we pick the current locale or fallback
                                             $locale = app()->getLocale();
                                             $name = is_array($center->name)
                                                 ? ($center->name[$locale] ?? ($center->name['ar'] ?? 'No Name'))
@@ -441,17 +452,28 @@ class StudentResource extends Resource
                 ->modalHeading(__('general.labels.record_student_entry'))
                 ->modalButton(__('general.labels.save_entry'))
                 ->action(
-                    fn(array $data, Student $record) => StudentEntry::create([
-                        'student_id' => $record->id,
-                        'user_id' => Auth::id(),
-                        'center_id' => $data['center_id'] ?? auth()->user()->center_id,
-                        'entry_type' => $data['entry_type'],
-                        'entry_time' => $data['entry_time'],
-                        'use_drawer' => $data['use_drawer'],
-                        'use_printer' => $data['use_printer'],
-                        'use_mecrator' => $data['use_mecrator'],
-                        'use_plotter' => $data['use_plotter'],
-                    ]),
+                    function(array $data, Student $record) {
+                        if (!$record->canHaveEntry()) {
+                            Notification::make()
+                                ->title('لا يمكن إدخال بيانات الطالب')
+                                ->danger()
+                                ->body($record->getEntryValidationErrors())
+                                ->send();
+                            return;
+                        }
+
+                        StudentEntry::create([
+                            'student_id' => $record->id,
+                            'user_id' => Auth::id(),
+                            'center_id' => $data['center_id'] ?? auth()->user()->center_id,
+                            'entry_type' => $data['entry_type'],
+                            'entry_time' => $data['entry_time'],
+                            'use_drawer' => $data['use_drawer'],
+                            'use_printer' => $data['use_printer'],
+                            'use_mecrator' => $data['use_mecrator'],
+                            'use_plotter' => $data['use_plotter'],
+                        ]);
+                    },
                 )
                 ->successNotificationTitle(__('general.labels.entry_recorded_successfully'))
                 ->hidden($isObserver),
@@ -486,16 +508,21 @@ class StudentResource extends Resource
 
     public static function canCreate(): bool
     {
-        return auth()->user()->role === Roles::CenterAdmin() && auth()->user()->role !== Roles::Observer();
+        return (auth()->user()->role === Roles::CenterAdmin() ||
+                auth()->user()->role === Roles::GeneralAdmin()) &&
+               auth()->user()->role !== Roles::Observer();
     }
 
     public static function canEdit(Model $record): bool
     {
-        return auth()->user()->role !== Roles::MealAdmin() && auth()->user()->role !== Roles::Observer();
+        return auth()->user()->role !== Roles::MealAdmin() &&
+               auth()->user()->role !== Roles::Observer();
     }
 
     public static function canDelete(Model $record): bool
     {
-        return auth()->user()->role === Roles::CenterAdmin() && auth()->user()->role !== Roles::Observer();
+        return (auth()->user()->role === Roles::CenterAdmin() ||
+                auth()->user()->role === Roles::GeneralAdmin()) &&
+               auth()->user()->role !== Roles::Observer();
     }
 }

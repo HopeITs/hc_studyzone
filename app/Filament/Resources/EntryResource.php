@@ -72,8 +72,6 @@ class EntryResource extends Resource
                         ->when(auth()->user()->city_id, fn($query, $cityId) => $query->where('city_id', $cityId))
                         ->get()
                         ->mapWithKeys(function ($center) {
-                            // Manually extract the translation based on current app locale
-                            // If 'name' is an array, we pick the current locale or fallback
                             $locale = app()->getLocale();
                             $name = is_array($center->name)
                                 ? ($center->name[$locale] ?? ($center->name['ar'] ?? 'No Name'))
@@ -190,6 +188,22 @@ class EntryResource extends Resource
                     ->disabled($isObserver || $isMealAdmin)
                     ->label('بلوتر')
                     ->sortable(),
+                TextColumn::make('student.data_status')
+                    ->label('حالة البيانات')
+                    ->badge()
+                    ->color(fn($state) => $state === 'مكتمل' ? 'success' : 'danger')
+                    ->formatStateUsing(function ($record) {
+                        if ($record->student->canHaveEntry()) {
+                            return 'مكتمل';
+                        }
+                        return 'ناقص';
+                    })
+                    ->tooltip(function ($record) {
+                        if (!$record->student->canHaveEntry()) {
+                            return $record->student->getValidationSummary();
+                        }
+                        return null;
+                    }),
             ])
             ->filtersLayout(FiltersLayout::Modal)
             ->filtersFormColumns(4)
@@ -321,7 +335,17 @@ class EntryResource extends Resource
                     ->color('info')
                     ->icon('heroicon-o-user')
                     ->url(fn(Model $record) => \App\Filament\Resources\StudentResource::getUrl('view', ['record' => $record->student_id])),
-                Tables\Actions\EditAction::make()->hidden(fn() => auth()->user()->role === Roles::Observer()),
+                Tables\Actions\EditAction::make()
+                    ->hidden(fn() => auth()->user()->role === Roles::Observer())
+                    ->disabled(function ($record) {
+                        return !$record->student->canHaveEntry();
+                    })
+                    ->tooltip(function ($record) {
+                        if (!$record->student->canHaveEntry()) {
+                            return 'لا يمكن التعديل: ' . $record->student->getValidationSummary();
+                        }
+                        return null;
+                    }),
                 Tables\Actions\DeleteAction::make()->hidden(fn() => auth()->user()->role === Roles::Observer())
             ])
             ->bulkActions([
