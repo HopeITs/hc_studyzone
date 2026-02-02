@@ -224,7 +224,7 @@ class EntryResource extends Resource
                     ->preload(),
                 SelectFilter::make('center.name')
                     ->label('المركز')
-//                    ->relationship('center', 'name')
+
                     ->options(function () {
                         return Center::orderBy('order')
                             ->get()
