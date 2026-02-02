@@ -222,7 +222,7 @@ class EntryResource extends Resource
 
                     ->multiple()
                     ->preload(),
-                SelectFilter::make('center.name')
+                SelectFilter::make('center_id')
                     ->label('المركز')
 
                     ->options(function () {
