@@ -30,21 +30,7 @@ class EntriesRelationManager extends RelationManager
             Forms\Components\Hidden::make('user_id')->default(fn() => $user->id)->required(),
             Select::make('center_id')
                 ->label(__('general.labels.center'))
-                ->options(function () {
-                    return Center::where('is_active', 1)
-                        ->when(auth()->user()->city_id, fn($query, $cityId) => $query->where('city_id', $cityId))
-                        ->get()
-                        ->mapWithKeys(function ($center) {
-                            // Manually extract the translation based on current app locale
-                            // If 'name' is an array, we pick the current locale or fallback
-                            $locale = app()->getLocale();
-                            $name = is_array($center->name)
-                                ? ($center->name[$locale] ?? ($center->name['ar'] ?? 'No Name'))
-                                : $center->name;
-
-                            return [$center->id => $name];
-                        });
-                })
+                ->options(Center::where('is_active', 1)->orderBy('order')->get()->pluck('name', 'id'))
                 ->default(fn() => auth()->user()->center_id)
                 ->visible(auth()->user()->role !== Roles::CenterAdmin())
                 ->required()

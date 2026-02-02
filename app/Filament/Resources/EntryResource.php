@@ -70,17 +70,7 @@ class EntryResource extends Resource
                 ->options(function () {
                     return Center::where('is_active', 1)
                         ->when(auth()->user()->city_id, fn($query, $cityId) => $query->where('city_id', $cityId))
-                        ->get()
-                        ->mapWithKeys(function ($center) {
-                            // Manually extract the translation based on current app locale
-                            // If 'name' is an array, we pick the current locale or fallback
-                            $locale = app()->getLocale();
-                            $name = is_array($center->name)
-                                ? ($center->name[$locale] ?? ($center->name['ar'] ?? 'No Name'))
-                                : $center->name;
-
-                            return [$center->id => $name];
-                        });
+                        ->pluck('name', 'id');
                 })
                 ->default(fn() => auth()->user()->center_id)
                 ->visible(auth()->user()->role !== Roles::CenterAdmin())
@@ -169,7 +159,7 @@ class EntryResource extends Resource
                     ->sortable()
                     ->visible(auth()->user()->role === Roles::GeneralAdmin())
                     ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('center.name.'.app()->getLocale())
+                TextColumn::make('center.name')
                     ->label('المركز')
                     ->sortable()
                     ->hidden(auth()->user()->role === Roles::CenterAdmin())
@@ -219,29 +209,13 @@ class EntryResource extends Resource
                     ->searchable()
                     ->columnSpan(2)
                     ->visible(auth()->user()->role === Roles::GeneralAdmin())
-
                     ->multiple()
                     ->preload(),
                 SelectFilter::make('center_id')
                     ->label('المركز')
-
-                    ->options(function () {
-                        return Center::orderBy('order')
-                            ->get()
-                            ->mapWithKeys(function ($center) {
-
-                                $locale = app()->getLocale();
-
-                                $name =
-                                    is_array($center->name)
-                                    ? ($center->name[$locale] ?? ($center->name['ar'] ?? 'No Name'))
-                                    : $center->name;
-
-                                return [$center->id => $name];
-                            });
-                    })
+                    ->relationship('center', 'name')
                     ->searchable()
-                    ->columnSpan(auth()->user()->role === Roles::GeneralAdmin() ? 2: 4)
+                    ->columnSpan(auth()->user()->role === Roles::GeneralAdmin() ? 2 : 4)
                     ->hidden(auth()->user()->role === Roles::CenterAdmin())
                     ->multiple()
                     ->preload(),
@@ -251,15 +225,14 @@ class EntryResource extends Resource
                     ->placeholder('الكل')
                     ->trueLabel('يوجد')
                     ->falseLabel('لا يوجد')
-
                     ->queries(
-                        true: fn (Builder $query) => $query->whereHas('student' , function ($query){
+                        true: fn(Builder $query) => $query->whereHas('student', function ($query) {
                             $query->whereNotNull('national_number');
                         }),
-                        false: fn (Builder $query) => $query->whereHas('student' , function ($query){
+                        false: fn(Builder $query) => $query->whereHas('student', function ($query) {
                             $query->whereNull('national_number');
                         }),
-                        blank: fn (Builder $query) => $query,
+                        blank: fn(Builder $query) => $query,
                     ),
                 SelectFilter::make('student.gender')
                     ->label('الجنس')
@@ -268,7 +241,7 @@ class EntryResource extends Resource
                     ->query(function (Builder $query, array $data): Builder {
                         if (array_key_exists('value', $data) && $data['value'] !== null && $data['value'] !== '') {
                             return $query->whereHas('student', function (Builder $studentQuery) use ($data) {
-                                $studentQuery->where('gender', (int) $data['value']);
+                                $studentQuery->where('gender', (int)$data['value']);
                             });
                         }
                         return $query;
@@ -281,7 +254,7 @@ class EntryResource extends Resource
                     ->query(function (Builder $query, array $data): Builder {
                         if (array_key_exists('value', $data) && $data['value'] !== null && $data['value'] !== '') {
                             return $query->whereHas('student', function (Builder $studentQuery) use ($data) {
-                                $studentQuery->where('religion', (int) $data['value']);
+                                $studentQuery->where('religion', (int)$data['value']);
                             });
                         }
                         return $query;
@@ -294,9 +267,9 @@ class EntryResource extends Resource
                     ->trueLabel('مفعّل')
                     ->falseLabel('غير مفعّل')
                     ->queries(
-                        true: fn (Builder $query) => $query->where('use_printer', true),
-                        false: fn (Builder $query) => $query->where('use_printer', false),
-                        blank: fn (Builder $query) => $query,
+                        true: fn(Builder $query) => $query->where('use_printer', true),
+                        false: fn(Builder $query) => $query->where('use_printer', false),
+                        blank: fn(Builder $query) => $query,
                     ),
                 TernaryFilter::make('use_mecrator')
                     ->label(__('general.labels.mecrator-service'))
@@ -304,9 +277,9 @@ class EntryResource extends Resource
                     ->trueLabel('مفعّل')
                     ->falseLabel('غير مفعّل')
                     ->queries(
-                        true: fn (Builder $query) => $query->where('use_mecrator', true),
-                        false: fn (Builder $query) => $query->where('use_mecrator', false),
-                        blank: fn (Builder $query) => $query,
+                        true: fn(Builder $query) => $query->where('use_mecrator', true),
+                        false: fn(Builder $query) => $query->where('use_mecrator', false),
+                        blank: fn(Builder $query) => $query,
                     ),
                 TernaryFilter::make('use_drawer')
                     ->label(__('general.labels.drawer-service'))
@@ -314,9 +287,9 @@ class EntryResource extends Resource
                     ->trueLabel('مفعّل')
                     ->falseLabel('غير مفعّل')
                     ->queries(
-                        true: fn (Builder $query) => $query->where('use_drawer', true),
-                        false: fn (Builder $query) => $query->where('use_drawer', false),
-                        blank: fn (Builder $query) => $query,
+                        true: fn(Builder $query) => $query->where('use_drawer', true),
+                        false: fn(Builder $query) => $query->where('use_drawer', false),
+                        blank: fn(Builder $query) => $query,
                     ),
                 TernaryFilter::make('use_plotter')
                     ->label(__('general.labels.plotter-service'))
@@ -324,9 +297,9 @@ class EntryResource extends Resource
                     ->trueLabel('مفعّل')
                     ->falseLabel('غير مفعّل')
                     ->queries(
-                        true: fn (Builder $query) => $query->where('use_plotter', true),
-                        false: fn (Builder $query) => $query->where('use_plotter', false),
-                        blank: fn (Builder $query) => $query,
+                        true: fn(Builder $query) => $query->where('use_plotter', true),
+                        false: fn(Builder $query) => $query->where('use_plotter', false),
+                        blank: fn(Builder $query) => $query,
                     ),
             ])
             ->filtersTriggerAction(fn(Action $action) => $action->button()->label('فلتر'))

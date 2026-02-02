@@ -71,7 +71,7 @@ class CenterResource extends Resource
         return $table
             ->modifyQueryUsing(fn(Builder $query) => $query->orderByDesc('is_active')->orderBy('order')->orderBy('city_id'))
             ->columns([
-                TextColumn::make('name.'.app()->getLocale())->sortable()->searchable(),
+                TextColumn::make('name')->sortable()->searchable(),
                 TextColumn::make('city.name')->sortable()->searchable(),
                 TextColumn::make('order')->sortable(),
                 TextColumn::make('phone'),

@@ -53,7 +53,7 @@ class ActiveDaysByCenter extends Widget
 // Pivot rows
         $data = [];
         $current = $startDate->copy()->startOfMonth();
-        $locale = app()->getLocale();
+
         while ($current <= $endDate) {
             $monthKey = $current->format('M Y');
             $row = ['month' => $monthKey];
@@ -67,7 +67,7 @@ class ActiveDaysByCenter extends Widget
 
 
                 // Access 'active_days_count' (the alias we defined in the query)
-                $row[$center->name[$locale]] = $match ? (int)$match->active_days_count : 0;
+                $row[$center->name] = $match ? (int)$match->active_days_count : 0;
             }
 
             $data[] = $row;

@@ -47,7 +47,7 @@
                         @foreach ($centers as  $center)
                             <option
                                 value="{{ $center->id }}" {{ $center->id == Auth::user()->center_id ? 'selected' : '' }}>
-                                {{ $center->name[app()->getLocale()] }}
+                                {{ $center->name }}
                             </option>
                         @endforeach
                     </select>

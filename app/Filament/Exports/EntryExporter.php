@@ -33,19 +33,25 @@ class EntryExporter extends Exporter
     {
         $columns = [
             ExportColumn::make('name')
-                ->formatStateUsing(fn(Model $record): string => $record->student->firstname . ' ' . $record->student->lastname),
+                ->formatStateUsing(fn(Model $record): string => $record->student->firstname . ' ' .$record->student->father_name  .' '. $record->student->lastname),
             ExportColumn::make('father_name')
                 ->formatStateUsing(fn(Model $record): string => $record->student->father_name ?? '-'),
+
             ExportColumn::make('mobile')
-                ->formatStateUsing(fn(Model $record): string => $record->student->phone ?? '-'),
+                ->formatStateUsing(fn(Model $record): string => $record->student->phone ?? '-'
+                ),
             ExportColumn::make('whatsapp')
-                ->formatStateUsing(fn(Model $record): string => $record->student->whatsapp ?? '-'),
+                ->formatStateUsing(fn(Model $record): string => $record->student->whatsapp ?? '-'
+                ),
             ExportColumn::make('national_number')
                 ->formatStateUsing(function (Model $record): string {
+                    if ($record->student->nationality?->value === 'syrian') {
                         return $record->student->national_number ?? 'لا يوجد';
+                    }
+                    return $record->student->foreign_id_number ?? 'لا يوجد';
                 }),
             ExportColumn::make('religion')
-                ->formatStateUsing(fn(Model $record): string => __("general.religions.{$record->student->religion}") ?? '-'
+                ->formatStateUsing(fn(Model $record): string =>  __("general.religions.{$record->student->religion}") ?? '-'
                 ),
             ExportColumn::make('entry_type')
                 ->formatStateUsing(fn(string $state): string => __("general.entry-types.{$state}")
@@ -53,8 +59,7 @@ class EntryExporter extends Exporter
             ExportColumn::make('educations')
                 ->label('Education')
                 ->formatStateUsing(function ($record) {
-                    return $record->student->educations->take(3)->pluck('name')->implode(', ');
-                }),
+                    return $record->student->educations->take(3)->pluck('name')->implode(', ');}),
 
             ExportColumn::make('city')
                 ->label('City')
@@ -62,7 +67,7 @@ class EntryExporter extends Exporter
                 ),
             ExportColumn::make('center')
                 ->label('Center')
-                ->formatStateUsing(fn(Model $record): string => optional($record->center)->name['ar'] ?? '-'
+                ->formatStateUsing(fn(Model $record): string => optional($record->center)->name ?? '-'
                 ),
 
             ExportColumn::make('use_printer')->formatStateUsing(fn(string $state): string => $state ? 'نعم' : '-'),
@@ -71,6 +76,7 @@ class EntryExporter extends Exporter
             ExportColumn::make('entry_time'),
 
         ];
+
 
 
         return $columns;

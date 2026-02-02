@@ -54,14 +54,13 @@ class EntriesByCenterTable extends Widget
         // pivot rows
         $data = [];
         $current = $startDate->copy();
-        $locale = app()->getLocale();
         while ($current <= $endDate) {
             $row = ['month' => $current->format('M Y')];
             foreach ($centers as $center) {
                 $match = $center->entries->first(fn($r) => $r->year == $current->year &&
                     $r->month == $current->month
                 );
-                $row[$center->name[$locale]] = $match?->total ?? 0;
+                $row[$center->name] = $match?->total ?? 0;
             }
             $data[] = $row;
             $current->addMonth();

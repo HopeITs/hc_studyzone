@@ -75,80 +75,30 @@ class Reports extends Page
                                 $cityId = $get('city_id') ;
                                 if ($user->role === Roles::CityAdmin()) {
                                     return Center::where('city_id', $user->city_id)->orderBy('order')
-                                        ->get()
-                                        ->mapWithKeys(function ($center) {
+                                        ->pluck('name', 'id');
 
-                                            $locale = app()->getLocale();
-
-                                            $name =
-                                                is_array($center->name)
-                                                    ? ($center->name[$locale] ?? ($center->name['ar'] ?? 'No Name'))
-                                                    : $center->name;
-
-                                            return [$center->id => $name];
-                                        });
                                 }
 
                                 if ($user->role === Roles::CenterAdmin()) {
                                     return Center::where('id', $user->center_id)->orderBy('order')
-                                        ->get()
-                                        ->mapWithKeys(function ($center) {
+                                        ->pluck('name', 'id');
 
-                                            $locale = app()->getLocale();
-
-                                            $name =
-                                                is_array($center->name)
-                                                    ? ($center->name[$locale] ?? ($center->name['ar'] ?? 'No Name'))
-                                                    : $center->name;
-
-                                            return [$center->id => $name];
-                                        });
                                 }
                                 if ($user->role === Roles::MealAdmin()) {
                                     return Center::where('city_id', $user->city_id)->orderBy('order')
-                                        ->get()
-                                        ->mapWithKeys(function ($center) {
+                                        ->pluck('name', 'id');
 
-                                            $locale = app()->getLocale();
-
-                                            $name =
-                                                is_array($center->name)
-                                                    ? ($center->name[$locale] ?? ($center->name['ar'] ?? 'No Name'))
-                                                    : $center->name;
-
-                                            return [$center->id => $name];
-                                        });
                                 }
 
                                 if ($cityId) {
                                     return Center::where('city_id', $cityId)->orderBy('order')
-                                        ->get()
-                                        ->mapWithKeys(function ($center) {
+                                        ->pluck('name', 'id');
 
-                                            $locale = app()->getLocale();
-
-                                            $name =
-                                                is_array($center->name)
-                                                    ? ($center->name[$locale] ?? ($center->name['ar'] ?? 'No Name'))
-                                                    : $center->name;
-
-                                            return [$center->id => $name];
-                                        });
                                 }
 
                                 return Center::orderBy('order')
-                                    ->get()
-                                    ->mapWithKeys(function ($center) {
+                                    ->pluck('name', 'id');
 
-                                        $locale = app()->getLocale();
-
-                                        $name =
-                                            is_array($center->name)
-                                                ? ($center->name[$locale] ?? ($center->name['ar'] ?? 'No Name'))
-                                                : $center->name;
-
-                                        return [$center->id => $name];
-                                    });;
                             })
                             ->multiple()
                             ->searchable()
