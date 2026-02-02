@@ -169,7 +169,7 @@ class EntryResource extends Resource
                     ->sortable()
                     ->visible(auth()->user()->role === Roles::GeneralAdmin())
                     ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('center.name')
+                TextColumn::make('center.name.'.app()->getLocale())
                     ->label('المركز')
                     ->sortable()
                     ->hidden(auth()->user()->role === Roles::CenterAdmin())
@@ -222,9 +222,24 @@ class EntryResource extends Resource
 
                     ->multiple()
                     ->preload(),
-                SelectFilter::make('center_id')
+                SelectFilter::make('center.name')
                     ->label('المركز')
-                    ->relationship('center', 'name')
+//                    ->relationship('center', 'name')
+                    ->options(function () {
+                        return Center::orderBy('order')
+                            ->get()
+                            ->mapWithKeys(function ($center) {
+
+                                $locale = app()->getLocale();
+
+                                $name =
+                                    is_array($center->name)
+                                    ? ($center->name[$locale] ?? ($center->name['ar'] ?? 'No Name'))
+                                    : $center->name;
+
+                                return [$center->id => $name];
+                            });
+                    })
                     ->searchable()
                     ->columnSpan(auth()->user()->role === Roles::GeneralAdmin() ? 2: 4)
                     ->hidden(auth()->user()->role === Roles::CenterAdmin())
