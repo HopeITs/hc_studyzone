@@ -41,9 +41,20 @@ Route::group(['middleware' => ['auth']], function () {
         $endDate = \Carbon\Carbon::parse($to)->endOfDay();
         return Excel::download(
             new \App\Exports\EntriesByCenterExport($startDate, $endDate),
-            'entries.xlsx'
+            'entries-per-month.xlsx'
         );
     })->name('test-export');
+
+    Route::get('/active-days-export/{from}/{to}', function ($from, $to) {
+
+        $startDate = \Carbon\Carbon::parse($from)->startOfDay();
+        $endDate = \Carbon\Carbon::parse($to)->endOfDay();
+        return Excel::download(
+            new \App\Exports\ActiveDaysPerCenterExport($startDate, $endDate),
+            'active-days-per-month.xlsx'
+        );
+    })->name('active-days-export');
+
     Route::get('/export-entries', function () {
         return Excel::download(new EntriesByCenterExport(now()->startOfYear(), now()->endOfMonth()), 'entries_by_center.xlsx');
     });
