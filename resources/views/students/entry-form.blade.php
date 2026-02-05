@@ -18,19 +18,47 @@
         </h2>
 
         @if (session('success'))
-            <div class="mb-6 text-sm font-medium text-green-600">
+            <div class="mb-6 p-3 bg-green-100 border border-green-400 text-green-700 rounded">
                 {{ session('success') }}
             </div>
         @endif
-        @if($errors->any())
-            <ul class="mb-6 text-sm font-medium text-red-600">
-                @foreach($errors as $error)
-                    <li>{{$error}}</li>
-                @endforeach
 
+        <!-- Add this error display -->
+        @if (session('error'))
+            <div class="mb-6 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+                {{ session('error') }}
+            </div>
+        @endif
+
+        @if($errors->any())
+            <ul class="mb-6 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+                @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
             </ul>
         @endif
 
+        <!-- Add this check to disable form when data is incomplete -->
+        @if (!$student->completed_data)
+            <div class="mb-6 p-4 bg-yellow-100 border border-yellow-400 text-yellow-700 rounded">
+                <p class="font-bold">⚠️ بيانات الطالب غير مكتملة</p>
+                <p class="mt-2">لا يمكن تسجيل دخولية حتى يتم إكمال البيانات التالية:</p>
+                <ul class="mt-2 list-disc list-inside">
+                    @foreach ($student->getEntryValidationErrors() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+                <div class="mt-4">
+                    <a href="{{ route('filament.admin.resources.students.edit', $student) }}"
+                       class="inline-flex items-center px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-md hover:bg-amber-700">
+                        ✏️ تعديل بيانات الطالب
+                    </a>
+                </div>
+            </div>
+        @endif
+
+        <!-- Wrap form in condition to hide when data is incomplete -->
+        @if ($student->completed_data)
         <form method="POST" action="{{ route('student.entry.store', $student->id) }}">
             @csrf
             <input type="hidden" name="user_id" value="{{ Auth::id() }}">
@@ -117,6 +145,7 @@
         </form>
 
         <div id="scanner" class="w-full h-64 bg-gray-100 rounded-lg mt-6"></div>
+        @endif
     </div>
 </div>
 

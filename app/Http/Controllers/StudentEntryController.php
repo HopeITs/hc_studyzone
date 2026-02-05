@@ -13,6 +13,13 @@ class StudentEntryController extends Controller
     public function showEntryForm(string $uuid)
     {
         $student = Student::findOrFail($uuid);
+
+        // Add this check
+        if (!$student->completed_data) {
+            return redirect()->back()
+                ->with('error', '❌ لا يمكن إضافة دخولية: بيانات الطالب غير مكتملة. الرجاء مراجعة البيانات المطلوبة أولاً.');
+        }
+
         $entryTypes = collect(__('general.entry-types'))->toArray();
         $centers = Center::where('is_active',true)->orderBy('order')->get();
         return view('students.entry-form', compact('student', 'entryTypes', 'centers'));
@@ -20,8 +27,13 @@ class StudentEntryController extends Controller
 
     public function store(Request $request, string $uuid)
     {
-
         $student = Student::findOrFail($uuid);
+
+        // Add this check
+        if (!$student->completed_data) {
+            return redirect()->back()
+                ->with('error', '❌ لا يمكن إضافة دخولية: بيانات الطالب غير مكتملة.');
+        }
 
         $validated = $request->validate([
 
