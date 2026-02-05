@@ -23,7 +23,6 @@
             </div>
         @endif
 
-        <!-- Add this error display -->
         @if (session('error'))
             <div class="mb-6 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
                 {{ session('error') }}
@@ -38,7 +37,6 @@
             </ul>
         @endif
 
-        <!-- Add this check to disable form when data is incomplete -->
         @if (!$student->completed_data)
             <div class="mb-6 p-4 bg-yellow-100 border border-yellow-400 text-yellow-700 rounded">
                 <p class="font-bold">⚠️ بيانات الطالب غير مكتملة</p>
@@ -57,7 +55,6 @@
             </div>
         @endif
 
-        <!-- Wrap form in condition to hide when data is incomplete -->
         @if ($student->completed_data)
         <form method="POST" action="{{ route('student.entry.store', $student->id) }}">
             @csrf
