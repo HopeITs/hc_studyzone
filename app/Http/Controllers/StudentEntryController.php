@@ -14,7 +14,6 @@ class StudentEntryController extends Controller
     {
         $student = Student::findOrFail($uuid);
 
-        // Add this check
         if (!$student->completed_data) {
             return redirect()->back()
                 ->with('error', '❌ لا يمكن إضافة دخولية: بيانات الطالب غير مكتملة. الرجاء مراجعة البيانات المطلوبة أولاً.');
@@ -29,7 +28,6 @@ class StudentEntryController extends Controller
     {
         $student = Student::findOrFail($uuid);
 
-        // Add this check
         if (!$student->completed_data) {
             return redirect()->back()
                 ->with('error', '❌ لا يمكن إضافة دخولية: بيانات الطالب غير مكتملة.');
