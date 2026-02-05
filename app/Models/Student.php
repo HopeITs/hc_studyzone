@@ -26,7 +26,17 @@ class Student extends Model implements HasName
         'nationality' => Nationality::class,
         'national_number' => 'string',
         'foreign_id_number' => 'string',
+        'completed_data' => 'boolean',
     ];
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::saving(function (Student $student) {
+            $student->completed_data = empty($student->getEntryValidationErrors());
+        });
+    }
 
     public function entries(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
@@ -62,24 +72,21 @@ class Student extends Model implements HasName
 
     public function canHaveEntry(): bool
     {
-        return empty($this->getEntryValidationErrors());
+        return $this->completed_data;
     }
 
     public function getEntryValidationErrors(): array
     {
         $errors = [];
 
-        // 1. Check full name
         if (empty($this->firstname) || empty($this->father_name) || empty($this->lastname)) {
             $errors[] = 'الاسم الثلاثي غير مكتمل (الاسم الأول، اسم الأب، العائلة)';
         }
 
-        // 2. Check religion
         if (empty($this->religion) || $this->religion === 0) {
             $errors[] = 'الديانة غير محددة';
         }
 
-        // 3. Check national number for non-minor Syrians
         if ($this->nationality === 'syrian' && empty($this->is_child)) {
             if (empty($this->national_number)) {
                 $errors[] = 'الرقم الوطني مطلوب للطلاب السوريين غير القاصرين';
@@ -88,7 +95,6 @@ class Student extends Model implements HasName
             }
         }
 
-        // 4. Check phone number for Syrians
         if ($this->nationality === 'syrian') {
             if (empty($this->phone)) {
                 $errors[] = 'رقم الهاتف مطلوب للطلاب السوريين';
@@ -96,26 +102,21 @@ class Student extends Model implements HasName
                 $errors[] = 'رقم الهاتف السوري يجب أن يبدأ بالرقم 9 ويحتوي على 10 أرقام';
             }
 
-            // Check WhatsApp if provided (for Syrians)
             if (!empty($this->whatsapp) && !preg_match('/^9\d{9}$/', $this->whatsapp)) {
                 $errors[] = 'رقم الواتساب السوري يجب أن يبدأ بالرقم 9 ويحتوي على 10 أرقام';
             }
         }
 
-        // 5. For foreigners with WhatsApp, validate format (flexible)
         if ($this->nationality === 'other' && !empty($this->whatsapp)) {
-            // For foreigners, WhatsApp can be any format but must be valid
             if (!preg_match('/^[0-9+\-\s()]+$/', $this->whatsapp)) {
                 $errors[] = 'رقم الواتساب الأجنبي غير صحيح';
             }
         }
 
-        // 6. Check foreign ID number for non-Syrians
         if ($this->nationality === 'other' && empty($this->national_number) && empty($this->is_child)) {
             $errors[] = 'رقم الإقامة/الهوية الأجنبية مطلوب للطلاب غير السوريين غير القاصرين';
         }
 
-        // 7. Check street (address)
         if (empty($this->street_id)) {
             $errors[] = 'الشارع غير محدد';
         }
@@ -135,6 +136,12 @@ class Student extends Model implements HasName
 
     public function isDataComplete(): bool
     {
-        return $this->canHaveEntry();
+        return $this->completed_data;
+    }
+
+    public function updateCompletedData(): void
+    {
+        $this->completed_data = empty($this->getEntryValidationErrors());
+        $this->saveQuietly();
     }
 }

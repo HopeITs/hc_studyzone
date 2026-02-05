@@ -16,7 +16,7 @@ use Filament\Actions\Exports\Enums\ExportFormat;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
-use Filament\Tables\Columns\{CheckboxColumn, TextColumn};
+use Filament\Tables\Columns\{CheckboxColumn, IconColumn, TextColumn};
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Actions\ExportBulkAction;
 use Filament\Tables\Actions\ViewAction;
@@ -115,6 +115,15 @@ class EntryResource extends Resource
                         });
                     },
                 ),
+                IconColumn::make('student.completed_data')
+                    ->label('حالة البيانات')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-check-circle')
+                    ->falseIcon('heroicon-o-x-circle')
+                    ->trueColor('success')
+                    ->falseColor('danger')
+                    ->sortable()
+                    ->tooltip(fn($record) => $record->student->completed_data ? 'البيانات مكتملة' : 'البيانات غير مكتملة'),
                 TextColumn::make('student.national_number')
                     ->label('الرقم الوطني / الإقامة')
                     ->sortable()
@@ -188,22 +197,6 @@ class EntryResource extends Resource
                     ->disabled($isObserver || $isMealAdmin)
                     ->label('بلوتر')
                     ->sortable(),
-                TextColumn::make('student.data_status')
-                    ->label('حالة البيانات')
-                    ->badge()
-                    ->color(fn($state) => $state === 'مكتمل' ? 'success' : 'danger')
-                    ->formatStateUsing(function ($record) {
-                        if ($record->student->canHaveEntry()) {
-                            return 'مكتمل';
-                        }
-                        return 'ناقص';
-                    })
-                    ->tooltip(function ($record) {
-                        if (!$record->student->canHaveEntry()) {
-                            return $record->student->getValidationSummary();
-                        }
-                        return null;
-                    }),
             ])
             ->filtersLayout(FiltersLayout::Modal)
             ->filtersFormColumns(4)
@@ -245,6 +238,20 @@ class EntryResource extends Resource
                     ->multiple()
                     ->preload(),
                 SelectFilter::make('student.educations')->label('المؤهل العلمي')->relationship('student.educations', 'name')->searchable()->multiple()->preload(),
+                TernaryFilter::make('student.completed_data')
+                    ->label('حالة بيانات الطالب')
+                    ->placeholder('الكل')
+                    ->trueLabel('مكتمل')
+                    ->falseLabel('غير مكتمل')
+                    ->queries(
+                        true: fn (Builder $query) => $query->whereHas('student', function ($query){
+                            $query->where('completed_data', true);
+                        }),
+                        false: fn (Builder $query) => $query->whereHas('student', function ($query){
+                            $query->where('completed_data', false);
+                        }),
+                        blank: fn (Builder $query) => $query,
+                    ),
                 TernaryFilter::make('student.national_number')
                     ->label('الرقم الوطني / الإقامة')
                     ->placeholder('الكل')
@@ -338,11 +345,11 @@ class EntryResource extends Resource
                 Tables\Actions\EditAction::make()
                     ->hidden(fn() => auth()->user()->role === Roles::Observer())
                     ->disabled(function ($record) {
-                        return !$record->student->canHaveEntry();
+                        return !$record->student->completed_data;
                     })
                     ->tooltip(function ($record) {
-                        if (!$record->student->canHaveEntry()) {
-                            return 'لا يمكن التعديل: ' . $record->student->getValidationSummary();
+                        if (!$record->student->completed_data) {
+                            return '❌ لا يمكن التعديل: بيانات الطالب غير مكتملة';
                         }
                         return null;
                     }),

@@ -19,7 +19,7 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Actions\{Action, ActionGroup, ExportBulkAction};
-use Filament\Tables\Columns\{CheckboxColumn, TextColumn};
+use Filament\Tables\Columns\{CheckboxColumn, IconColumn, TextColumn};
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
@@ -256,6 +256,15 @@ class StudentResource extends Resource
                             ->orWhere('father_name', 'like', "%{$search}%");
                     },
                 ),
+            IconColumn::make('completed_data')
+                ->label('حالة البيانات')
+                ->boolean()
+                ->trueIcon('heroicon-o-check-circle')
+                ->falseIcon('heroicon-o-x-circle')
+                ->trueColor('success')
+                ->falseColor('danger')
+                ->sortable()
+                ->tooltip(fn($record) => $record->completed_data ? 'البيانات مكتملة' : 'البيانات غير مكتملة'),
             TextColumn::make('year_of_birth')->label('Date of Birth')->sortable()->toggleable(),
             TextColumn::make('nationality')->label('Nationality')
                 ->label('الجنسية')
@@ -375,6 +384,16 @@ class StudentResource extends Resource
         }
 
         return [
+            TernaryFilter::make('completed_data')
+                ->label('حالة البيانات')
+                ->placeholder('الكل')
+                ->trueLabel('مكتمل')
+                ->falseLabel('غير مكتمل')
+                ->queries(
+                    true: fn (Builder $query) => $query->where('completed_data', true),
+                    false: fn (Builder $query) => $query->where('completed_data', false),
+                    blank: fn (Builder $query) => $query,
+                ),
             SelectFilter::make('city')
                 ->relationship('street.city', 'name')
                 ->label('المدينة')
@@ -453,11 +472,11 @@ class StudentResource extends Resource
                 ->modalButton(__('general.labels.save_entry'))
                 ->action(
                     function(array $data, Student $record) {
-                        if (!$record->canHaveEntry()) {
+                        if (!$record->completed_data) {
                             Notification::make()
-                                ->title('لا يمكن إدخال بيانات الطالب')
+                                ->title('❌ لا يمكن إدخال بيانات الطالب')
                                 ->danger()
-                                ->body($record->getEntryValidationErrors())
+                                ->body('بيانات الطالب غير مكتملة. الرجاء مراجعة البيانات المطلوبة أولاً.')
                                 ->send();
                             return;
                         }
@@ -476,6 +495,15 @@ class StudentResource extends Resource
                     },
                 )
                 ->successNotificationTitle(__('general.labels.entry_recorded_successfully'))
+                ->disabled(function (Student $record) {
+                    return !$record->completed_data;
+                })
+                ->tooltip(function (Student $record) {
+                    if (!$record->completed_data) {
+                        return '❌ لا يمكن إضافة دخولية: بيانات الطالب غير مكتملة';
+                    }
+                    return 'إضافة دخولية جديدة';
+                })
                 ->hidden($isObserver),
             ActionGroup::make([
                 Tables\Actions\ViewAction::make(),
