@@ -59,6 +59,31 @@ class StudentResource extends Resource
         return Wizard\Step::make(__('general.labels.personal_information') . ' & ' . __('general.labels.contact_information'))
             ->schema(
                 fn(?Student $record) => [
+                    \Filament\Forms\Components\Placeholder::make('data_status_notice')
+                        ->label('ملاحظة')
+                        ->content(function (?Student $record) {
+                            if (!$record) return '';
+
+                            if (!$record->completed_data) {
+                                $errors = $record->getEntryValidationErrors();
+                                $message = '⚠️ **استكمل البيانات الخاصة للطالب قبل تسجيل الدخولية.**';
+
+                                if (!empty($errors)) {
+                                    $message .= '<br><br>**الحقول الناقصة:**<ul class="list-disc mr-4 mt-2">';
+                                    foreach ($errors as $error) {
+                                        $message .= "<li>{$error}</li>";
+                                    }
+                                    $message .= '</ul>';
+                                }
+
+                                return $message;
+                            }
+                            return '✅ **جميع البيانات مكتملة - يمكن تسجيل الدخوليات**';
+                        })
+                        ->hidden(fn(?Student $record): bool => $record === null)
+                        ->columnSpanFull()
+                        ->extraAttributes(['class' => 'bg-gray-50 p-4 rounded-lg border border-gray-200']),
+
                     TextInput::make('firstname')->label(__('general.labels.firstname'))->required()->maxLength(255)->columnSpan(1),
                     TextInput::make('lastname')->label(__('general.labels.lastname'))->required()->maxLength(255)->columnSpan(1),
                     TextInput::make('father_name')->label(__('general.labels.father_name'))->required()->maxLength(255)->columnSpan(1),
@@ -230,6 +255,7 @@ class StudentResource extends Resource
                 return static::getUrl('view', ['record' => $record]);
             })
             ->toggleColumnsTriggerAction(fn(Action $action) => $action->button())
+            ->filtersTriggerAction(fn(Action $action) => $action->button()->label(''))
             ->actions(self::tableActions())
             ->bulkActions([
                 ExportBulkAction::make()
@@ -387,8 +413,8 @@ class StudentResource extends Resource
             TernaryFilter::make('completed_data')
                 ->label('حالة البيانات')
                 ->placeholder('الكل')
-                ->trueLabel('مكتمل')
-                ->falseLabel('غير مكتمل')
+                ->trueLabel('نعم - البيانات مكتملة')
+                ->falseLabel('لا - البيانات غير مكتملة')
                 ->queries(
                     true: fn (Builder $query) => $query->where('completed_data', true),
                     false: fn (Builder $query) => $query->where('completed_data', false),

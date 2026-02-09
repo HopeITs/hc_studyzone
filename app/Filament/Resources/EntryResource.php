@@ -226,7 +226,6 @@ class EntryResource extends Resource
                     ->searchable()
                     ->columnSpan(2)
                     ->visible(auth()->user()->role === Roles::GeneralAdmin())
-
                     ->multiple()
                     ->preload(),
                 SelectFilter::make('center_id')
@@ -241,8 +240,8 @@ class EntryResource extends Resource
                 TernaryFilter::make('student.completed_data')
                     ->label('حالة بيانات الطالب')
                     ->placeholder('الكل')
-                    ->trueLabel('مكتمل')
-                    ->falseLabel('غير مكتمل')
+                    ->trueLabel('نعم - البيانات مكتملة')
+                    ->falseLabel('لا - البيانات غير مكتملة')
                     ->queries(
                         true: fn (Builder $query) => $query->whereHas('student', function ($query){
                             $query->where('completed_data', true);
@@ -257,7 +256,6 @@ class EntryResource extends Resource
                     ->placeholder('الكل')
                     ->trueLabel('يوجد')
                     ->falseLabel('لا يوجد')
-
                     ->queries(
                         true: fn (Builder $query) => $query->whereHas('student' , function ($query){
                             $query->whereNotNull('national_number');
@@ -335,7 +333,7 @@ class EntryResource extends Resource
                         blank: fn (Builder $query) => $query,
                     ),
             ])
-            ->filtersTriggerAction(fn(Action $action) => $action->button()->label('فلتر'))
+            ->filtersTriggerAction(fn(Action $action) => $action->button()->label(''))
             ->actions([
                 ViewAction::make('view_student')
                     ->label('عرض الطالب')

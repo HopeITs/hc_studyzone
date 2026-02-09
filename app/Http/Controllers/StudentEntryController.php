@@ -15,12 +15,11 @@ class StudentEntryController extends Controller
         $student = Student::findOrFail($uuid);
 
         if (!$student->completed_data) {
-            return redirect()->back()
-                ->with('error', '❌ لا يمكن إضافة دخولية: بيانات الطالب غير مكتملة. الرجاء مراجعة البيانات المطلوبة أولاً.');
+            return redirect()->route('filament.admin.resources.students.edit', $student)->with('error', '❌ بيانات الطالب غير مكتملة. الرجاء إكمال البيانات أولاً قبل تسجيل الدخولية.');
         }
 
         $entryTypes = collect(__('general.entry-types'))->toArray();
-        $centers = Center::where('is_active',true)->orderBy('order')->get();
+        $centers = Center::where('is_active', true)->orderBy('order')->get();
         return view('students.entry-form', compact('student', 'entryTypes', 'centers'));
     }
 
@@ -29,12 +28,10 @@ class StudentEntryController extends Controller
         $student = Student::findOrFail($uuid);
 
         if (!$student->completed_data) {
-            return redirect()->back()
-                ->with('error', '❌ لا يمكن إضافة دخولية: بيانات الطالب غير مكتملة.');
+            return redirect()->back()->with('error', '❌ لا يمكن إضافة دخولية: بيانات الطالب غير مكتملة.');
         }
 
         $validated = $request->validate([
-
             'entry_type' => 'required|in:0,1,2,3,4',
             'center_id' => 'required|exists:centers,id',
             'entry_time' => 'required',
@@ -43,7 +40,6 @@ class StudentEntryController extends Controller
             'use_mecrator' => 'nullable|boolean',
             'use_plotter' => 'nullable|boolean',
         ]);
-
 
         StudentEntry::create([
             'student_id' => $student->id,
