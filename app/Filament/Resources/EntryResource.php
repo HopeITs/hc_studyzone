@@ -218,7 +218,28 @@ class EntryResource extends Resource
                     ->query(function (Builder $query, array $data): Builder {
                         return $query->when($data['from'], fn($q, $date) => $q->where('entry_time', '>=', $date))->when($data['to'], fn($q, $date) => $q->where('entry_time', '<=', $date));
                     }),
-                SelectFilter::make('entry_type')->label('نوع الدخولية')->options(__('general.entry-types'))->searchable()->multiple()->preload()->columnSpan(2),
+                SelectFilter::make('entry_type')
+                    ->label('نوع الدخولية')
+                    ->options(__('general.entry-types'))
+                    ->searchable()
+                    ->multiple()
+                    ->preload()
+                    ->columnSpan(2),
+                TernaryFilter::make('student.completed_data')
+                    ->label('حالة بيانات الطالب')
+                    ->placeholder('الكل')
+                    ->trueLabel('نعم - البيانات مكتملة')
+                    ->falseLabel('لا - البيانات غير مكتملة')
+                    ->queries(
+                        true: fn (Builder $query) => $query->whereHas('student', function ($query){
+                            $query->where('completed_data', true);
+                        }),
+                        false: fn (Builder $query) => $query->whereHas('student', function ($query){
+                            $query->where('completed_data', false);
+                        }),
+                        blank: fn (Builder $query) => $query,
+                    )
+                    ->columnSpan(2),
 
                 SelectFilter::make('center.city.name')
                     ->label('المدينة')
@@ -237,20 +258,6 @@ class EntryResource extends Resource
                     ->multiple()
                     ->preload(),
                 SelectFilter::make('student.educations')->label('المؤهل العلمي')->relationship('student.educations', 'name')->searchable()->multiple()->preload(),
-                TernaryFilter::make('student.completed_data')
-                    ->label('حالة بيانات الطالب')
-                    ->placeholder('الكل')
-                    ->trueLabel('نعم - البيانات مكتملة')
-                    ->falseLabel('لا - البيانات غير مكتملة')
-                    ->queries(
-                        true: fn (Builder $query) => $query->whereHas('student', function ($query){
-                            $query->where('completed_data', true);
-                        }),
-                        false: fn (Builder $query) => $query->whereHas('student', function ($query){
-                            $query->where('completed_data', false);
-                        }),
-                        blank: fn (Builder $query) => $query,
-                    ),
                 TernaryFilter::make('student.national_number')
                     ->label('الرقم الوطني / الإقامة')
                     ->placeholder('الكل')
@@ -301,7 +308,8 @@ class EntryResource extends Resource
                         true: fn (Builder $query) => $query->where('use_printer', true),
                         false: fn (Builder $query) => $query->where('use_printer', false),
                         blank: fn (Builder $query) => $query,
-                    ),
+                    )
+                    ->columnSpan(1),
                 TernaryFilter::make('use_mecrator')
                     ->label(__('general.labels.mecrator-service'))
                     ->placeholder('الكل')
@@ -311,7 +319,8 @@ class EntryResource extends Resource
                         true: fn (Builder $query) => $query->where('use_mecrator', true),
                         false: fn (Builder $query) => $query->where('use_mecrator', false),
                         blank: fn (Builder $query) => $query,
-                    ),
+                    )
+                    ->columnSpan(1),
                 TernaryFilter::make('use_drawer')
                     ->label(__('general.labels.drawer-service'))
                     ->placeholder('الكل')
@@ -321,7 +330,8 @@ class EntryResource extends Resource
                         true: fn (Builder $query) => $query->where('use_drawer', true),
                         false: fn (Builder $query) => $query->where('use_drawer', false),
                         blank: fn (Builder $query) => $query,
-                    ),
+                    )
+                    ->columnSpan(1),
                 TernaryFilter::make('use_plotter')
                     ->label(__('general.labels.plotter-service'))
                     ->placeholder('الكل')
@@ -331,7 +341,8 @@ class EntryResource extends Resource
                         true: fn (Builder $query) => $query->where('use_plotter', true),
                         false: fn (Builder $query) => $query->where('use_plotter', false),
                         blank: fn (Builder $query) => $query,
-                    ),
+                    )
+                    ->columnSpan(1),
             ])
             ->filtersTriggerAction(fn(Action $action) => $action->button()->label(''))
             ->actions([
