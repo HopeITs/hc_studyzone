@@ -211,26 +211,13 @@ class EntryResource extends Resource
                     ->query(function (Builder $query, array $data): Builder {
                         return $query->when($data['from'], fn($q, $date) => $q->where('entry_time', '>=', $date))->when($data['to'], fn($q, $date) => $q->where('entry_time', '<=', $date));
                     }),
-                SelectFilter::make('entry_type')->label('نوع الدخولية')->options(__('general.entry-types'))->searchable()->multiple()->preload()->columnSpan(2),
-
-                SelectFilter::make('center.city.name')
-                    ->label('المدينة')
-                    ->relationship('center.city', 'name')
+                SelectFilter::make('entry_type')
+                    ->label('نوع الدخولية')
+                    ->options(__('general.entry-types'))
                     ->searchable()
-                    ->columnSpan(2)
-                    ->visible(auth()->user()->role === Roles::GeneralAdmin())
-
                     ->multiple()
-                    ->preload(),
-                SelectFilter::make('center_id')
-                    ->label('المركز')
-                    ->relationship('center', 'name')
-                    ->searchable()
-                    ->columnSpan(auth()->user()->role === Roles::GeneralAdmin() ? 2: 4)
-                    ->hidden(auth()->user()->role === Roles::CenterAdmin())
-                    ->multiple()
-                    ->preload(),
-                SelectFilter::make('student.educations')->label('المؤهل العلمي')->relationship('student.educations', 'name')->searchable()->multiple()->preload(),
+                    ->preload()
+                    ->columnSpan(2),
                 TernaryFilter::make('student.completed_data')
                     ->label('حالة بيانات الطالب')
                     ->placeholder('الكل')
@@ -244,21 +231,39 @@ class EntryResource extends Resource
                             $query->where('completed_data', false);
                         }),
                         blank: fn (Builder $query) => $query,
-                    ),
+                    )
+                    ->columnSpan(2),
+
+                SelectFilter::make('center.city.name')
+                    ->label('المدينة')
+                    ->relationship('center.city', 'name')
+                    ->searchable()
+                    ->columnSpan(2)
+                    ->visible(auth()->user()->role === Roles::GeneralAdmin())
+                    ->multiple()
+                    ->preload(),
+                SelectFilter::make('center_id')
+                    ->label('المركز')
+                    ->relationship('center', 'name')
+                    ->searchable()
+                    ->columnSpan(auth()->user()->role === Roles::GeneralAdmin() ? 2: 4)
+                    ->hidden(auth()->user()->role === Roles::CenterAdmin())
+                    ->multiple()
+                    ->preload(),
+                SelectFilter::make('student.educations')->label('المؤهل العلمي')->relationship('student.educations', 'name')->searchable()->multiple()->preload(),
                 TernaryFilter::make('student.national_number')
                     ->label('الرقم الوطني / الإقامة')
                     ->placeholder('الكل')
                     ->trueLabel('يوجد')
                     ->falseLabel('لا يوجد')
-
                     ->queries(
-                        true: fn(Builder $query) => $query->whereHas('student', function ($query) {
+                        true: fn (Builder $query) => $query->whereHas('student' , function ($query){
                             $query->whereNotNull('national_number');
                         }),
-                        false: fn(Builder $query) => $query->whereHas('student', function ($query) {
+                        false: fn (Builder $query) => $query->whereHas('student' , function ($query){
                             $query->whereNull('national_number');
                         }),
-                        blank: fn(Builder $query) => $query,
+                        blank: fn (Builder $query) => $query,
                     ),
                 SelectFilter::make('student.gender')
                     ->label('الجنس')
@@ -267,7 +272,7 @@ class EntryResource extends Resource
                     ->query(function (Builder $query, array $data): Builder {
                         if (array_key_exists('value', $data) && $data['value'] !== null && $data['value'] !== '') {
                             return $query->whereHas('student', function (Builder $studentQuery) use ($data) {
-                                $studentQuery->where('gender', (int)$data['value']);
+                                $studentQuery->where('gender', (int) $data['value']);
                             });
                         }
                         return $query;
@@ -280,7 +285,7 @@ class EntryResource extends Resource
                     ->query(function (Builder $query, array $data): Builder {
                         if (array_key_exists('value', $data) && $data['value'] !== null && $data['value'] !== '') {
                             return $query->whereHas('student', function (Builder $studentQuery) use ($data) {
-                                $studentQuery->where('religion', (int)$data['value']);
+                                $studentQuery->where('religion', (int) $data['value']);
                             });
                         }
                         return $query;
@@ -296,7 +301,8 @@ class EntryResource extends Resource
                         true: fn(Builder $query) => $query->where('use_printer', true),
                         false: fn(Builder $query) => $query->where('use_printer', false),
                         blank: fn(Builder $query) => $query,
-                    ),
+                    )
+                    ->columnSpan(1),
                 TernaryFilter::make('use_mecrator')
                     ->label(__('general.labels.mecrator-service'))
                     ->placeholder('الكل')
@@ -306,7 +312,8 @@ class EntryResource extends Resource
                         true: fn (Builder $query) => $query->where('use_mecrator', true),
                         false: fn (Builder $query) => $query->where('use_mecrator', false),
                         blank: fn (Builder $query) => $query,
-                    ),
+                    )
+                    ->columnSpan(1),
                 TernaryFilter::make('use_drawer')
                     ->label(__('general.labels.drawer-service'))
                     ->placeholder('الكل')
@@ -316,7 +323,8 @@ class EntryResource extends Resource
                         true: fn (Builder $query) => $query->where('use_drawer', true),
                         false: fn (Builder $query) => $query->where('use_drawer', false),
                         blank: fn (Builder $query) => $query,
-                    ),
+                    )
+                    ->columnSpan(1),
                 TernaryFilter::make('use_plotter')
                     ->label(__('general.labels.plotter-service'))
                     ->placeholder('الكل')
@@ -326,9 +334,10 @@ class EntryResource extends Resource
                         true: fn (Builder $query) => $query->where('use_plotter', true),
                         false: fn (Builder $query) => $query->where('use_plotter', false),
                         blank: fn (Builder $query) => $query,
-                    ),
+                    )
+                    ->columnSpan(1),
             ])
-            ->filtersTriggerAction(fn(Action $action) => $action->button()->label('فلتر'))
+            ->filtersTriggerAction(fn(Action $action) => $action->button()->label(''))
             ->actions([
                 ViewAction::make('view_student')
                     ->label('عرض الطالب')

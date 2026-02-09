@@ -69,7 +69,7 @@ class StudentResource extends Resource
                                 $message = '⚠️ **استكمل البيانات الخاصة للطالب قبل تسجيل الدخولية.**';
 
                                 if (!empty($errors)) {
-                                    $message .= '<br><br>**الحقول الناقصة:**<ul class="list-disc mr-4 mt-2">';
+                                    $message .= '<br><br>**الحقول الناقصة:**<ul class="list-disc mr-4 mt-2 dark:text-gray-300">';
                                     foreach ($errors as $error) {
                                         $message .= "<li>{$error}</li>";
                                     }
@@ -82,7 +82,7 @@ class StudentResource extends Resource
                         })
                         ->hidden(fn(?Student $record): bool => $record === null)
                         ->columnSpanFull()
-                        ->extraAttributes(['class' => 'bg-gray-50 p-4 rounded-lg border border-gray-200']),
+                        ->extraAttributes(['class' => 'bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100']),
 
                     TextInput::make('firstname')->label(__('general.labels.firstname'))->required()->maxLength(255)->columnSpan(1),
                     TextInput::make('lastname')->label(__('general.labels.lastname'))->required()->maxLength(255)->columnSpan(1),
