@@ -26,7 +26,17 @@ class Student extends Model implements HasName
         'nationality' => Nationality::class,
         'national_number' => 'string',
         'foreign_id_number' => 'string',
+        'completed_data' => 'boolean',
     ];
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::saving(function (Student $student) {
+            $student->completed_data = empty($student->getEntryValidationErrors());
+        });
+    }
 
     public function entries(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
@@ -58,5 +68,80 @@ class Student extends Model implements HasName
     public function getFilamentName(): string
     {
         return "{$this->firstname} {$this->father_name} {$this->lastname}";
+    }
+
+    public function canHaveEntry(): bool
+    {
+        return $this->completed_data;
+    }
+
+    public function getEntryValidationErrors(): array
+    {
+        $errors = [];
+
+        if (empty($this->firstname) || empty($this->father_name) || empty($this->lastname)) {
+            $errors[] = 'الاسم الثلاثي غير مكتمل (الاسم الأول، اسم الأب، العائلة)';
+        }
+
+        if (empty($this->religion) || $this->religion === 0) {
+            $errors[] = 'الديانة غير محددة';
+        }
+
+        if ($this->nationality === 'syrian' && empty($this->is_child)) {
+            if (empty($this->national_number)) {
+                $errors[] = 'الرقم الوطني مطلوب للطلاب السوريين غير القاصرين';
+            } elseif (!preg_match('/^\d{11}$/', $this->national_number)) {
+                $errors[] = 'الرقم الوطني يجب أن يحتوي على 11 رقمًا للطلاب السوريين';
+            }
+        }
+
+        if ($this->nationality === 'syrian') {
+            if (empty($this->phone)) {
+                $errors[] = 'رقم الهاتف مطلوب للطلاب السوريين';
+            } elseif (!preg_match('/^9\d{9}$/', $this->phone)) {
+                $errors[] = 'رقم الهاتف السوري يجب أن يبدأ بالرقم 9 ويحتوي على 10 أرقام';
+            }
+
+            if (!empty($this->whatsapp) && !preg_match('/^9\d{9}$/', $this->whatsapp)) {
+                $errors[] = 'رقم الواتساب السوري يجب أن يبدأ بالرقم 9 ويحتوي على 10 أرقام';
+            }
+        }
+
+        if ($this->nationality === 'other' && !empty($this->whatsapp)) {
+            if (!preg_match('/^[0-9+\-\s()]+$/', $this->whatsapp)) {
+                $errors[] = 'رقم الواتساب الأجنبي غير صحيح';
+            }
+        }
+
+        if ($this->nationality === 'other' && empty($this->national_number) && empty($this->is_child)) {
+            $errors[] = 'رقم الإقامة/الهوية الأجنبية مطلوب للطلاب غير السوريين غير القاصرين';
+        }
+
+        if (empty($this->street_id)) {
+            $errors[] = 'الشارع غير محدد';
+        }
+
+        return $errors;
+    }
+
+    public function getValidationSummary(): string
+    {
+        $errors = $this->getEntryValidationErrors();
+        if (empty($errors)) {
+            return 'جميع البيانات مكتملة وصالحة للإدخال';
+        }
+
+        return implode("\n", $errors);
+    }
+
+    public function isDataComplete(): bool
+    {
+        return $this->completed_data;
+    }
+
+    public function updateCompletedData(): void
+    {
+        $this->completed_data = empty($this->getEntryValidationErrors());
+        $this->saveQuietly();
     }
 }

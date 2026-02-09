@@ -15,6 +15,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\CheckboxColumn;
 use Filament\Tables\Actions;
 use Illuminate\Support\Facades\Auth;
+use Filament\Notifications\Notification;
 
 class EntriesRelationManager extends RelationManager
 {
@@ -74,11 +75,31 @@ class EntriesRelationManager extends RelationManager
                 CheckboxColumn::make('use_plotter')->label('بلوتر')->sortable(),
             ])
             ->headerActions([
-                Actions\CreateAction::make(),
+                Actions\CreateAction::make()
+                    ->disabled(fn($livewire) => !$livewire->ownerRecord->completed_data)
+                    ->tooltip(fn($livewire) => !$livewire->ownerRecord->completed_data
+                        ? '❌ لا يمكن إضافة دخولية: بيانات الطالب غير مكتملة'
+                        : 'إضافة دخولية جديدة')
+                    ->action(function (array $data, $livewire) {
+                        if (!$livewire->ownerRecord->completed_data) {
+                            Notification::make()
+                                ->title('❌ لا يمكن إدخال بيانات الطالب')
+                                ->danger()
+                                ->body('بيانات الطالب غير مكتملة. الرجاء مراجعة البيانات المطلوبة أولاً.')
+                                ->send();
+                            return;
+                        }
+
+                        $livewire->ownerRecord->entries()->create($data);
+                    }),
             ])
             ->actions([
                 Actions\ViewAction::make(),
-                Actions\EditAction::make(),
+                Actions\EditAction::make()
+                    ->disabled(fn($record) => !$record->student->completed_data)
+                    ->tooltip(fn($record) => !$record->student->completed_data
+                        ? '❌ لا يمكن التعديل: بيانات الطالب غير مكتملة'
+                        : 'تعديل'),
                 Actions\DeleteAction::make(),
             ])
             ->bulkActions([

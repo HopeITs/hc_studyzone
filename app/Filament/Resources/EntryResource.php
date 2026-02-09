@@ -16,7 +16,7 @@ use Filament\Actions\Exports\Enums\ExportFormat;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
-use Filament\Tables\Columns\{CheckboxColumn, TextColumn};
+use Filament\Tables\Columns\{CheckboxColumn, IconColumn, TextColumn};
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Actions\ExportBulkAction;
 use Filament\Tables\Actions\ViewAction;
@@ -70,6 +70,7 @@ class EntryResource extends Resource
                 ->options(function () {
                     return Center::where('is_active', 1)
                         ->when(auth()->user()->city_id, fn($query, $cityId) => $query->where('city_id', $cityId))
+                        ->get()
                         ->pluck('name', 'id');
                 })
                 ->default(fn() => auth()->user()->center_id)
@@ -107,6 +108,15 @@ class EntryResource extends Resource
                         });
                     },
                 ),
+                IconColumn::make('student.completed_data')
+                    ->label('حالة البيانات')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-check-circle')
+                    ->falseIcon('heroicon-o-x-circle')
+                    ->trueColor('success')
+                    ->falseColor('danger')
+                    ->sortable()
+                    ->tooltip(fn($record) => $record->student->completed_data ? 'البيانات مكتملة' : 'البيانات غير مكتملة'),
                 TextColumn::make('student.national_number')
                     ->label('الرقم الوطني / الإقامة')
                     ->sortable()
@@ -209,22 +219,38 @@ class EntryResource extends Resource
                     ->searchable()
                     ->columnSpan(2)
                     ->visible(auth()->user()->role === Roles::GeneralAdmin())
+
                     ->multiple()
                     ->preload(),
                 SelectFilter::make('center_id')
                     ->label('المركز')
                     ->relationship('center', 'name')
                     ->searchable()
-                    ->columnSpan(auth()->user()->role === Roles::GeneralAdmin() ? 2 : 4)
+                    ->columnSpan(auth()->user()->role === Roles::GeneralAdmin() ? 2: 4)
                     ->hidden(auth()->user()->role === Roles::CenterAdmin())
                     ->multiple()
                     ->preload(),
                 SelectFilter::make('student.educations')->label('المؤهل العلمي')->relationship('student.educations', 'name')->searchable()->multiple()->preload(),
+                TernaryFilter::make('student.completed_data')
+                    ->label('حالة بيانات الطالب')
+                    ->placeholder('الكل')
+                    ->trueLabel('نعم - البيانات مكتملة')
+                    ->falseLabel('لا - البيانات غير مكتملة')
+                    ->queries(
+                        true: fn (Builder $query) => $query->whereHas('student', function ($query){
+                            $query->where('completed_data', true);
+                        }),
+                        false: fn (Builder $query) => $query->whereHas('student', function ($query){
+                            $query->where('completed_data', false);
+                        }),
+                        blank: fn (Builder $query) => $query,
+                    ),
                 TernaryFilter::make('student.national_number')
                     ->label('الرقم الوطني / الإقامة')
                     ->placeholder('الكل')
                     ->trueLabel('يوجد')
                     ->falseLabel('لا يوجد')
+
                     ->queries(
                         true: fn(Builder $query) => $query->whereHas('student', function ($query) {
                             $query->whereNotNull('national_number');
@@ -277,9 +303,9 @@ class EntryResource extends Resource
                     ->trueLabel('مفعّل')
                     ->falseLabel('غير مفعّل')
                     ->queries(
-                        true: fn(Builder $query) => $query->where('use_mecrator', true),
-                        false: fn(Builder $query) => $query->where('use_mecrator', false),
-                        blank: fn(Builder $query) => $query,
+                        true: fn (Builder $query) => $query->where('use_mecrator', true),
+                        false: fn (Builder $query) => $query->where('use_mecrator', false),
+                        blank: fn (Builder $query) => $query,
                     ),
                 TernaryFilter::make('use_drawer')
                     ->label(__('general.labels.drawer-service'))
@@ -287,9 +313,9 @@ class EntryResource extends Resource
                     ->trueLabel('مفعّل')
                     ->falseLabel('غير مفعّل')
                     ->queries(
-                        true: fn(Builder $query) => $query->where('use_drawer', true),
-                        false: fn(Builder $query) => $query->where('use_drawer', false),
-                        blank: fn(Builder $query) => $query,
+                        true: fn (Builder $query) => $query->where('use_drawer', true),
+                        false: fn (Builder $query) => $query->where('use_drawer', false),
+                        blank: fn (Builder $query) => $query,
                     ),
                 TernaryFilter::make('use_plotter')
                     ->label(__('general.labels.plotter-service'))
@@ -297,9 +323,9 @@ class EntryResource extends Resource
                     ->trueLabel('مفعّل')
                     ->falseLabel('غير مفعّل')
                     ->queries(
-                        true: fn(Builder $query) => $query->where('use_plotter', true),
-                        false: fn(Builder $query) => $query->where('use_plotter', false),
-                        blank: fn(Builder $query) => $query,
+                        true: fn (Builder $query) => $query->where('use_plotter', true),
+                        false: fn (Builder $query) => $query->where('use_plotter', false),
+                        blank: fn (Builder $query) => $query,
                     ),
             ])
             ->filtersTriggerAction(fn(Action $action) => $action->button()->label('فلتر'))
@@ -309,7 +335,17 @@ class EntryResource extends Resource
                     ->color('info')
                     ->icon('heroicon-o-user')
                     ->url(fn(Model $record) => \App\Filament\Resources\StudentResource::getUrl('view', ['record' => $record->student_id])),
-                Tables\Actions\EditAction::make()->hidden(fn() => auth()->user()->role === Roles::Observer()),
+                Tables\Actions\EditAction::make()
+                    ->hidden(fn() => auth()->user()->role === Roles::Observer())
+                    ->disabled(function ($record) {
+                        return !$record->student->completed_data;
+                    })
+                    ->tooltip(function ($record) {
+                        if (!$record->student->completed_data) {
+                            return '❌ لا يمكن التعديل: بيانات الطالب غير مكتملة';
+                        }
+                        return null;
+                    }),
                 Tables\Actions\DeleteAction::make()->hidden(fn() => auth()->user()->role === Roles::Observer())
             ])
             ->bulkActions([
