@@ -68,14 +68,13 @@ class StudentResource extends Resource
 
                             if (!$record->completed_data) {
                                 $errors = $record->getEntryValidationErrors();
-                                $message = '⚠️ **استكمل البيانات الخاصة للطالب قبل تسجيل الدخولية.**';
+                                $message = "⚠️ **استكمل البيانات الخاصة للطالب قبل تسجيل الدخولية.**\n\n**الحقول الناقصة:**";
 
                                 if (!empty($errors)) {
-                                    $message .= '<br><br>**الحقول الناقصة:**<ul class="list-disc mr-4 mt-2 dark:text-gray-300">';
+                                    $message .= "\n";
                                     foreach ($errors as $error) {
-                                        $message .= "<li>{$error}</li>";
+                                        $message .= "• {$error}\n";
                                     }
-                                    $message .= '</ul>';
                                 }
 
                                 return $message;
@@ -84,7 +83,7 @@ class StudentResource extends Resource
                         })
                         ->hidden(fn(?Student $record): bool => $record === null)
                         ->columnSpanFull()
-                        ->extraAttributes(['class' => 'bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100']),
+                        ->extraAttributes(['class' => 'bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 whitespace-pre-line']),
 
                     TextInput::make('firstname')->label(__('general.labels.firstname'))->required()->maxLength(255)->columnSpan(1),
                     TextInput::make('lastname')->label(__('general.labels.lastname'))->required()->maxLength(255)->columnSpan(1),
@@ -100,9 +99,7 @@ class StudentResource extends Resource
                         })
                         ->columnSpan(1),
                     TextInput::make('national_number')
-                        // 1. Dynamic Label
                         ->label(fn(Get $get) => $get('nationality') === 'syrian' ? __('general.labels.national_number') : __('general.labels.foreign_id_number'))
-                        // 2. Visibility & State Management
                         ->required(fn(Get $get) => !$get('is_child'))
                         ->disabled(fn(Get $get) => $get('is_child'))
                         ->numeric(fn(Get $get) => $get('nationality') === 'syrian')

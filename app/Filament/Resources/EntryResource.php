@@ -287,7 +287,6 @@ class EntryResource extends Resource
                 ExportBulkAction::make()
                     ->exporter(EntryExporter::class)
                     ->formats([ExportFormat::Xlsx]),
-                // Removed: ->hidden(fn() => auth()->user()->role === Roles::Observer())
                 Tables\Actions\BulkActionGroup::make([Tables\Actions\DeleteBulkAction::make()->hidden(fn() => auth()->user()->role === Roles::Observer())])->hidden(fn() => auth()->user()->role === Roles::Observer()),
             ])
             ->paginated([20, 50, 100, 200]);
