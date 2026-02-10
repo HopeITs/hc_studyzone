@@ -62,18 +62,19 @@ class StudentResource extends Resource
                     \Filament\Forms\Components\Placeholder::make('data_status_notice')
                         ->label('ملاحظة')
                         ->content(function (?Student $record) {
-                            if (!$record) return '';
+                            if (!$record) {
+                                return '';
+                            }
 
                             if (!$record->completed_data) {
                                 $errors = $record->getEntryValidationErrors();
-                                $message = '⚠️ **استكمل البيانات الخاصة للطالب قبل تسجيل الدخولية.**';
+                                $message = "⚠️ **استكمل البيانات الخاصة للطالب قبل تسجيل الدخولية.**\n\n**الحقول الناقصة:**";
 
                                 if (!empty($errors)) {
-                                    $message .= '<br><br>**الحقول الناقصة:**<ul class="list-disc mr-4 mt-2 dark:text-gray-300">';
+                                    $message .= "\n";
                                     foreach ($errors as $error) {
-                                        $message .= "<li>{$error}</li>";
+                                        $message .= "• {$error}\n";
                                     }
-                                    $message .= '</ul>';
                                 }
 
                                 return $message;
@@ -82,7 +83,7 @@ class StudentResource extends Resource
                         })
                         ->hidden(fn(?Student $record): bool => $record === null)
                         ->columnSpanFull()
-                        ->extraAttributes(['class' => 'bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100']),
+                        ->extraAttributes(['class' => 'bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 whitespace-pre-line']),
 
                     TextInput::make('firstname')->label(__('general.labels.firstname'))->required()->maxLength(255)->columnSpan(1),
                     TextInput::make('lastname')->label(__('general.labels.lastname'))->required()->maxLength(255)->columnSpan(1),
@@ -98,18 +99,17 @@ class StudentResource extends Resource
                         })
                         ->columnSpan(1),
                     TextInput::make('national_number')
-                        ->label(fn (Get $get) => $get('nationality') === 'syrian'
-                            ? __('general.labels.national_number')
-                            : __('general.labels.foreign_id_number')
-                        )
-                        ->required(fn (Get $get) => !$get('is_child'))
-                        ->disabled(fn (Get $get) => $get('is_child'))
-                        ->numeric(fn (Get $get) => $get('nationality') === 'syrian')
+                        ->label(fn(Get $get) => $get('nationality') === 'syrian' ? __('general.labels.national_number') : __('general.labels.foreign_id_number'))
+                        ->required(fn(Get $get) => !$get('is_child'))
+                        ->disabled(fn(Get $get) => $get('is_child'))
+                        ->numeric(fn(Get $get) => $get('nationality') === 'syrian')
                         ->live()
                         ->rules([
-                            fn (Get $get): string => $get('nationality') === 'syrian' ? 'digits:11' : '',
-                            fn (Get $get) => function (string $attribute, $value, Closure $fail) use ($get, $record) {
-                                if (empty($value)) return;
+                            fn(Get $get): string => $get('nationality') === 'syrian' ? 'digits:11' : '',
+                            fn(Get $get) => function (string $attribute, $value, Closure $fail) use ($get, $record) {
+                                if (empty($value)) {
+                                    return;
+                                }
 
                                 $student = Student::where('national_number', $value)->first();
 
@@ -118,12 +118,7 @@ class StudentResource extends Resource
                                         ->title("الطالب {$student->firstname} موجود في محافظة {$student->street->city->name}")
                                         ->danger()
                                         ->persistent()
-                                        ->actions([
-                                            NotificationAction::make('view')
-                                                ->button()
-                                                ->label('عرض الطالب')
-                                                ->url(route('filament.admin.resources.students.view', $student), shouldOpenInNewTab: true)
-                                        ])
+                                        ->actions([NotificationAction::make('view')->button()->label('عرض الطالب')->url(route('filament.admin.resources.students.view', $student), shouldOpenInNewTab: true)])
                                         ->send();
 
                                     $fail("الطالب {$student->firstname} موجود مسبقاً.");
@@ -178,7 +173,7 @@ class StudentResource extends Resource
                         ->label(__('general.labels.phone'))
                         ->required()
                         ->rules([
-                            fn (Get $get) => function (string $attribute, $value, Closure $fail) use ($get) {
+                            fn(Get $get) => function (string $attribute, $value, Closure $fail) use ($get) {
                                 if ($get('nationality') === 'syrian' && !preg_match('/^09\d{8}$/', $value)) {
                                     $fail('رقم الهاتف السوري يجب أن يبدأ بالرقم 09 ويحتوي على 10 أرقام.');
                                 }
@@ -190,7 +185,7 @@ class StudentResource extends Resource
                     TextInput::make('whatsapp')
                         ->label(__('general.labels.whatsapp'))
                         ->rules([
-                            fn (Get $get) => function (string $attribute, $value, Closure $fail) use ($get) {
+                            fn(Get $get) => function (string $attribute, $value, Closure $fail) use ($get) {
                                 if ($value && $get('nationality') === 'syrian' && !preg_match('/^09\d{8}$/', $value)) {
                                     $fail('رقم الواتساب السوري يجب أن يبدأ بالرقم 09 ويحتوي على 10 أرقام.');
                                 }
@@ -260,8 +255,7 @@ class StudentResource extends Resource
             ->bulkActions([
                 ExportBulkAction::make()
                     ->exporter(StudentExporter::class)
-                    ->formats([ExportFormat::Xlsx])
-                    ->hidden(fn() => auth()->user()->role === Roles::Observer()),
+                    ->formats([ExportFormat::Xlsx]),
                 Tables\Actions\BulkActionGroup::make([Tables\Actions\DeleteBulkAction::make()->hidden(fn() => auth()->user()->role === Roles::Observer())])->hidden(fn() => auth()->user()->role === Roles::Observer()),
             ])
             ->paginated([20, 50, 100, 200]);
@@ -282,26 +276,10 @@ class StudentResource extends Resource
                             ->orWhere('father_name', 'like', "%{$search}%");
                     },
                 ),
-            IconColumn::make('completed_data')
-                ->label('حالة البيانات')
-                ->boolean()
-                ->trueIcon('heroicon-o-check-circle')
-                ->falseIcon('heroicon-o-x-circle')
-                ->trueColor('success')
-                ->falseColor('danger')
-                ->sortable()
-                ->tooltip(fn($record) => $record->completed_data ? 'البيانات مكتملة' : 'البيانات غير مكتملة'),
+            IconColumn::make('completed_data')->label('حالة البيانات')->boolean()->trueIcon('heroicon-o-check-circle')->falseIcon('heroicon-o-x-circle')->trueColor('success')->falseColor('danger')->sortable()->tooltip(fn($record) => $record->completed_data ? 'البيانات مكتملة' : 'البيانات غير مكتملة'),
             TextColumn::make('year_of_birth')->label('Date of Birth')->sortable()->toggleable(),
-            TextColumn::make('nationality')->label('Nationality')
-                ->label('الجنسية')
-                ->sortable()
-                ->searchable()
-                ->toggleable(),
-            TextColumn::make('national_number')
-                ->label('الرقم الوطني / الإقامة')
-                ->sortable()
-                ->searchable()
-                ->toggleable(),
+            TextColumn::make('nationality')->label('Nationality')->label('الجنسية')->sortable()->searchable()->toggleable(),
+            TextColumn::make('national_number')->label('الرقم الوطني / الإقامة')->sortable()->searchable()->toggleable(),
             TextColumn::make('phone')->label('Phone')->sortable()->searchable()->toggleable(),
             TextColumn::make('email')->label('Email')->sortable()->searchable()->toggleable(isToggledHiddenByDefault: true),
             TextColumn::make('entries_count')->counts('entries')->label('Entries')->sortable()->toggleable(),
@@ -333,7 +311,8 @@ class StudentResource extends Resource
             TextColumn::make('street.city.name')->label('City')->sortable()->searchable()->toggleable(isToggledHiddenByDefault: true),
             TextColumn::make('gender')
                 ->label('Gender')
-                ->badge()->sortable()
+                ->badge()
+                ->sortable()
                 ->formatStateUsing(fn(string $state) => __("general.genders.{$state}"))
                 ->color(
                     fn(int $state): string => match ($state) {
@@ -345,7 +324,8 @@ class StudentResource extends Resource
                 ->toggleable(isToggledHiddenByDefault: true),
             TextColumn::make('religion')
                 ->label('Religion')
-                ->badge()->sortable()
+                ->badge()
+                ->sortable()
                 ->formatStateUsing(fn(string $state) => __("general.religions.{$state}"))
                 ->color(
                     fn(int $state): string => match ($state) {
@@ -410,16 +390,7 @@ class StudentResource extends Resource
         }
 
         return [
-            TernaryFilter::make('completed_data')
-                ->label('حالة البيانات')
-                ->placeholder('الكل')
-                ->trueLabel('نعم - البيانات مكتملة')
-                ->falseLabel('لا - البيانات غير مكتملة')
-                ->queries(
-                    true: fn (Builder $query) => $query->where('completed_data', true),
-                    false: fn (Builder $query) => $query->where('completed_data', false),
-                    blank: fn (Builder $query) => $query,
-                ),
+            TernaryFilter::make('completed_data')->label('حالة البيانات')->placeholder('الكل')->trueLabel('نعم - البيانات مكتملة')->falseLabel('لا - البيانات غير مكتملة')->queries(true: fn(Builder $query) => $query->where('completed_data', true), false: fn(Builder $query) => $query->where('completed_data', false), blank: fn(Builder $query) => $query),
             SelectFilter::make('city')
                 ->relationship('street.city', 'name')
                 ->label('المدينة')
@@ -437,16 +408,7 @@ class StudentResource extends Resource
             SelectFilter::make('educations')->label('المؤهلات العلمية')->relationship('educations', 'name')->searchable()->multiple()->preload(),
             SelectFilter::make('gender')->label('الجنس')->options(__('general.genders')),
             SelectFilter::make('religion')->label('الديانة')->options(__('general.religions')),
-            TernaryFilter::make('national_number')
-                ->label('الرقم الوطني / الإقامة')
-                ->placeholder('الكل')
-                ->trueLabel('يوجد')
-                ->falseLabel('لا يوجد')
-                ->queries(
-                    true: fn (Builder $query) => $query->whereNotNull('national_number'),
-                    false: fn (Builder $query) => $query->whereNull('national_number'),
-                    blank: fn (Builder $query) => $query,
-                )
+            TernaryFilter::make('national_number')->label('الرقم الوطني / الإقامة')->placeholder('الكل')->trueLabel('يوجد')->falseLabel('لا يوجد')->queries(true: fn(Builder $query) => $query->whereNotNull('national_number'), false: fn(Builder $query) => $query->whereNull('national_number'), blank: fn(Builder $query) => $query),
         ];
     }
 
@@ -468,14 +430,7 @@ class StudentResource extends Resource
                                     return Center::where('is_active', 1)
                                         ->when(auth()->user()->city_id, fn($query, $cityId) => $query->where('city_id', $cityId))
                                         ->get()
-                                        ->mapWithKeys(function ($center) {
-                                            $locale = app()->getLocale();
-                                            $name = is_array($center->name)
-                                                ? ($center->name[$locale] ?? ($center->name['ar'] ?? 'No Name'))
-                                                : $center->name;
-
-                                            return [$center->id => $name];
-                                        });
+                                        ->pluck('name', 'id');
                                 })
                                 ->default(fn() => auth()->user()->center_id)
                                 ->visible(auth()->user()->role !== Roles::CenterAdmin())
@@ -483,43 +438,33 @@ class StudentResource extends Resource
                                 ->searchable(),
                             Select::make('entry_type')->label(__('general.labels.entry_type'))->default(1)->options(__('general.entry-types'))->columnSpan(1)->required(),
                             DateTimePicker::make('entry_time')->label(__('general.labels.entry_time'))->default(now())->columnSpan(1)->required(),
-                    ]) ->columns(3),
+                        ])
+                        ->columns(3),
                     Fieldset::make('Services')
                         ->label('خدمات')
-                        ->schema([
-                            Checkbox::make('use_printer')->label('خدمة طباعة')->default(false),
-                            Checkbox::make('use_drawer')->label('خدمة مرسم')->default(false),
-                            Checkbox::make('use_mecrator')->label('خدمة ميكراتور')->default(false),
-                            Checkbox::make('use_plotter')->label('خدمة بلوتر')->default(false),
-                        ])
+                        ->schema([Checkbox::make('use_printer')->label('خدمة طباعة')->default(false), Checkbox::make('use_drawer')->label('خدمة مرسم')->default(false), Checkbox::make('use_mecrator')->label('خدمة ميكراتور')->default(false), Checkbox::make('use_plotter')->label('خدمة بلوتر')->default(false)])
                         ->columns(4),
                 ])
                 ->modalHeading(__('general.labels.record_student_entry'))
                 ->modalButton(__('general.labels.save_entry'))
-                ->action(
-                    function(array $data, Student $record) {
-                        if (!$record->completed_data) {
-                            Notification::make()
-                                ->title('❌ لا يمكن إدخال بيانات الطالب')
-                                ->danger()
-                                ->body('بيانات الطالب غير مكتملة. الرجاء مراجعة البيانات المطلوبة أولاً.')
-                                ->send();
-                            return;
-                        }
+                ->action(function (array $data, Student $record) {
+                    if (!$record->completed_data) {
+                        Notification::make()->title('❌ لا يمكن إدخال بيانات الطالب')->danger()->body('بيانات الطالب غير مكتملة. الرجاء مراجعة البيانات المطلوبة أولاً.')->send();
+                        return;
+                    }
 
-                        StudentEntry::create([
-                            'student_id' => $record->id,
-                            'user_id' => Auth::id(),
-                            'center_id' => $data['center_id'] ?? auth()->user()->center_id,
-                            'entry_type' => $data['entry_type'],
-                            'entry_time' => $data['entry_time'],
-                            'use_drawer' => $data['use_drawer'],
-                            'use_printer' => $data['use_printer'],
-                            'use_mecrator' => $data['use_mecrator'],
-                            'use_plotter' => $data['use_plotter'],
-                        ]);
-                    },
-                )
+                    StudentEntry::create([
+                        'student_id' => $record->id,
+                        'user_id' => Auth::id(),
+                        'center_id' => $data['center_id'] ?? auth()->user()->center_id,
+                        'entry_type' => $data['entry_type'],
+                        'entry_time' => $data['entry_time'],
+                        'use_drawer' => $data['use_drawer'],
+                        'use_printer' => $data['use_printer'],
+                        'use_mecrator' => $data['use_mecrator'],
+                        'use_plotter' => $data['use_plotter'],
+                    ]);
+                })
                 ->successNotificationTitle(__('general.labels.entry_recorded_successfully'))
                 ->disabled(function (Student $record) {
                     return !$record->completed_data;
@@ -531,11 +476,7 @@ class StudentResource extends Resource
                     return 'إضافة دخولية جديدة';
                 })
                 ->hidden($isObserver),
-            ActionGroup::make([
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make()->hidden($isObserver),
-                Tables\Actions\DeleteAction::make()->hidden($isObserver)
-            ])->icon('heroicon-m-ellipsis-horizontal'),
+            ActionGroup::make([Tables\Actions\ViewAction::make(), Tables\Actions\EditAction::make()->hidden($isObserver), Tables\Actions\DeleteAction::make()->hidden($isObserver)])->icon('heroicon-m-ellipsis-horizontal'),
         ];
     }
 
@@ -562,21 +503,16 @@ class StudentResource extends Resource
 
     public static function canCreate(): bool
     {
-        return (auth()->user()->role === Roles::CenterAdmin() ||
-                auth()->user()->role === Roles::GeneralAdmin()) &&
-               auth()->user()->role !== Roles::Observer();
+        return (auth()->user()->role === Roles::CenterAdmin() || auth()->user()->role === Roles::GeneralAdmin()) && auth()->user()->role !== Roles::Observer();
     }
 
     public static function canEdit(Model $record): bool
     {
-        return auth()->user()->role !== Roles::MealAdmin() &&
-               auth()->user()->role !== Roles::Observer();
+        return auth()->user()->role !== Roles::MealAdmin() && auth()->user()->role !== Roles::Observer();
     }
 
     public static function canDelete(Model $record): bool
     {
-        return (auth()->user()->role === Roles::CenterAdmin() ||
-                auth()->user()->role === Roles::GeneralAdmin()) &&
-               auth()->user()->role !== Roles::Observer();
+        return (auth()->user()->role === Roles::CenterAdmin() || auth()->user()->role === Roles::GeneralAdmin()) && auth()->user()->role !== Roles::Observer();
     }
 }
