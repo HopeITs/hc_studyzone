@@ -47,8 +47,7 @@ class TopEducationsTable extends TableWidget
                         return Excel::download(new EducationExport(
                             $this->filters
                         ), 'top_educations.xlsx');
-                    })
-                    ->hidden(fn() => auth()->user()->role === Roles::Observer()),
+                    }),
             ]);
     }
 

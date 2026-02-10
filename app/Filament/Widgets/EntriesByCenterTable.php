@@ -23,8 +23,6 @@ class EntriesByCenterTable extends Widget
     protected int|string|array $columnSpan = 'full';
     protected static ?int $sort = 3;
 
-
-
     public function getViewData(): array
     {
         $startDate = !is_null($this->filters['startDate'] ?? null)
@@ -37,7 +35,7 @@ class EntriesByCenterTable extends Widget
 
         $cityIds = $this->filters['city'] ?? null;
         $centerIds = $this->filters['center'] ?? null;
-        // base query for centers
+
         $centers = Center::query()
             ->where('is_active', true)
             ->when($centerIds, fn($q) => $q->whereIn('id', $centerIds))
@@ -51,7 +49,6 @@ class EntriesByCenterTable extends Widget
             ])
             ->get(['id', 'name']);
 
-        // pivot rows
         $data = [];
         $current = $startDate->copy();
         while ($current <= $endDate) {
@@ -71,9 +68,7 @@ class EntriesByCenterTable extends Widget
             'centers' => $centers->pluck('name'),
             'from' => $startDate->format('Y-m-d'),
             'to' => $endDate->format('Y-m-d'),
-            'canExport' => auth()->user()->role !== Roles::Observer(),
+            'canExport' => true,
         ];
     }
-
-
 }

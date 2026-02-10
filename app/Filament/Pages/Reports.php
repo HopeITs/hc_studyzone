@@ -41,7 +41,8 @@ class Reports extends Page
             Roles::GeneralAdmin(),
             Roles::CityAdmin(),
             Roles::CenterAdmin(),
-                Roles::MealAdmin(),
+            Roles::MealAdmin(),
+            Roles::Observer(),
         ], true);
     }
 
@@ -63,42 +64,42 @@ class Reports extends Page
                             ->label('المدينة')
                             ->options(City::pluck('name', 'id'))
                             ->live()
-                            ->visible(auth()->user()->role === Roles::GeneralAdmin())
+                            ->visible(auth()->user()->role === Roles::GeneralAdmin() || auth()->user()->role === Roles::Observer())
                             ->afterStateUpdated(fn(callable $set) => $set('center_id', []))
                             ->columnSpanFull(),
 
                         Select::make('center_id')
                             ->label('المراكز')
                             ->options(function (callable $get) {
-
                                 $user = auth()->user();
-                                $cityId = $get('city_id') ;
-                                if ($user->role === Roles::CityAdmin()) {
+                                $cityId = $get('city_id');
+
+                                if ($user->role === Roles::CityAdmin() || $user->role === Roles::MealAdmin()) {
                                     return Center::where('city_id', $user->city_id)->orderBy('order')
                                         ->pluck('name', 'id');
-
                                 }
 
                                 if ($user->role === Roles::CenterAdmin()) {
                                     return Center::where('id', $user->center_id)->orderBy('order')
                                         ->pluck('name', 'id');
-
                                 }
-                                if ($user->role === Roles::MealAdmin()) {
-                                    return Center::where('city_id', $user->city_id)->orderBy('order')
-                                        ->pluck('name', 'id');
 
+                                if ($user->role === Roles::Observer()) {
+                                    if ($cityId) {
+                                        return Center::where('city_id', $cityId)->orderBy('order')
+                                            ->pluck('name', 'id');
+                                    }
+                                    return Center::orderBy('order')
+                                        ->pluck('name', 'id');
                                 }
 
                                 if ($cityId) {
                                     return Center::where('city_id', $cityId)->orderBy('order')
                                         ->pluck('name', 'id');
-
                                 }
 
                                 return Center::orderBy('order')
                                     ->pluck('name', 'id');
-
                             })
                             ->multiple()
                             ->searchable()
@@ -246,7 +247,7 @@ class Reports extends Page
     {
         $user = Auth::user();
 
-        if ($user->role === Roles::GeneralAdmin()) {
+        if ($user->role === Roles::GeneralAdmin() || $user->role === Roles::Observer()) {
             return $query;
         }
 
