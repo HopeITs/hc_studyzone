@@ -224,7 +224,7 @@ class EntryResource extends Resource
                     ->searchable()
                     ->multiple()
                     ->preload()
-                    ->columnSpan(2),
+                    ->columnSpan(1),
                 TernaryFilter::make('student.completed_data')
                     ->label('حالة بيانات الطالب')
                     ->placeholder('الكل')
@@ -239,7 +239,7 @@ class EntryResource extends Resource
                         }),
                         blank: fn (Builder $query) => $query,
                     )
-                    ->columnSpan(2),
+                    ->columnSpan(1),
 
                 SelectFilter::make('center.city.name')
                     ->label('المدينة')
