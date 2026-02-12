@@ -27,6 +27,7 @@ class Student extends Model implements HasName
         'national_number' => 'string',
         'foreign_id_number' => 'string',
         'completed_data' => 'boolean',
+        'skip_national_number' => 'boolean',
     ];
 
     protected static function boot()
@@ -88,9 +89,9 @@ class Student extends Model implements HasName
         }
 
         if ($this->nationality === 'syrian' && empty($this->is_child)) {
-            if (empty($this->national_number)) {
+            if (empty($this->national_number) && !$this->skip_national_number) {
                 $errors[] = 'الرقم الوطني مطلوب للطلاب السوريين غير القاصرين';
-            } elseif (!preg_match('/^\d{11}$/', $this->national_number)) {
+            } elseif (!empty($this->national_number) && !preg_match('/^\d{11}$/', $this->national_number)) {
                 $errors[] = 'الرقم الوطني يجب أن يحتوي على 11 رقمًا للطلاب السوريين';
             }
         }
@@ -113,7 +114,7 @@ class Student extends Model implements HasName
             }
         }
 
-        if ($this->nationality === 'other' && empty($this->national_number) && empty($this->is_child)) {
+        if ($this->nationality === 'other' && empty($this->national_number) && empty($this->is_child) && !$this->skip_national_number) {
             $errors[] = 'رقم الإقامة/الهوية الأجنبية مطلوب للطلاب غير السوريين غير القاصرين';
         }
 

@@ -24,6 +24,10 @@ class EditStudent extends EditRecord
             $data['national_number'] = null;
         }
 
+        if (!isset($data['skip_national_number'])) {
+            $data['skip_national_number'] = false;
+        }
+
         return $data;
     }
 }

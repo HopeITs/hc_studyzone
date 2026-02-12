@@ -88,26 +88,61 @@ class StudentResource extends Resource
                     TextInput::make('firstname')->label(__('general.labels.firstname'))->required()->maxLength(255)->columnSpan(1),
                     TextInput::make('lastname')->label(__('general.labels.lastname'))->required()->maxLength(255)->columnSpan(1),
                     TextInput::make('father_name')->label(__('general.labels.father_name'))->required()->maxLength(255)->columnSpan(1),
-                    Select::make('nationality')
-                        ->label(__('general.labels.nationality'))
-                        ->options(__('general.nationalities'))
-                        ->default('syrian')
-                        ->required()
-                        ->live()
-                        ->afterStateUpdated(function (Set $set) {
-                            $set('national_number', null);
-                        })
-                        ->columnSpan(1),
+
+                    \Filament\Forms\Components\Grid::make(3)->schema([
+                        Select::make('nationality')
+                            ->label(__('general.labels.nationality'))
+                            ->options(__('general.nationalities'))
+                            ->default('syrian')
+                            ->required()
+                            ->live()
+                            ->afterStateUpdated(function (Set $set) {
+                                $set('national_number', null);
+                                $set('skip_national_number', false);
+                                $set('skip_national_number_reason', null);
+                            }),
+
+                        \Filament\Forms\Components\Grid::make(2)
+                            ->columnSpan(2)
+                            ->schema([
+                                Checkbox::make('is_child')
+                                    ->label('قاصر')
+                                    ->default(false)
+                                    ->live()
+                                    ->afterStateHydrated(function ($set, $get, $state, $livewire) {
+                                        $record = $livewire->record ?? null;
+                                        if ($record && is_null($record->national_number)) {
+                                            $set('is_child', true);
+                                        }
+                                    }),
+
+                                Checkbox::make('skip_national_number')
+                                    ->label('تخطي الرقم الوطني')
+                                    ->helperText('الموافقة على إضافة طالب بدون رقم وطني')
+                                    ->visible(fn() => in_array(auth()->user()->role, [Roles::GeneralAdmin(), Roles::CityAdmin()]))
+                                    ->live()
+                                    ->afterStateUpdated(function (Set $set, $state) {
+                                        if ($state) {
+                                            $set('national_number', null);
+                                        } else {
+                                            $set('skip_national_number_reason', null);
+                                        }
+                                    }),
+                            ]),
+                    ]),
+
+                    Textarea::make('skip_national_number_reason')->label('سبب تخطي الرقم الوطني')->placeholder('يرجى كتابة سبب عدم إدخال الرقم الوطني...')->required(fn(Get $get) => $get('skip_national_number') === true)->visible(fn(Get $get) => in_array(auth()->user()->role, [Roles::GeneralAdmin(), Roles::CityAdmin()]) && $get('skip_national_number') === true)->columnSpan(3)->maxLength(500),
+
                     TextInput::make('national_number')
                         ->label(fn(Get $get) => $get('nationality') === 'syrian' ? __('general.labels.national_number') : __('general.labels.foreign_id_number'))
-                        ->required(fn(Get $get) => !$get('is_child'))
-                        ->disabled(fn(Get $get) => $get('is_child'))
+                        ->required(fn(Get $get) => !$get('is_child') && !$get('skip_national_number'))
+                        ->disabled(fn(Get $get) => $get('is_child') || $get('skip_national_number'))
                         ->numeric(fn(Get $get) => $get('nationality') === 'syrian')
                         ->live()
                         ->rules([
-                            fn(Get $get): string => $get('nationality') === 'syrian' ? 'digits:11' : '',
+                            fn(Get $get): string => $get('nationality') === 'syrian' && !$get('skip_national_number') ? 'digits:11' : '',
                             fn(Get $get) => function (string $attribute, $value, Closure $fail) use ($get, $record) {
-                                if (empty($value)) {
+                                if (empty($value) || $get('skip_national_number')) {
                                     return;
                                 }
 
@@ -129,16 +164,7 @@ class StudentResource extends Resource
                             'digits' => 'يجب إدخال 11 خانة بالضبط للرقم الوطني.',
                         ])
                         ->columnSpan(2),
-                    Checkbox::make('is_child')
-                        ->label('قاصر')
-                        ->default(false)
-                        ->live()
-                        ->afterStateHydrated(function ($set, $get, $state, $livewire) {
-                            $record = $livewire->record ?? null;
-                            if ($record && is_null($record->national_number)) {
-                                $set('is_child', true);
-                            }
-                        }),
+
                     Select::make('gender')->label(__('general.labels.gender'))->options(__('general.genders'))->required()->columnSpan(1),
                     Select::make('religion')->label(__('general.labels.religion'))->options(__('general.religions'))->default(0)->columnSpan(1)->required(),
                     DatePicker::make('year_of_birth')->label(__('general.labels.date_of_birth'))->columnSpan(1),
@@ -280,6 +306,8 @@ class StudentResource extends Resource
             TextColumn::make('year_of_birth')->label('Date of Birth')->sortable()->toggleable(),
             TextColumn::make('nationality')->label('Nationality')->label('الجنسية')->sortable()->searchable()->toggleable(),
             TextColumn::make('national_number')->label('الرقم الوطني / الإقامة')->sortable()->searchable()->toggleable(),
+            TextColumn::make('skip_national_number')->label('تم التخطي')->badge()->formatStateUsing(fn($state) => $state ? 'نعم' : 'لا')->color(fn($state) => $state ? 'warning' : 'gray')->toggleable(isToggledHiddenByDefault: true),
+            TextColumn::make('skip_national_number_reason')->label('سبب التخطي')->limit(30)->toggleable(isToggledHiddenByDefault: true),
             TextColumn::make('phone')->label('Phone')->sortable()->searchable()->toggleable(),
             TextColumn::make('email')->label('Email')->sortable()->searchable()->toggleable(isToggledHiddenByDefault: true),
             TextColumn::make('entries_count')->counts('entries')->label('Entries')->sortable()->toggleable(),
@@ -409,6 +437,7 @@ class StudentResource extends Resource
             SelectFilter::make('gender')->label('الجنس')->options(__('general.genders')),
             SelectFilter::make('religion')->label('الديانة')->options(__('general.religions')),
             TernaryFilter::make('national_number')->label('الرقم الوطني / الإقامة')->placeholder('الكل')->trueLabel('يوجد')->falseLabel('لا يوجد')->queries(true: fn(Builder $query) => $query->whereNotNull('national_number'), false: fn(Builder $query) => $query->whereNull('national_number'), blank: fn(Builder $query) => $query),
+            TernaryFilter::make('skip_national_number')->label('تم تخطي الرقم الوطني')->placeholder('الكل')->trueLabel('نعم')->falseLabel('لا'),
         ];
     }
 
@@ -498,6 +527,11 @@ class StudentResource extends Resource
     public static function mutateFormDataBeforeCreate(array $data): array
     {
         $data['id'] = Str::uuid()->toString();
+
+        if (!isset($data['skip_national_number'])) {
+            $data['skip_national_number'] = false;
+        }
+
         return $data;
     }
 
