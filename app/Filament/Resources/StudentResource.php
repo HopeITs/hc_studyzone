@@ -111,7 +111,7 @@ class StudentResource extends Resource
                                     ->live()
                                     ->afterStateHydrated(function ($set, $get, $state, $livewire) {
                                         $record = $livewire->record ?? null;
-                                        if ($record && is_null($record->national_number)) {
+                                        if ($record && is_null($record->national_number) && !$record->skip_national_number) {
                                             $set('is_child', true);
                                         }
                                     }),
