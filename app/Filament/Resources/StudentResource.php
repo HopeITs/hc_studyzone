@@ -225,43 +225,72 @@ class StudentResource extends Resource
     }
 
     protected static function educationStep(): Wizard\Step
-    {
-        return Wizard\Step::make(__('general.labels.education'))
-            ->schema([
-                \Filament\Forms\Components\Repeater::make('educations')
-                    ->relationship('studentEducations')
-                    ->label(__('general.labels.educations'))
-                    ->schema([
-                        Select::make('degree')
-                            ->label('الدرجة')
-                            ->options(__('general.edu-degrees'))
-                            ->reactive()
-                            ->afterStateUpdated(fn(callable $set) => $set('education_id', null))
-                            ->dehydrated(false)
-                            ->afterStateHydrated(function ($set, $state, $record) {
-                                if ($record && $record->education) {
-                                    $set('degree', $record->education->degree);
-                                }
-                            }),
-                        Select::make('education_id')
-                            ->label(__('general.labels.education'))
-                            ->options(function (callable $get) {
-                                $degree = $get('degree');
-                                return $degree ? \App\Models\Education::where('degree', $degree)->pluck('name', 'id') : \App\Models\Education::pluck('name', 'id');
-                            })
-                            ->searchable()
-                            ->required(),
-                        Select::make('level')->label(__('general.labels.education_level'))->options(__('general.edu-levels'))->required(),
-                        Select::make('type')->label(__('general.labels.education_type'))->options(__('general.edu-types'))->required(),
-                    ])
-                    ->columns(2)
-                    ->minItems(1)
-                    ->addActionLabel(__('general.labels.add_education'))
-                    ->columnSpanFull(),
-            ])
-            ->columns(1);
-    }
-
+{
+    return Wizard\Step::make(__('general.labels.education'))
+        ->schema([
+            \Filament\Forms\Components\Repeater::make('educations')
+                ->relationship('studentEducations')
+                ->label(__('general.labels.educations'))
+                ->schema([
+                    Select::make('degree')
+                        ->label('الدرجة')
+                        ->options(__('general.edu-degrees'))
+                        ->reactive()
+                        ->afterStateUpdated(fn(callable $set) => $set('education_id', null))
+                        ->dehydrated(false)
+                        ->afterStateHydrated(function ($set, $state, $record) {
+                            if ($record && $record->education) {
+                                $set('degree', $record->education->degree);
+                            }
+                        }),
+                    Select::make('education_id')
+                        ->label(__('general.labels.education'))
+                        ->options(function (callable $get) {
+                            $degree = $get('degree');
+                            return $degree ? \App\Models\Education::where('degree', $degree)->pluck('name', 'id') : \App\Models\Education::pluck('name', 'id');
+                        })
+                        ->searchable()
+                        ->required(),
+                    Select::make('level')->label(__('general.labels.education_level'))->options(__('general.edu-levels'))->required(),
+                    Select::make('type')->label(__('general.labels.education_type'))->options(__('general.edu-types'))->required(),
+                    
+                    // NEW FIELDS: Start Date and End Date
+                    \Filament\Forms\Components\DatePicker::make('start_date')
+                        ->label('تاريخ البداية')
+                        ->default(now())
+                        ->required()
+                        ->displayFormat('Y-m-d'),
+                    
+                    \Filament\Forms\Components\DatePicker::make('end_date')
+                        ->label('تاريخ النهاية')
+                        ->nullable()
+                        ->after('start_date')
+                        ->helperText('اتركه فارغاً إذا كانت الدراسة مستمرة')
+                        ->displayFormat('Y-m-d'),
+                ])
+                ->columns(2)
+                ->minItems(1)
+                ->addActionLabel(__('general.labels.add_education'))
+                ->columnSpanFull()
+                ->afterStateUpdated(function ($state, $set, $get, $livewire) {
+                    $educations = collect($state);
+                    
+                    foreach ($educations as $index => $education) {
+                        $currentIndex = (int) $index;
+                        
+                        if ($currentIndex > 0 && empty($education['end_date']) && empty($educations[$currentIndex - 1]['end_date'])) {
+                            $set("educations.{$currentIndex}.end_date", now()->format('Y-m-d'));
+                            \Filament\Notifications\Notification::make()
+                                ->warning()
+                                ->title('تنبيه')
+                                ->body('تم إغلاق الدراسة السابقة تلقائياً لأنها لا تحتوي على تاريخ نهاية')
+                                ->send();
+                        }
+                    }
+                }),
+        ])
+        ->columns(1);
+}
     public static function table(Table $table): Table
     {
         return $table
@@ -337,32 +366,67 @@ class StudentResource extends Resource
                 )
                 ->toggleable(),
             TextColumn::make('street.city.name')->label('City')->sortable()->searchable()->toggleable(isToggledHiddenByDefault: true),
-            TextColumn::make('gender')
-                ->label('Gender')
-                ->badge()
-                ->sortable()
-                ->formatStateUsing(fn(string $state) => __("general.genders.{$state}"))
-                ->color(
-                    fn(int $state): string => match ($state) {
-                        0 => 'warning',
-                        1 => 'info',
-                        2 => 'danger',
-                    },
-                )
-                ->toggleable(isToggledHiddenByDefault: true),
-            TextColumn::make('religion')
-                ->label('Religion')
-                ->badge()
-                ->sortable()
-                ->formatStateUsing(fn(string $state) => __("general.religions.{$state}"))
-                ->color(
-                    fn(int $state): string => match ($state) {
-                        0 => 'warning',
-                        1 => 'success',
-                        2 => 'secondary',
-                    },
-                )
-                ->toggleable(isToggledHiddenByDefault: true),
+           TextColumn::make('gender')
+    ->label('Gender')
+    ->badge()
+    ->sortable()
+    ->formatStateUsing(function($state) {
+        \Illuminate\Support\Facades\Log::info('Gender value: ' . gettype($state) . ' - ' . json_encode($state));
+        return __("general.genders." . (is_object($state) && method_exists($state, 'value') ? $state->value : $state));
+    })
+    ->color(
+        function($state): string {
+            $numericValue = 0;
+            
+            if (is_numeric($state)) {
+                $numericValue = (int) $state;
+            } elseif (is_object($state) && method_exists($state, 'value')) {
+                $numericValue = (int) $state->value;
+            } elseif (is_string($state) && is_numeric($state)) {
+                $numericValue = (int) $state;
+            }
+            
+            return match ($numericValue) {
+                0 => 'warning',
+                1 => 'info',
+                2 => 'danger',
+                default => 'gray',
+            };
+        }
+    )
+    ->toggleable(isToggledHiddenByDefault: true),
+
+TextColumn::make('religion')
+    ->label('Religion')
+    ->badge()
+    ->sortable()
+    ->formatStateUsing(function($state) {
+        // Debug: Log or dump the value
+        \Illuminate\Support\Facades\Log::info('Religion value: ' . gettype($state) . ' - ' . json_encode($state));
+        return __("general.religions." . (is_object($state) && method_exists($state, 'value') ? $state->value : $state));
+    })
+    ->color(
+        function($state): string {
+            // Get the numeric value safely
+            $numericValue = 0;
+            
+            if (is_numeric($state)) {
+                $numericValue = (int) $state;
+            } elseif (is_object($state) && method_exists($state, 'value')) {
+                $numericValue = (int) $state->value;
+            } elseif (is_string($state) && is_numeric($state)) {
+                $numericValue = (int) $state;
+            }
+            
+            return match ($numericValue) {
+                0 => 'warning',
+                1 => 'success',
+                2 => 'secondary',
+                default => 'gray',
+            };
+        }
+    )
+    ->toggleable(isToggledHiddenByDefault: true),
             CheckboxColumn::make('is_student')->toggleable(isToggledHiddenByDefault: true),
             CheckboxColumn::make('is_employed')->toggleable(isToggledHiddenByDefault: true),
             TextColumn::make('created_at')->label('Created at')->formatStateUsing(fn(Model $record) => $record->created_at->format('Y-m-d'))->sortable()->searchable()->toggleable(isToggledHiddenByDefault: true),

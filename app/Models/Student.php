@@ -145,4 +145,57 @@ class Student extends Model implements HasName
         $this->completed_data = empty($this->getEntryValidationErrors());
         $this->saveQuietly();
     }
+
+
+public function getEducationAtDate($date): ?StudentEducation
+{
+    return $this->studentEducations()
+        ->where(function ($query) use ($date) {
+            $query->where('start_date', '<=', $date)
+                ->where(function ($q) use ($date) {
+                    $q->where('end_date', '>=', $date)
+                      ->orWhereNull('end_date');
+                });
+        })
+        ->first();
+}
+
+
+   public function getEducationStatsForDateRange($startDate, $endDate)
+{
+    $startDate = $startDate instanceof \Carbon\Carbon ? $startDate : \Carbon\Carbon::parse($startDate);
+    $endDate = $endDate instanceof \Carbon\Carbon ? $endDate : \Carbon\Carbon::parse($endDate);
+    
+    return $this->studentEducations()
+        ->with('education')
+        ->get()
+        ->map(function ($studentEdu) use ($startDate, $endDate) {
+            $eduStart = $studentEdu->start_date instanceof \Carbon\Carbon 
+                ? $studentEdu->start_date 
+                : \Carbon\Carbon::parse($studentEdu->start_date);
+                
+            $eduEnd = $studentEdu->end_date 
+                ? ($studentEdu->end_date instanceof \Carbon\Carbon 
+                    ? $studentEdu->end_date 
+                    : \Carbon\Carbon::parse($studentEdu->end_date))
+                : null;
+            
+            $overlapStart = $eduStart->greaterThan($startDate) ? $eduStart : $startDate;
+            $overlapEnd = $eduEnd && $eduEnd->lessThan($endDate) ? $eduEnd : $endDate;
+            
+            $days = $overlapStart->lessThanOrEqualTo($overlapEnd) 
+                ? $overlapStart->diffInDays($overlapEnd) + 1 
+                : 0;
+            
+            return [
+                'education' => $studentEdu->education,
+                'student_education' => $studentEdu,
+                'overlap_days' => $days,
+                'overlap_start' => $overlapStart->toDateString(),
+                'overlap_end' => $overlapEnd->toDateString(),
+            ];
+        })
+        ->filter(fn($item) => $item['overlap_days'] > 0);
+}
+
 }
