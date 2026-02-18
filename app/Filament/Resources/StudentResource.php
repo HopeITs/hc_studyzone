@@ -242,7 +242,9 @@ class StudentResource extends Resource
                             if ($record && $record->education) {
                                 $set('degree', $record->education->degree);
                             }
-                        }),
+                        })
+                        ->columnSpan(2),
+                    
                     Select::make('education_id')
                         ->label(__('general.labels.education'))
                         ->options(function (callable $get) {
@@ -250,42 +252,74 @@ class StudentResource extends Resource
                             return $degree ? \App\Models\Education::where('degree', $degree)->pluck('name', 'id') : \App\Models\Education::pluck('name', 'id');
                         })
                         ->searchable()
-                        ->required(),
-                    Select::make('level')->label(__('general.labels.education_level'))->options(__('general.edu-levels'))->required(),
-                    Select::make('type')->label(__('general.labels.education_type'))->options(__('general.edu-types'))->required(),
+                        ->required()
+                        ->columnSpan(2),
+                    
+                    Select::make('level')
+                        ->label(__('general.labels.education_level'))
+                        ->options(__('general.edu-levels'))
+                        ->required()
+                        ->columnSpan(2),
+                    
+                    Select::make('type')
+                        ->label(__('general.labels.education_type'))
+                        ->options(__('general.edu-types'))
+                        ->required()
+                        ->columnSpan(2),
                     
                     \Filament\Forms\Components\DatePicker::make('start_date')
                         ->label('تاريخ البداية')
                         ->default(now())
                         ->required()
-                        ->displayFormat('Y-m-d'),
+                        ->displayFormat('Y-m-d')
+                        ->columnSpan(2),
                     
                     \Filament\Forms\Components\DatePicker::make('end_date')
                         ->label('تاريخ النهاية')
                         ->nullable()
                         ->after('start_date')
                         ->helperText('اتركه فارغاً إذا كانت الدراسة مستمرة')
-                        ->displayFormat('Y-m-d'),
+                        ->displayFormat('Y-m-d')
+                        ->columnSpan(2),
                 ])
-                ->columns(2)
+                ->columns(12)
                 ->minItems(1)
                 ->addActionLabel(__('general.labels.add_education'))
                 ->columnSpanFull()
-                ->afterStateUpdated(function ($state, $set, $get, $livewire) {
-                    $educations = collect($state);
+                ->reorderable(false) 
+                ->reorderableWithDragAndDrop(false) 
+                ->mutateRelationshipDataBeforeCreateUsing(function (array $data, $livewire) {
+                    static $processing = false;
                     
-                    foreach ($educations as $index => $education) {
-                        $currentIndex = (int) $index;
+                    if ($processing) {
+                        return null;
+                    }
+                    
+                    $processing = true;
+                    
+                    $items = collect($livewire->data['educations'] ?? [])
+                        ->filter(fn($item) => isset($item['start_date']));
+                    
+                    if ($items->count() > 0) {
+                        $lastItem = $items->last();
                         
-                        if ($currentIndex > 0 && empty($education['end_date']) && empty($educations[$currentIndex - 1]['end_date'])) {
-                            $set("educations.{$currentIndex}.end_date", now()->format('Y-m-d'));
+                        if (!isset($lastItem['end_date']) || empty($lastItem['end_date'])) {
                             \Filament\Notifications\Notification::make()
                                 ->warning()
                                 ->title('تنبيه')
-                                ->body('تم إغلاق الدراسة السابقة تلقائياً لأنها لا تحتوي على تاريخ نهاية')
+                                ->body('الدراسة السابقة لا تحتوي على تاريخ نهاية. الرجاء تحديد تاريخ النهاية أولاً.')
+                                ->persistent()
                                 ->send();
+                            
+                            $processing = false;
+                            return null; 
                         }
                     }
+                    
+                    $processing = false;
+                    return $data;
+                })
+                ->afterStateUpdated(function ($state, $set, $get, $livewire) {
                 }),
         ])
         ->columns(1);
