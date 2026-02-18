@@ -224,7 +224,7 @@ class StudentResource extends Resource
             ->columns(3);
     }
 
-    protected static function educationStep(): Wizard\Step
+   protected static function educationStep(): Wizard\Step
 {
     return Wizard\Step::make(__('general.labels.education'))
         ->schema([
@@ -242,9 +242,7 @@ class StudentResource extends Resource
                             if ($record && $record->education) {
                                 $set('degree', $record->education->degree);
                             }
-                        })
-                        ->columnSpan(2),
-                    
+                        }),
                     Select::make('education_id')
                         ->label(__('general.labels.education'))
                         ->options(function (callable $get) {
@@ -252,75 +250,27 @@ class StudentResource extends Resource
                             return $degree ? \App\Models\Education::where('degree', $degree)->pluck('name', 'id') : \App\Models\Education::pluck('name', 'id');
                         })
                         ->searchable()
-                        ->required()
-                        ->columnSpan(2),
-                    
-                    Select::make('level')
-                        ->label(__('general.labels.education_level'))
-                        ->options(__('general.edu-levels'))
-                        ->required()
-                        ->columnSpan(2),
-                    
-                    Select::make('type')
-                        ->label(__('general.labels.education_type'))
-                        ->options(__('general.edu-types'))
-                        ->required()
-                        ->columnSpan(2),
+                        ->required(),
+                    Select::make('level')->label(__('general.labels.education_level'))->options(__('general.edu-levels'))->required(),
+                    Select::make('type')->label(__('general.labels.education_type'))->options(__('general.edu-types'))->required(),
                     
                     \Filament\Forms\Components\DatePicker::make('start_date')
                         ->label('تاريخ البداية')
                         ->default(now())
                         ->required()
-                        ->displayFormat('Y-m-d')
-                        ->columnSpan(2),
+                        ->displayFormat('Y-m-d'),
                     
                     \Filament\Forms\Components\DatePicker::make('end_date')
                         ->label('تاريخ النهاية')
                         ->nullable()
                         ->after('start_date')
                         ->helperText('اتركه فارغاً إذا كانت الدراسة مستمرة')
-                        ->displayFormat('Y-m-d')
-                        ->columnSpan(2),
+                        ->displayFormat('Y-m-d'),
                 ])
-                ->columns(12)
+                ->columns(2)
                 ->minItems(1)
                 ->addActionLabel(__('general.labels.add_education'))
                 ->columnSpanFull()
-                ->reorderable(false) 
-                ->reorderableWithDragAndDrop(false) 
-                ->mutateRelationshipDataBeforeCreateUsing(function (array $data, $livewire) {
-                    static $processing = false;
-                    
-                    if ($processing) {
-                        return null;
-                    }
-                    
-                    $processing = true;
-                    
-                    $items = collect($livewire->data['educations'] ?? [])
-                        ->filter(fn($item) => isset($item['start_date']));
-                    
-                    if ($items->count() > 0) {
-                        $lastItem = $items->last();
-                        
-                        if (!isset($lastItem['end_date']) || empty($lastItem['end_date'])) {
-                            \Filament\Notifications\Notification::make()
-                                ->warning()
-                                ->title('تنبيه')
-                                ->body('الدراسة السابقة لا تحتوي على تاريخ نهاية. الرجاء تحديد تاريخ النهاية أولاً.')
-                                ->persistent()
-                                ->send();
-                            
-                            $processing = false;
-                            return null; 
-                        }
-                    }
-                    
-                    $processing = false;
-                    return $data;
-                })
-                ->afterStateUpdated(function ($state, $set, $get, $livewire) {
-                }),
         ])
         ->columns(1);
 }
