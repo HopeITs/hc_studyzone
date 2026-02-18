@@ -10,11 +10,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('student_educations', function (Blueprint $table) {
-            $table->date('start_date')->nullable()->after('type');
+            $table->date('start_date')->default('2022-01-01')->nullable()->after('type');
             $table->date('end_date')->nullable()->after('start_date');
         });
 
-        DB::table('student_educations')->update(['start_date' => '2022-01-01']);
+
     }
 
     public function down(): void
