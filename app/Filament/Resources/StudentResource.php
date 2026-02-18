@@ -254,7 +254,6 @@ class StudentResource extends Resource
                     Select::make('level')->label(__('general.labels.education_level'))->options(__('general.edu-levels'))->required(),
                     Select::make('type')->label(__('general.labels.education_type'))->options(__('general.edu-types'))->required(),
                     
-                    // NEW FIELDS: Start Date and End Date
                     \Filament\Forms\Components\DatePicker::make('start_date')
                         ->label('تاريخ البداية')
                         ->default(now())
@@ -401,13 +400,11 @@ TextColumn::make('religion')
     ->badge()
     ->sortable()
     ->formatStateUsing(function($state) {
-        // Debug: Log or dump the value
         \Illuminate\Support\Facades\Log::info('Religion value: ' . gettype($state) . ' - ' . json_encode($state));
         return __("general.religions." . (is_object($state) && method_exists($state, 'value') ? $state->value : $state));
     })
     ->color(
         function($state): string {
-            // Get the numeric value safely
             $numericValue = 0;
             
             if (is_numeric($state)) {
