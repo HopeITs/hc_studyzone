@@ -133,18 +133,38 @@ class EntryResource extends Resource
                 TextColumn::make('student.whatsapp')->label('واتساب')->searchable()->sortable()->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('entry_type')->label('نوع الدخول')->sortable()->formatStateUsing(fn($state) => __('general.entry-types.' . $state)),
                 TextColumn::make('student.educations')
-                    ->label('المؤهل العلمي')
-                    ->formatStateUsing(function ($record) {
-                        return $record->student->educations->take(3)->pluck('name')->implode(', ');
-                    })
-                    ->searchable(
-                        query: function (Builder $query, string $search): Builder {
-                            return $query->whereHas('student.educations', function (Builder $studentQuery) use ($search) {
-                                $studentQuery->where('name', 'like', "%{$search}%");
-                            });
-                        },
-                    )
-                    ->toggleable(),
+    ->label('المؤهل العلمي')
+    ->formatStateUsing(function ($record) {
+        $lastEducation = $record->student->studentEducations()
+            ->with('education')
+            ->orderBy('start_date', 'desc')
+            ->first();
+        
+        if (!$lastEducation || !$lastEducation->education) {
+            return '-';
+        }
+        
+        return $lastEducation->education->getTranslation('name', 'ar');
+    })
+    ->searchable(
+        query: function (Builder $query, string $search): Builder {
+            return $query->whereHas('student.studentEducations.education', function (Builder $studentQuery) use ($search) {
+                $studentQuery->where('name', 'like', "%{$search}%");
+            });
+        },
+    )
+    ->sortable(
+        query: function (Builder $query, string $direction): Builder {
+            return $query->orderBy(
+                \App\Models\StudentEducation::select('education_id')
+                    ->whereColumn('student_id', 'students.id')
+                    ->orderBy('start_date', 'desc')
+                    ->limit(1),
+                $direction
+            );
+        },
+    )
+    ->toggleable(),
                 TextColumn::make('entry_time')->label('تاريخ الدخول')->sortable()->dateTime('Y-m-d H:i'),
                 TextColumn::make('center.city.name')
                     ->label('المدينة')
