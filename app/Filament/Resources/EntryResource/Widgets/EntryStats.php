@@ -42,21 +42,16 @@ class EntryStats extends BaseWidget
     $this->getPageTableQuery()
         ->whereHas('student.studentEducations', function($q) {
             $q->where('education_id', 65)
-              ->whereRaw('? BETWEEN start_date AND COALESCE(end_date, ?)', [
-                  \DB::raw('entry_time'), 
-                  \DB::raw('entry_time')
-              ]);
+              ->whereRaw('entry_time BETWEEN start_date AND COALESCE(end_date, entry_time)');
         })
         ->count()
 ),
-            Stat::make('طلاب الاسنان', 
+
+Stat::make('طلاب الاسنان', 
     $this->getPageTableQuery()
         ->whereHas('student.studentEducations', function($q) {
             $q->whereIn('education_id', [77, 136])
-              ->whereRaw('? BETWEEN start_date AND COALESCE(end_date, ?)', [
-                  \DB::raw('entry_time'), 
-                  \DB::raw('entry_time')
-              ]);
+              ->whereRaw('entry_time BETWEEN start_date AND COALESCE(end_date, entry_time)');
         })
         ->count()
 ),
