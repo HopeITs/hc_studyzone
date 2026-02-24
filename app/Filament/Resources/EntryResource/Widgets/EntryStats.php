@@ -38,8 +38,28 @@ class EntryStats extends BaseWidget
             Stat::make(__('general.entry-types.' . EntryType::Course()), $this->getPageTableQuery()->where('entry_type', EntryType::Course())->count()),
             Stat::make(__('general.entry-types.' . EntryType::Hall()), $this->getPageTableQuery()->where('entry_type', EntryType::Hall())->count()),
 
-            Stat::make('طلاب العمارة', $this->getPageTableQuery()->whereHas('student.educations', fn($q) => $q->where('educations.id', 65)->distinct('student_id'))->count()),
-            Stat::make('طلاب الاسنان', $this->getPageTableQuery()->whereHas('student.educations', fn($q) => $q->whereIn('educations.id', [77, 136])->distinct('student_id'))->count()),
+           Stat::make('طلاب العمارة', 
+    $this->getPageTableQuery()
+        ->whereHas('student.studentEducations', function($q) {
+            $q->where('education_id', 7)
+              ->whereRaw('? BETWEEN start_date AND COALESCE(end_date, ?)', [
+                  \DB::raw('entry_time'), 
+                  \DB::raw('entry_time')
+              ]);
+        })
+        ->count()
+),
+            Stat::make('طلاب الأسنان', 
+    $this->getPageTableQuery()
+        ->whereHas('student.studentEducations', function($q) {
+            $q->where('education_id', 16)
+              ->whereRaw('? BETWEEN start_date AND COALESCE(end_date, ?)', [
+                  \DB::raw('entry_time'), 
+                  \DB::raw('entry_time')
+              ]);
+        })
+        ->count()
+),
 
 
             Stat::make(__('general.labels.print-service'), $this->getPageTableQuery()->where('use_printer', true)->count()),
