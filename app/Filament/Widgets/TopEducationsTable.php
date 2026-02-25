@@ -2,14 +2,16 @@
 
 namespace App\Filament\Widgets;
 
-use App\Enums\Roles;
 use App\Exports\EducationExport;
 use App\Models\Education;
+use App\Models\Student;
+use App\Models\StudentEducation;
+use App\Models\StudentEntry;
 use Carbon\Carbon;
-use Filament\Widgets\Concerns\InteractsWithPageFilters;
-use Filament\Widgets\TableWidget;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Filament\Widgets\Concerns\InteractsWithPageFilters;
+use Filament\Widgets\TableWidget;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Tables\Actions\Action;
 use Maatwebsite\Excel\Facades\Excel;
@@ -18,13 +20,8 @@ class TopEducationsTable extends TableWidget
 {
     use InteractsWithPageFilters;
 
-    protected static ?string $heading = 'Top 10 Educations by Students';
+    protected static ?string $heading = 'Top 10 Educations by Student Entries';
     protected static ?int $sort = 7;
-
-    public function getTable(): Table
-    {
-        return $this->table($this->makeTable());
-    }
 
     public function table(Table $table): Table
     {
@@ -32,10 +29,10 @@ class TopEducationsTable extends TableWidget
             ->query($this->getQuery())
             ->columns([
                 Tables\Columns\TextColumn::make('name')->label('Education'),
-                Tables\Columns\TextColumn::make('total')->label('Total'),
-                Tables\Columns\TextColumn::make('males')->label('Males'),
-                Tables\Columns\TextColumn::make('females')->label('Females'),
-                Tables\Columns\TextColumn::make('unknown')->label('Unknown'),
+                Tables\Columns\TextColumn::make('total')->label('Total Entries'),
+                Tables\Columns\TextColumn::make('males')->label('Male Entries'),
+                Tables\Columns\TextColumn::make('females')->label('Female Entries'),
+                Tables\Columns\TextColumn::make('unknown')->label('Unknown Gender Entries'),
             ])
             ->paginated(false)
             ->headerActions([
@@ -64,71 +61,33 @@ class TopEducationsTable extends TableWidget
         $cityIds = $this->filters['city'] ?? null;
         $centerIds = $this->filters['center'] ?? null;
 
-        $applyCityFilter = function ($query) use ($cityIds) {
-            if ($cityIds) {
-                $query->whereIn('students.street_id', function ($sub) use ($cityIds) {
-                    $sub->select('id')
-                        ->from('streets')
-                        ->whereIn('city_id', (array)$cityIds);
-                });
-            }
-        };
-
-        $applyCenterFilter = function ($query) use ($centerIds) {
-            if ($centerIds) {
-                $query->whereIn('students.id', function ($sub) use ($centerIds) {
-                    $sub->select('student_id')
-                        ->from('student_entries')
-                        ->whereIn('center_id', (array)$centerIds);
-                });
-            }
-        };
+        $entriesTable = (new StudentEntry())->getTable();
+        $studentsTable = (new Student())->getTable();
+        $studentEducationsTable = (new StudentEducation())->getTable();
+        $educationsTable = (new Education())->getTable();
 
         return Education::query()
-            ->select('educations.*')
-            ->selectSub(function ($query) use ($startDate, $endDate, $applyCityFilter, $applyCenterFilter) {
-                $query->from('student_educations')
-                    ->join('students', 'students.id', '=', 'student_educations.student_id')
-                    ->selectRaw('count(*)')
-                    ->whereColumn('student_educations.education_id', 'educations.id')
-                    ->whereBetween('students.created_at', [$startDate, $endDate]);
-
-                $applyCityFilter($query);
-                $applyCenterFilter($query);
-            }, 'total')
-            ->selectSub(function ($query) use ($startDate, $endDate, $applyCityFilter, $applyCenterFilter) {
-                $query->from('student_educations')
-                    ->join('students', 'students.id', '=', 'student_educations.student_id')
-                    ->selectRaw('count(*)')
-                    ->whereColumn('student_educations.education_id', 'educations.id')
-                    ->where('students.gender', 1)
-                    ->whereBetween('students.created_at', [$startDate, $endDate]);
-
-                $applyCityFilter($query);
-                $applyCenterFilter($query);
-            }, 'males')
-            ->selectSub(function ($query) use ($startDate, $endDate, $applyCityFilter, $applyCenterFilter) {
-                $query->from('student_educations')
-                    ->join('students', 'students.id', '=', 'student_educations.student_id')
-                    ->selectRaw('count(*)')
-                    ->whereColumn('student_educations.education_id', 'educations.id')
-                    ->where('students.gender', 2)
-                    ->whereBetween('students.created_at', [$startDate, $endDate]);
-
-                $applyCityFilter($query);
-                $applyCenterFilter($query);
-            }, 'females')
-            ->selectSub(function ($query) use ($startDate, $endDate, $applyCityFilter, $applyCenterFilter) {
-                $query->from('student_educations')
-                    ->join('students', 'students.id', '=', 'student_educations.student_id')
-                    ->selectRaw('count(*)')
-                    ->whereColumn('student_educations.education_id', 'educations.id')
-                    ->where('students.gender', 0)
-                    ->whereBetween('students.created_at', [$startDate, $endDate]);
-
-                $applyCityFilter($query);
-                $applyCenterFilter($query);
-            }, 'unknown')
+            ->select("$educationsTable.id", "$educationsTable.name")
+            ->selectRaw("COUNT(DISTINCT $entriesTable.id) as total")
+            ->selectRaw("SUM(CASE WHEN $studentsTable.gender = 1 THEN 1 ELSE 0 END) as males")
+            ->selectRaw("SUM(CASE WHEN $studentsTable.gender = 2 THEN 1 ELSE 0 END) as females")
+            ->selectRaw("SUM(CASE WHEN $studentsTable.gender = 0 THEN 1 ELSE 0 END) as unknown")
+            ->join($studentEducationsTable, "$studentEducationsTable.education_id", '=', "$educationsTable.id")
+            ->join($studentsTable, "$studentsTable.id", '=', "$studentEducationsTable.student_id")
+            ->join($entriesTable, function ($join) use ($entriesTable, $studentsTable, $studentEducationsTable) {
+                $join->on("$studentsTable.id", '=', "$entriesTable.student_id")
+                    ->whereRaw("$entriesTable.entry_time BETWEEN $studentEducationsTable.start_date AND COALESCE($studentEducationsTable.end_date, $entriesTable.entry_time)");
+            })
+            ->whereBetween("$entriesTable.entry_time", [$startDate, $endDate])
+            ->when($cityIds, function ($query) use ($cityIds, $studentsTable) {
+                $query->whereHas('students.street', function ($q) use ($cityIds) {
+                    $q->whereIn('city_id', (array)$cityIds);
+                });
+            })
+            ->when($centerIds, function ($query) use ($centerIds, $entriesTable) {
+                $query->whereIn("$entriesTable.center_id", (array)$centerIds);
+            })
+            ->groupBy("$educationsTable.id", "$educationsTable.name")
             ->orderByDesc('total')
             ->limit(10);
     }

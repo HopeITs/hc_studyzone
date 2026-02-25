@@ -3,7 +3,9 @@
 namespace App\Exports;
 
 use App\Enums\Gender;
+use App\Models\Student;
 use App\Models\StudentEducation;
+use App\Models\StudentEntry;
 use Carbon\Carbon;
 use Illuminate\Contracts\Support\Responsable;
 use Maatwebsite\Excel\Concerns\FromCollection;
@@ -34,26 +36,36 @@ class TopLevelsExport implements FromCollection, WithHeadings, Responsable
         $cityIds = $this->filters['city'] ?? null;
         $centerIds = $this->filters['center'] ?? null;
 
-        $query = StudentEducation::query()
-            ->selectRaw('
-                level,
-                COUNT(*) as total,
-                SUM(CASE WHEN gender = ? THEN 1 ELSE 0 END) as males,
-                SUM(CASE WHEN gender = ? THEN 1 ELSE 0 END) as females,
-                SUM(CASE WHEN gender = ? THEN 1 ELSE 0 END) as unknown
-            ', [Gender::Male(), Gender::Female(), Gender::Unknown()])
-            ->join('students', 'student_educations.student_id', '=', 'students.id')
-            ->when($startDate, fn($q) => $q->where('students.created_at', '>=', $startDate))
-            ->when($endDate, fn($q) => $q->where('students.created_at', '<=', $endDate))
-            ->when($cityIds, fn($q) => $q->whereHas('student.street', fn($s) => $s->whereIn('city_id', $cityIds)))
-            ->when($centerIds, fn($q) => $q->whereHas('student.entries', fn($e) => $e->whereIn('center_id', $centerIds)))
-            ->groupBy('level')
-            ->having('total', '>', 0)
+        $entriesTable = (new StudentEntry())->getTable();
+        $studentsTable = (new Student())->getTable();
+        $studentEducationsTable = (new StudentEducation())->getTable();
+
+        $results = StudentEducation::query()
+            ->select("$studentEducationsTable.level")
+            ->selectRaw("COUNT(DISTINCT $entriesTable.id) as total")
+            ->selectRaw("SUM(CASE WHEN $studentsTable.gender = 1 THEN 1 ELSE 0 END) as males")
+            ->selectRaw("SUM(CASE WHEN $studentsTable.gender = 2 THEN 1 ELSE 0 END) as females")
+            ->selectRaw("SUM(CASE WHEN $studentsTable.gender = 0 THEN 1 ELSE 0 END) as unknown")
+            ->join($studentsTable, "$studentsTable.id", '=', "$studentEducationsTable.student_id")
+            ->join($entriesTable, function ($join) use ($entriesTable, $studentsTable, $studentEducationsTable) {
+                $join->on("$studentsTable.id", '=', "$entriesTable.student_id")
+                    ->whereRaw("$entriesTable.entry_time BETWEEN $studentEducationsTable.start_date AND COALESCE($studentEducationsTable.end_date, $entriesTable.entry_time)");
+            })
+            ->whereBetween("$entriesTable.entry_time", [$startDate, $endDate])
+            ->when($cityIds, function ($q) use ($cityIds, $studentsTable) {
+                $q->whereHas('student.street', function ($sq) use ($cityIds) {
+                    $sq->whereIn('city_id', (array)$cityIds);
+                });
+            })
+            ->when($centerIds, function ($q) use ($centerIds, $entriesTable) {
+                $q->whereIn("$entriesTable.center_id", (array)$centerIds);
+            })
+            ->groupBy("$studentEducationsTable.level")
             ->orderByDesc('total')
             ->limit(10)
             ->get();
 
-        return $query->map(function ($item) {
+        return $results->map(function ($item) {
             return [
                 'Level' => __('general.edu-levels.' . $item->level),
                 'Total' => $item->total,
@@ -66,7 +78,7 @@ class TopLevelsExport implements FromCollection, WithHeadings, Responsable
 
     public function headings(): array
     {
-        return ['Level', 'Total', 'Males', 'Females', 'Unknown'];
+        return ['Education Level', 'Total Entries', 'Male Entries', 'Female Entries', 'Unknown Gender Entries'];
     }
 
     public function toResponse($request): BinaryFileResponse
