@@ -3,14 +3,11 @@
 namespace App\Exports;
 
 use App\Models\Education;
-use App\Models\Student;
-use App\Models\StudentEducation;
-use App\Models\StudentEntry;
-use Carbon\Carbon;
 use Illuminate\Contracts\Support\Responsable;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Facades\Excel;
+use Carbon\Carbon;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class EducationExport implements FromCollection, WithHeadings, Responsable
@@ -36,51 +33,57 @@ class EducationExport implements FromCollection, WithHeadings, Responsable
         $cityIds = $this->filters['city'] ?? null;
         $centerIds = $this->filters['center'] ?? null;
 
-        $entriesTable = (new StudentEntry())->getTable();
-        $studentsTable = (new Student())->getTable();
-        $studentEducationsTable = (new StudentEducation())->getTable();
-        $educationsTable = (new Education())->getTable();
-
-        $results = Education::query()
-            ->select("$educationsTable.id", "$educationsTable.name")
-            ->selectRaw("COUNT(DISTINCT $entriesTable.id) as total")
-            ->selectRaw("SUM(CASE WHEN $studentsTable.gender = 1 THEN 1 ELSE 0 END) as males")
-            ->selectRaw("SUM(CASE WHEN $studentsTable.gender = 2 THEN 1 ELSE 0 END) as females")
-            ->selectRaw("SUM(CASE WHEN $studentsTable.gender = 0 THEN 1 ELSE 0 END) as unknown")
-            ->join($studentEducationsTable, "$studentEducationsTable.education_id", '=', "$educationsTable.id")
-            ->join($studentsTable, "$studentsTable.id", '=', "$studentEducationsTable.student_id")
-            ->join($entriesTable, function ($join) use ($entriesTable, $studentsTable, $studentEducationsTable) {
-                $join->on("$studentsTable.id", '=', "$entriesTable.student_id")
-                    ->whereRaw("$entriesTable.entry_time BETWEEN $studentEducationsTable.start_date AND COALESCE($studentEducationsTable.end_date, $entriesTable.entry_time)");
-            })
-            ->whereBetween("$entriesTable.entry_time", [$startDate, $endDate])
-            ->when($cityIds, function ($q) use ($cityIds, $studentsTable) {
-                $q->whereHas('students.street', function ($sq) use ($cityIds) {
-                    $sq->whereIn('city_id', (array)$cityIds);
-                });
-            })
-            ->when($centerIds, function ($q) use ($centerIds, $entriesTable) {
-                $q->whereIn("$entriesTable.center_id", (array)$centerIds);
-            })
-            ->groupBy("$educationsTable.id", "$educationsTable.name")
+        return Education::query()
+            ->withCount([
+                'students as total' => function ($query) use ($startDate, $endDate, $cityIds, $centerIds) {
+                    $query->whereBetween('students.created_at', [$startDate, $endDate]);
+                    if ($cityIds) {
+                        $query->whereHas('street', fn($q) => $q->whereIn('city_id', (array)$cityIds));
+                    }
+                    if ($centerIds) {
+                        $query->whereHas('entries', fn($q) => $q->whereIn('center_id', (array)$centerIds));
+                    }
+                },
+                'students as males' => function ($query) use ($startDate, $endDate, $cityIds) {
+                    $query->where('students.gender', 1)
+                          ->whereBetween('students.created_at', [$startDate, $endDate]);
+                    if ($cityIds) {
+                        $query->whereHas('street', fn($q) => $q->whereIn('city_id', (array)$cityIds));
+                    }
+                },
+                'students as females' => function ($query) use ($startDate, $endDate, $cityIds) {
+                    $query->where('students.gender', 2)
+                          ->whereBetween('students.created_at', [$startDate, $endDate]);
+                    if ($cityIds) {
+                        $query->whereHas('street', fn($q) => $q->whereIn('city_id', (array)$cityIds));
+                    }
+                },
+                'students as unknown' => function ($query) use ($startDate, $endDate, $cityIds) {
+                    $query->where('students.gender', 0)
+                          ->whereBetween('students.created_at', [$startDate, $endDate]);
+                    if ($cityIds) {
+                        $query->whereHas('street', fn($q) => $q->whereIn('city_id', (array)$cityIds));
+                    }
+                },
+            ])
+            ->having('total', '>', 0)
             ->orderByDesc('total')
             ->limit(10)
-            ->get();
-
-        return $results->map(function ($item) {
-            return [
-                'Education' => $item->name,
-                'Total' => $item->total,
-                'Males' => $item->males,
-                'Females' => $item->females,
-                'Unknown' => $item->unknown,
-            ];
-        });
+            ->get(['name'])
+            ->map(function ($item) {
+                return [
+                    'Education' => $item->name,
+                    'Total' => $item->total,
+                    'Males' => $item->males,
+                    'Females' => $item->females,
+                    'Unknown' => $item->unknown,
+                ];
+            });
     }
 
     public function headings(): array
     {
-        return ['Education', 'Total Entries', 'Male Entries', 'Female Entries', 'Unknown Gender Entries'];
+        return ['Education', 'Total', 'Males', 'Females', 'Unknown'];
     }
 
     public function toResponse($request): BinaryFileResponse
