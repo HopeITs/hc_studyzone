@@ -13,12 +13,13 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Tables\Actions\Action;
 use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Support\Facades\DB;
 
 class TopEducationsTable extends TableWidget
 {
     use InteractsWithPageFilters;
 
-    protected static ?string $heading = 'Top 10 Educations by Students';
+    protected static ?string $heading = 'Top 10 Educations by Entries';
     protected static ?int $sort = 7;
 
     public function getTable(): Table
@@ -51,85 +52,54 @@ class TopEducationsTable extends TableWidget
             ]);
     }
 
-    protected function getQuery(): Builder
-    {
-        $startDate = !is_null($this->filters['startDate'] ?? null)
-            ? Carbon::parse($this->filters['startDate'])->startOfDay()
-            : now()->startOfYear()->startOfDay();
+  protected function getQuery(): Builder
+{
+    $startDate = !is_null($this->filters['startDate'] ?? null)
+        ? Carbon::parse($this->filters['startDate'])->startOfDay()
+        : now()->startOfYear()->startOfDay();
 
-        $endDate = !is_null($this->filters['endDate'] ?? null)
-            ? Carbon::parse($this->filters['endDate'])->endOfDay()
-            : now()->endOfMonth()->endOfDay();
+    $endDate = !is_null($this->filters['endDate'] ?? null)
+        ? Carbon::parse($this->filters['endDate'])->endOfDay()
+        : now()->endOfMonth()->endOfDay();
 
-        $cityIds = $this->filters['city'] ?? null;
-        $centerIds = $this->filters['center'] ?? null;
+    $cityIds = $this->filters['city'] ?? null;
+    $centerIds = $this->filters['center'] ?? null;
 
-        $applyCityFilter = function ($query) use ($cityIds) {
-            if ($cityIds) {
-                $query->whereIn('students.street_id', function ($sub) use ($cityIds) {
-                    $sub->select('id')
-                        ->from('streets')
-                        ->whereIn('city_id', (array)$cityIds);
-                });
-            }
-        };
+    // Use a base subquery to avoid repeating joins and filters 4 times
+    $statsSubquery = DB::table('student_educations')
+       ->whereNull('end_date')
+        ->join('students', 'students.id', '=', 'student_educations.student_id')
+        ->join('student_entries', 'students.id', '=', 'student_entries.student_id')
+        ->select('student_educations.education_id')
+        ->selectRaw('COUNT(*) as total')
+        ->selectRaw('SUM(CASE WHEN gender = 1 THEN 1 ELSE 0 END) as males')
+        ->selectRaw('SUM(CASE WHEN gender = 2 THEN 1 ELSE 0 END) as females')
+        ->selectRaw('SUM(CASE WHEN gender = 0 THEN 1 ELSE 0 END) as unknown')
+        ->whereBetween('student_entries.entry_time', [$startDate, $endDate])
+        ->groupBy('student_educations.education_id');
 
-        $applyCenterFilter = function ($query) use ($centerIds) {
-            if ($centerIds) {
-                $query->whereIn('students.id', function ($sub) use ($centerIds) {
-                    $sub->select('student_id')
-                        ->from('student_entries')
-                        ->whereIn('center_id', (array)$centerIds);
-                });
-            }
-        };
-
-        return Education::query()
-            ->select('educations.*')
-            ->selectSub(function ($query) use ($startDate, $endDate, $applyCityFilter, $applyCenterFilter) {
-                $query->from('student_educations')
-                    ->join('students', 'students.id', '=', 'student_educations.student_id')
-                    ->selectRaw('count(*)')
-                    ->whereColumn('student_educations.education_id', 'educations.id')
-                    ->whereBetween('students.created_at', [$startDate, $endDate]);
-
-                $applyCityFilter($query);
-                $applyCenterFilter($query);
-            }, 'total')
-            ->selectSub(function ($query) use ($startDate, $endDate, $applyCityFilter, $applyCenterFilter) {
-                $query->from('student_educations')
-                    ->join('students', 'students.id', '=', 'student_educations.student_id')
-                    ->selectRaw('count(*)')
-                    ->whereColumn('student_educations.education_id', 'educations.id')
-                    ->where('students.gender', 1)
-                    ->whereBetween('students.created_at', [$startDate, $endDate]);
-
-                $applyCityFilter($query);
-                $applyCenterFilter($query);
-            }, 'males')
-            ->selectSub(function ($query) use ($startDate, $endDate, $applyCityFilter, $applyCenterFilter) {
-                $query->from('student_educations')
-                    ->join('students', 'students.id', '=', 'student_educations.student_id')
-                    ->selectRaw('count(*)')
-                    ->whereColumn('student_educations.education_id', 'educations.id')
-                    ->where('students.gender', 2)
-                    ->whereBetween('students.created_at', [$startDate, $endDate]);
-
-                $applyCityFilter($query);
-                $applyCenterFilter($query);
-            }, 'females')
-            ->selectSub(function ($query) use ($startDate, $endDate, $applyCityFilter, $applyCenterFilter) {
-                $query->from('student_educations')
-                    ->join('students', 'students.id', '=', 'student_educations.student_id')
-                    ->selectRaw('count(*)')
-                    ->whereColumn('student_educations.education_id', 'educations.id')
-                    ->where('students.gender', 0)
-                    ->whereBetween('students.created_at', [$startDate, $endDate]);
-
-                $applyCityFilter($query);
-                $applyCenterFilter($query);
-            }, 'unknown')
-            ->orderByDesc('total')
-            ->limit(10);
+    // Apply Filters to the subquery
+    if ($cityIds) {
+        $statsSubquery->whereIn('students.street_id', function ($sub) use ($cityIds) {
+            $sub->select('id')->from('streets')->whereIn('city_id', (array)$cityIds);
+        });
     }
+
+    if ($centerIds) {
+        $statsSubquery->whereIn('student_entries.center_id', (array)$centerIds);
+    }
+
+    // Join the main Education model with our stats
+    return Education::query()
+        ->leftJoinSub($statsSubquery, 'stats', function ($join) {
+            $join->on('educations.id', '=', 'stats.education_id');
+        })
+        ->select('educations.*')
+        ->selectRaw('COALESCE(total, 0) as total')
+        ->selectRaw('COALESCE(males, 0) as males')
+        ->selectRaw('COALESCE(females, 0) as females')
+        ->selectRaw('COALESCE(unknown, 0) as unknown')
+        ->orderByDesc('total')
+        ->limit(10);
+}
 }
