@@ -247,7 +247,7 @@ class EntryResource extends Resource
                     ->multiple()
                     ->preload(),
            
-                SelectFilter::make('student.educations')->label('المؤهل العلمي')->relationship('student.educations', 'name')->searchable()->multiple()->preload(),
+                SelectFilter::make('student.educations')->label('المؤهل العلمي')->relationship('student.educations', 'name')->searchable()->multiple()->preload()->columnSpan(2),
               
                    SelectFilter::make('student.studentEducations.level')
                     ->label(__('general.labels.education_level'))
@@ -272,7 +272,7 @@ class EntryResource extends Resource
                         $query->whereNull('national_number');
                     }),
                     blank: fn(Builder $query) => $query,
-                )->columnSpan(2),
+                )->columnSpan(1),
                 SelectFilter::make('student.gender')
                     ->label('الجنس')
                     ->options(__('general.genders'))
