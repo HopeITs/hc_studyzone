@@ -53,36 +53,43 @@ class TopLevels extends TableWidget
             ]);
     }
 
-    protected function getQuery(): Builder
-    {
-        $startDate = !is_null($this->filters['startDate'] ?? null)
-            ? Carbon::parse($this->filters['startDate'])->startOfDay()
-            : now()->startOfYear()->startOfDay();
+protected function getQuery(): \Illuminate\Database\Eloquent\Builder
+{
+    $startDate = $this->filters['startDate'] ?? now()->startOfYear()->toDateTimeString();
+    $endDate = $this->filters['endDate'] ?? now()->toDateTimeString();
+    $cityIds = isset($this->filters['city']) ? implode(',', (array)$this->filters['city']) : null;
+    $centerIds = isset($this->filters['center']) ? implode(',', (array)$this->filters['center']) : null;
 
-        $endDate = !is_null($this->filters['endDate'] ?? null)
-            ? Carbon::parse($this->filters['endDate'])->endOfDay()
-            : now()->endOfMonth()->endOfDay();
+    $cityCondition = $cityIds ? "AND s.street_id IN (SELECT id FROM hcsz_streets WHERE city_id IN ($cityIds))" : "";
+    $centerCondition = $centerIds ? "AND sen.center_id IN ($centerIds)" : "";
 
-        $cityIds = $this->filters['city'] ?? null;
-        $centerIds = $this->filters['center'] ?? null;
+    $rawSql = "
+        SELECT 
+            /* نستخدم level كـ ID فريد للجدول في Filament */
+            sed.level as id, 
+            sed.level, 
+            COUNT(DISTINCT s.id) as total, 
+            COUNT(DISTINCT CASE WHEN s.gender = 1 THEN s.id END) as males,
+            COUNT(DISTINCT CASE WHEN s.gender = 2 THEN s.id END) as females,
+            COUNT(DISTINCT CASE WHEN s.gender = 0 THEN s.id END) as unknown
+        FROM hcsz_student_educations sed
+        INNER JOIN hcsz_student_entries sen ON sed.student_id = sen.student_id 
+            /* الشرط الزمني الجوهري: الدخول حصل أثناء التواجد في هذا المستوى */
+            AND (DATE(sen.entry_time) >= DATE(sed.start_date))
+            AND (sed.end_date IS NULL OR DATE(sen.entry_time) <= DATE(sed.end_date))
+        LEFT JOIN hcsz_students AS s ON s.id = sed.student_id
+        WHERE DATE(sen.entry_time) BETWEEN '$startDate' AND '$endDate'
+        $cityCondition
+        $centerCondition
+        GROUP BY sed.level
+    ";
 
-        return StudentEducation::query()
-            ->selectRaw('
-                ROW_NUMBER() OVER (ORDER BY COUNT(*) DESC) as id,
-                level,
-                COUNT(*) as total,
-                SUM(CASE WHEN gender = ? THEN 1 ELSE 0 END) as males,
-                SUM(CASE WHEN gender = ? THEN 1 ELSE 0 END) as females,
-                SUM(CASE WHEN gender = ? THEN 1 ELSE 0 END) as unknown
-            ', [Gender::Male(), Gender::Female(), Gender::Unknown()])
-            ->join('students', 'student_educations.student_id', '=', 'students.id')
-            ->when($startDate, fn($q) => $q->where('students.created_at', '>=', $startDate))
-            ->when($endDate, fn($q) => $q->where('students.created_at', '<=', $endDate))
-            ->when($cityIds, fn($q) => $q->whereHas('student.street', fn($s) => $s->whereIn('city_id', $cityIds)))
-            ->when($centerIds, fn($q) => $q->whereHas('student.entries', fn($e) => $e->whereIn('center_id', $centerIds)))
-            ->groupBy('level')
-            ->having('total', '>', 0)
-            ->orderByDesc('total')
-            ->limit(10);
-    }
+    return \App\Models\StudentEducation::query()
+        ->fromRaw("($rawSql) as level_stats")
+        ->select(['id', 'level', 'total', 'males', 'females', 'unknown'])
+        ->reorder() 
+        ->orderByDesc('total');
+}
+
+  
 }
