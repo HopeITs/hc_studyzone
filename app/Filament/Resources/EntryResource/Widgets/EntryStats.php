@@ -30,7 +30,9 @@ class EntryStats extends BaseWidget
     protected function getStats(): array
     {
         return [
-            Stat::make('إجمالي الدخوليات', $this->getPageTableQuery()->count()),
+            Stat::make('إجمالي الدخوليات', $this->getPageTableQuery()->count())
+                 ->description('إجمالي الطلاب '.$this->getPageTableQuery()->distinct('student_id')->count('student_id') ),
+          
 
             Stat::make(__('general.entry-types.' . EntryType::Free()), $this->getPageTableQuery()->where('entry_type', EntryType::Free())->count()),
             Stat::make(__('general.entry-types.' . EntryType::Daily()), $this->getPageTableQuery()->where('entry_type', EntryType::Daily())->count()),
@@ -38,7 +40,7 @@ class EntryStats extends BaseWidget
             Stat::make(__('general.entry-types.' . EntryType::Course()), $this->getPageTableQuery()->where('entry_type', EntryType::Course())->count()),
             Stat::make(__('general.entry-types.' . EntryType::Hall()), $this->getPageTableQuery()->where('entry_type', EntryType::Hall())->count()),
 
-           Stat::make('طلاب العمارة', 
+           Stat::make(' دخوليات طلاب العمارة', 
     $this->getPageTableQuery()
         ->whereHas('student.studentEducations', function($q) {
             $q->where('education_id', 65)
@@ -47,7 +49,7 @@ class EntryStats extends BaseWidget
         ->count()
 ),
 
-Stat::make('طلاب الاسنان', 
+Stat::make('دخوليات طلاب الاسنان', 
     $this->getPageTableQuery()
         ->whereHas('student.studentEducations', function($q) {
             $q->whereIn('education_id', [77, 136])

@@ -234,7 +234,7 @@ class EntryResource extends Resource
                     ->label('المدينة')
                     ->relationship('center.city', 'name')
                     ->searchable()
-                    ->columnSpan(2)
+                    ->columnSpan(1)
                     ->visible(auth()->user()->role === Roles::GeneralAdmin())
                     ->multiple()
                     ->preload(),
@@ -242,11 +242,28 @@ class EntryResource extends Resource
                     ->label('المركز')
                     ->relationship('center', 'name')
                     ->searchable()
-                    ->columnSpan(auth()->user()->role === Roles::GeneralAdmin() ? 2 : 4)
+                    ->columnSpan(auth()->user()->role === Roles::GeneralAdmin() ? 1 : 4)
                     ->hidden(auth()->user()->role === Roles::CenterAdmin())
                     ->multiple()
                     ->preload(),
+           
                 SelectFilter::make('student.educations')->label('المؤهل العلمي')->relationship('student.educations', 'name')->searchable()->multiple()->preload(),
+              
+                   SelectFilter::make('student.studentEducations.level')
+                    ->label(__('general.labels.education_level'))
+                    ->options(__('general.edu-levels'))
+                    ->searchable()
+                    ->columnSpan(1)
+                    ->query(function (Builder $query, array $data): Builder {
+                        if (array_key_exists('value', $data) && $data['value'] !== null && $data['value'] !== '') {
+                            return $query->whereHas('student.studentEducations', function (Builder $studentQuery) use ($data) {
+                                    $studentQuery ->where('level', (int)  $data['value']);  
+                            });
+                        }
+                        return $query;
+                    })
+                    ->preload(),
+              
                 TernaryFilter::make('student.national_number')->label('الرقم الوطني / الإقامة')->placeholder('الكل')->trueLabel('يوجد')->falseLabel('لا يوجد')->queries(
                     true: fn(Builder $query) => $query->whereHas('student', function ($query) {
                         $query->whereNotNull('national_number');
@@ -255,7 +272,7 @@ class EntryResource extends Resource
                         $query->whereNull('national_number');
                     }),
                     blank: fn(Builder $query) => $query,
-                ),
+                )->columnSpan(2),
                 SelectFilter::make('student.gender')
                     ->label('الجنس')
                     ->options(__('general.genders'))
