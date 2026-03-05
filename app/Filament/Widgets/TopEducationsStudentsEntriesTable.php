@@ -51,55 +51,50 @@ class TopEducationsStudentsEntriesTable extends TableWidget
                     }),
             ]);
     }
-
-  protected function getQuery(): Builder
+protected function getQuery(): \Illuminate\Database\Eloquent\Builder
 {
-    $startDate = !is_null($this->filters['startDate'] ?? null)
-        ? Carbon::parse($this->filters['startDate'])->startOfDay()
-        : now()->startOfYear()->startOfDay();
+    $startDate = $this->filters['startDate'] ?? now()->startOfYear()->startOfDay()->toDateTimeString();
+    $endDate = $this->filters['endDate'] ?? now()->toDateTimeString();
+    $cityIds = isset($this->filters['city']) ? implode(',', (array)$this->filters['city']) : null;
+    $centerIds = isset($this->filters['center']) ? implode(',', (array)$this->filters['center']) : null;
 
-    $endDate = !is_null($this->filters['endDate'] ?? null)
-        ? Carbon::parse($this->filters['endDate'])->endOfDay()
-        : now()->endOfMonth()->endOfDay();
+    $cityCondition = $cityIds ? "AND s.street_id IN (SELECT id FROM hcsz_streets WHERE city_id IN ($cityIds))" : "";
+    $centerCondition = $centerIds ? "AND sen.center_id IN ($centerIds)" : "";
 
-    $cityIds = $this->filters['city'] ?? null;
-    $centerIds = $this->filters['center'] ?? null;
+    $rawSql = "
+        SELECT 
+            edu.id as id, 
+            edu.name as name, 
+            stats.total as total, 
+            stats.males as males, 
+            stats.females as females, 
+            stats.unknown as unknown
+        FROM hcsz_educations edu
+        INNER JOIN (
+            SELECT 
+                sed.education_id,
+                COUNT(DISTINCT s.id) as total, 
+                COUNT(DISTINCT CASE WHEN s.gender = 1 THEN s.id END) as males,
+                COUNT(DISTINCT CASE WHEN s.gender = 2 THEN s.id END) as females,
+                COUNT(DISTINCT CASE WHEN s.gender = 0 THEN s.id END) as unknown
+            FROM hcsz_student_educations sed
+            INNER JOIN hcsz_student_entries sen ON sed.student_id = sen.student_id 
+                /* الربط الزمني لضمان احتساب الدخول ضمن مرحلة المؤهل الصحيحة */
+                AND (DATE(sen.entry_time) >= DATE(sed.start_date))
+                AND (sed.end_date IS NULL OR DATE(sen.entry_time) <= DATE(sed.end_date))
+            LEFT JOIN hcsz_students AS s ON s.id = sed.student_id
+            WHERE DATE(sen.entry_time) BETWEEN '$startDate' AND '$endDate'
+            $cityCondition
+            $centerCondition
+            GROUP BY sed.education_id
+        ) AS stats ON edu.id = stats.education_id
+         LIMIT 10
+    ";
 
-    // Use a base subquery to avoid repeating joins and filters 4 times
-    $statsSubquery = DB::table('student_educations')
-        ->whereNull('end_date')
-        ->join('students', 'students.id', '=', 'student_educations.student_id')
-        ->join('student_entries', 'students.id', '=', 'student_entries.student_id')
-        ->select('student_educations.education_id')
-        ->selectRaw('COUNT(DISTINCT hcsz_students.id) as total')
-        ->selectRaw('COUNT(DISTINCT CASE WHEN gender = 1 THEN hcsz_students.id END) as males')
-        ->selectRaw('COUNT(DISTINCT CASE WHEN gender = 2 THEN hcsz_students.id END) as females')
-        ->selectRaw('COUNT(DISTINCT CASE WHEN gender = 0 THEN hcsz_students.id END) as unknown')
-        ->whereBetween('student_entries.entry_time', [$startDate, $endDate])
-        ->groupBy('student_educations.education_id');
-
-    // Apply Filters to the subquery
-    if ($cityIds) {
-        $statsSubquery->whereIn('students.street_id', function ($sub) use ($cityIds) {
-            $sub->select('id')->from('streets')->whereIn('city_id', (array)$cityIds);
-        });
-    }
-
-    if ($centerIds) {
-        $statsSubquery->whereIn('student_entries.center_id', (array)$centerIds);
-    }
-
-    // Join the main Education model with our stats
-    return Education::query()
-        ->leftJoinSub($statsSubquery, 'stats', function ($join) {
-            $join->on('educations.id', '=', 'stats.education_id');
-        })
-        ->select('educations.*')
-        ->selectRaw('COALESCE(total, 0) as total')
-        ->selectRaw('COALESCE(males, 0) as males')
-        ->selectRaw('COALESCE(females, 0) as females')
-        ->selectRaw('COALESCE(unknown, 0) as unknown')
-        ->orderByDesc('total')
-        ->limit(10);
+    return \App\Models\Education::query()
+        ->fromRaw("($rawSql) as top_stats")
+        ->select(['id', 'name', 'total', 'males', 'females', 'unknown'])
+        ->reorder() 
+        ->orderByDesc('total');
 }
 }

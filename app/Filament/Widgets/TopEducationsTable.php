@@ -94,7 +94,7 @@ protected function getQuery(): Builder
 
     return Education::query()
         ->leftJoinSub($statsSubquery, 'stats', 'educations.id', '=', 'stats.education_id')
-->select('educations.id', 'educations.name')
+        ->select('educations.id', 'educations.name')
         ->selectRaw('COALESCE(total, 0) as total')
         ->selectRaw('COALESCE(males, 0) as males')
         ->selectRaw('COALESCE(females, 0) as females')
