@@ -52,7 +52,7 @@ class TopEducationsTable extends TableWidget
             ]);
     }
 
-  protected function getQuery(): Builder
+protected function getQuery(): Builder
 {
     $startDate = !is_null($this->filters['startDate'] ?? null)
         ? Carbon::parse($this->filters['startDate'])->startOfDay()
@@ -65,20 +65,23 @@ class TopEducationsTable extends TableWidget
     $cityIds = $this->filters['city'] ?? null;
     $centerIds = $this->filters['center'] ?? null;
 
-    // Use a base subquery to avoid repeating joins and filters 4 times
     $statsSubquery = DB::table('student_educations')
-       ->whereNull('end_date')
+        // 1. Join entries where the entry_time happened DURING the education period
+        ->join('student_entries', function ($join) {
+            $join->on('student_educations.student_id', '=', 'student_entries.student_id')
+                ->whereRaw('entry_time BETWEEN start_date AND COALESCE(end_date, NOW())');
+        })
         ->join('students', 'students.id', '=', 'student_educations.student_id')
-        ->join('student_entries', 'students.id', '=', 'student_entries.student_id')
         ->select('student_educations.education_id')
         ->selectRaw('COUNT(*) as total')
         ->selectRaw('SUM(CASE WHEN gender = 1 THEN 1 ELSE 0 END) as males')
         ->selectRaw('SUM(CASE WHEN gender = 2 THEN 1 ELSE 0 END) as females')
         ->selectRaw('SUM(CASE WHEN gender = 0 THEN 1 ELSE 0 END) as unknown')
+        // 2. Filter by the Dashboard date filters
         ->whereBetween('student_entries.entry_time', [$startDate, $endDate])
         ->groupBy('student_educations.education_id');
 
-    // Apply Filters to the subquery
+    // Apply Location/Center Filters
     if ($cityIds) {
         $statsSubquery->whereIn('students.street_id', function ($sub) use ($cityIds) {
             $sub->select('id')->from('streets')->whereIn('city_id', (array)$cityIds);
@@ -89,12 +92,9 @@ class TopEducationsTable extends TableWidget
         $statsSubquery->whereIn('student_entries.center_id', (array)$centerIds);
     }
 
-    // Join the main Education model with our stats
     return Education::query()
-        ->leftJoinSub($statsSubquery, 'stats', function ($join) {
-            $join->on('educations.id', '=', 'stats.education_id');
-        })
-        ->select('educations.*')
+        ->leftJoinSub($statsSubquery, 'stats', 'educations.id', '=', 'stats.education_id')
+->select('educations.id', 'educations.name')
         ->selectRaw('COALESCE(total, 0) as total')
         ->selectRaw('COALESCE(males, 0) as males')
         ->selectRaw('COALESCE(females, 0) as females')
