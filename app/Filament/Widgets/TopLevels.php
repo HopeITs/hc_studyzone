@@ -9,22 +9,18 @@ use Filament\Tables\Actions\Action;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
-use Filament\Widgets\TableWidget;
+use Filament\Widgets\TableWidget as BaseTableWidget;
 use Illuminate\Database\Eloquent\Builder;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\TopLevelsExport;
+use Illuminate\Support\Facades\DB;
 
-class TopLevels extends TableWidget
+class TopLevels extends BaseTableWidget
 {
     use InteractsWithPageFilters;
 
     protected static ?int $sort = 7;
     protected static ?string $heading = 'Top Levels by Students';
-
-    public function getTable(): Table
-    {
-        return $this->table($this->makeTable());
-    }
 
     public function table(Table $table): Table
     {
