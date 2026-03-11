@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-
+use Illuminate\Database\Eloquent\Casts\Attribute;
 class Student extends Model implements HasName
 {
     use HasUuids, HasFactory, ActivityLog;
@@ -50,6 +50,15 @@ class Student extends Model implements HasName
             ->withPivot(['level', 'type' , 'start_date' , 'end_date'])
             ->wherePivot('end_date', null)
             ->withTimestamps();
+    }
+
+
+
+    protected function education(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => $this->studentEducations()->whereNull('end_date')->first()?->education?->name,
+        );
     }
 
     public function street(): BelongsTo
