@@ -266,9 +266,8 @@ class EntryResource extends Resource
                         // Filament stores multiple values in $data['values']
                         if (! empty($data['values'])) {
                             return $query->whereHas('student.studentEducations', function (Builder $studentQuery) use ($data) {
-                                // Remove ->first(), just define the constraints
-                                $studentQuery->whereNull('end_date')
-                                    ->whereIn('education_id', (array) $data['values']);
+                                $studentQuery->whereIn('education_id', (array) $data['values'])->whereNull('end_date')
+                                    ;
                             });
                         }
 
