@@ -83,10 +83,10 @@ class TopEducationsTable extends TableWidget
                     COUNT(DISTINCT CASE WHEN s.gender = 0 THEN sen.id END) as unknown
                 FROM hcsz_student_educations sed
                 INNER JOIN hcsz_student_entries sen ON sed.student_id = sen.student_id 
-                    AND (sen.entry_time >= sed.start_date)
-                    AND (sed.end_date IS NULL OR sen.entry_time <= sed.end_date)
+                    AND ( DATE(sen.entry_time) >= sed.start_date)
+                    AND (sed.end_date IS NULL OR  DATE(sen.entry_time) <= sed.end_date)
                 LEFT JOIN hcsz_students AS s ON s.id = sed.student_id
-                WHERE sen.entry_time BETWEEN '$startDate' AND '$endDate'
+                WHERE  DATE(sen.entry_time) BETWEEN '$startDate' AND '$endDate'
                 $cityCondition
                 $centerCondition
                 GROUP BY sed.education_id

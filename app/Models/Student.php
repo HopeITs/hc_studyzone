@@ -47,7 +47,8 @@ class Student extends Model implements HasName
     public function educations(): BelongsToMany
     {
         return $this->belongsToMany(Education::class, 'student_educations')
-            ->withPivot(['level', 'type'])
+            ->withPivot(['level', 'type' , 'start_date' , 'end_date'])
+            ->wherePivot('end_date', null)
             ->withTimestamps();
     }
 
