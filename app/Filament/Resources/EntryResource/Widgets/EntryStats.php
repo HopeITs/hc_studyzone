@@ -40,23 +40,36 @@ class EntryStats extends BaseWidget
             Stat::make(__('general.entry-types.' . EntryType::Course()), $this->getPageTableQuery()->where('entry_type', EntryType::Course())->count()),
             Stat::make(__('general.entry-types.' . EntryType::Hall()), $this->getPageTableQuery()->where('entry_type', EntryType::Hall())->count()),
 
-           Stat::make(' دخوليات طلاب العمارة', 
-    $this->getPageTableQuery()
-        ->whereHas('student.studentEducations', function($q) {
-            $q->where('education_id', 65)
-              ->whereRaw('entry_time BETWEEN start_date AND COALESCE(end_date, entry_time)');
-        })
-        ->count()
-),
 
-Stat::make('دخوليات طلاب الاسنان', 
-    $this->getPageTableQuery()
-        ->whereHas('student.studentEducations', function($q) {
-            $q->whereIn('education_id', [77, 136])
-              ->whereRaw('entry_time BETWEEN start_date AND COALESCE(end_date, entry_time)');
-        })
-        ->count()
-),
+
+            Stat::make(' دخوليات طلاب العمارة',
+                $this->getPageTableQuery()
+                    ->whereHas('student.studentEducations', function ($q) {
+                        $q->whereIn('education_id', [65, 176, 242])
+                            ->where(function ($query) {
+                                $query->where(function ($subQ) {
+                                    $subQ->whereColumn('entry_time', '>=', 'start_date')->
+                                     whereColumn('entry_time', '<=', 'end_date');
+                                })->orWhereNull('end_date');
+                            });
+
+                    })
+                    ->count()
+            ),
+
+            Stat::make('دخوليات طلاب الاسنان',
+                $this->getPageTableQuery()
+                    ->whereHas('student.studentEducations', function ($q) {
+                        $q->whereIn('education_id', [25, 77, 136, 221, 223, 224, 225, 226, 227, 228])
+                            ->where(function ($query) {
+                                $query->where(function ($subQ) {
+                                    $subQ->whereColumn('entry_time', '>=', 'start_date')->
+                                     whereColumn('entry_time', '<=', 'end_date');
+                                })->orWhereNull('end_date');
+                            });
+                    })
+                    ->count()
+            ),
 
 
             Stat::make(__('general.labels.print-service'), $this->getPageTableQuery()->where('use_printer', true)->count()),
