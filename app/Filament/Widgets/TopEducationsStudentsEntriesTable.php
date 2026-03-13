@@ -91,13 +91,14 @@ class TopEducationsStudentsEntriesTable extends TableWidget
                 $centerCondition
                 GROUP BY sed.education_id
             ) AS stats ON edu.id = stats.education_id
-            LIMIT 10
+        
+          
         ";
 
         return \App\Models\Education::query()
             ->fromRaw("($rawSql) as top_stats")
             ->select(['id', 'name', 'total', 'males', 'females', 'unknown'])
             ->reorder() 
-            ->orderByDesc('total');
+            ->orderByDesc('total')->take(10);
     }
 }
