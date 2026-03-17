@@ -82,19 +82,24 @@ class StudentExporter extends Exporter
         ];
 
         for ($i = 0; $i < self::$maxEducations; $i++) {
-            $columns[] = ExportColumn::make("education_" . ($i + 1))
-                ->label("Education " . ($i + 1))
-                ->formatStateUsing(function (Model $record) use ($i) {
-                    $education = $record->educations[$i] ?? null;
-                    if (!$education) return '-';
+    $columns[] = ExportColumn::make("education_" . ($i + 1))
+        ->label("Education " . ($i + 1))
+        ->formatStateUsing(function (Model $record) use ($i) {
+            $education = $record->educations[$i] ?? null;
+            if (!$education) return '-';
 
-                    $name = $education->name ?? '';
-                    $level = __('general.edu-levels.' . $education->pivot->level) ?? '';
-                    $type = __('general.edu-types.' . $education->pivot->type) ?? '';
+            $name = $education->name ?? '';
+            $levelValue = $education->pivot->level ?? null;
+            $level = $levelValue ? __('general.edu-levels.' . $levelValue) : '';
+            $type = $education->pivot->type ? __('general.edu-types.' . $education->pivot->type) : '';
+            
+            if ($level) {
+                return "$name (المستوى: $level, النوع: $type)";
+            }
 
-                    return "$name ($level, $type)";
-                });
-        }
+            return "$name ($type)";
+        });
+}
 
         return $columns;
     }
