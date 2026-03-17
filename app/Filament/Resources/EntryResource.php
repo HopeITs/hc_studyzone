@@ -11,6 +11,7 @@ use App\Filament\Resources\EntryResource\Widgets\EntryStats;
 use App\Models\Center;
 use App\Models\Education;
 use App\Models\StudentEntry;
+use Carbon\Carbon;
 use Filament\Actions\Exports\Enums\ExportFormat;
 use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\DateTimePicker;
@@ -145,25 +146,6 @@ class EntryResource extends Resource
                 TextColumn::make('entry_type')->label('نوع الدخول')->sortable()->formatStateUsing(fn ($state) => __('general.entry-types.'.$state)),
                 TextColumn::make('student.education')
                     ->label('المؤهل العلمي')
-    // ->formatStateUsing(function ($record) {
-    //     $lastEducation = $record->student->studentEducations()
-    //         ->with('education')
-    //         ->orderBy('start_date', 'desc')
-    //         ->first();
-
-    //     if (!$lastEducation || !$lastEducation->education) {
-    //         return '-';
-    //     }
-
-    //     return $lastEducation->education->getTranslation('name', 'ar');
-    // })
-    // ->searchable(
-    //     query: function (Builder $query, string $search): Builder {
-    //         return $query->whereHas('student.studentEducations.education', function (Builder $studentQuery) use ($search) {
-    //             $studentQuery->where('name', 'like', "%{$search}%");
-    //         });
-    //     },
-    // )
                     ->sortable(
                         query: function (Builder $query, string $direction): Builder {
                             return $query->orderBy(
@@ -222,6 +204,7 @@ class EntryResource extends Resource
                     ->columnSpan(2)
                     ->columns(2)
                     ->query(function (Builder $query, array $data): Builder {
+
                         return $query->when($data['from'], fn ($q, $date) => $q->where('entry_time', '>=', $date))->when($data['to'], fn ($q, $date) => $q->where('entry_time', '<=', $date));
                     }),
                 SelectFilter::make('entry_type')->label('نوع الدخولية')->options(__('general.entry-types'))->searchable()->multiple()->preload()->columnSpan(1),
@@ -260,22 +243,54 @@ class EntryResource extends Resource
 
                 SelectFilter::make('student.education')
                     ->label('المؤهل العلمي')
-                    ->options(Education::pluck('name', 'id')) // It's better to use ID as the key
+                    ->options(Education::pluck('name', 'id'))
                     ->searchable()
-                    ->query(function (Builder $query, array $data): Builder {
-                        // Filament stores multiple values in $data['values']
-                        if (! empty($data['values'])) {
-                            return $query->whereHas('student.studentEducations', function (Builder $studentQuery) use ($data) {
-                                $studentQuery->whereIn('education_id', (array) $data['values'])->whereNull('end_date')
-                                    ;
-                            });
-                        }
-
-                        return $query;
-                    })
                     ->multiple()
                     ->preload()
-                    ->columnSpan(2),
+                    ->columnSpan(2)
+                    ->query(function (Builder $query, array $data, $livewire): Builder {
+                        // 1. Check if the user selected any education IDs
+                        if (empty($data['values'])) {
+                            return $query;
+                        }
+
+                        // 2. Retrieve the dates from the 'entry_time' filter via Livewire
+                        $entryTimeData = $livewire->tableFilters['entry_time'] ?? null;
+
+                        // Ensure we have valid dates, otherwise fallback to null (or handle error)
+                        $from = $entryTimeData['from'] ?? null;
+                        $to = $entryTimeData['to'] ?? null;
+
+                        // 3. Apply the Relationship Logic
+                        return $query->whereHas('student.studentEducations', function (Builder $studentQuery) use ($data, $from, $to) {
+
+                            // Filter by selected Education IDs
+                            $studentQuery->whereIn('education_id', (array) $data['values']);
+
+                            // Apply Date Logic: Only if a date range is selected in the top filter
+                            // This ensures we don't break the query if dates are missing
+                            if ($from && $to) {
+                                $studentQuery->where(function ($q) use ($from, $to) {
+                                    // LOGIC 1: The entry date must be within the education active period
+                                    // SQL: entry_time >= start_date AND (entry_time <= end_date OR end_date IS NULL)
+
+                                    $q->whereColumn('start_date', '<=', 'entry_time')
+                                        ->where(function ($subQ) {
+                                            $subQ->whereColumn('end_date', '>=', 'entry_time')
+                                                ->orWhereNull('end_date');
+                                        });
+
+                                    // LOGIC 2: Ensure the entry_time fits the global filter range
+                                    // (This ensures the student entry actually happened in the requested window)
+                                    $q->whereBetween('entry_time', [Carbon::parse($from), Carbon::parse($to)]);
+                                });
+                            }
+
+                            // Optional: If you want to strictly filter out ended educations even without date selection
+                            // ->whereNull('end_date');
+                        });
+                    }),
+        
 
                 SelectFilter::make('student.studentEducations.level')
                     ->label(__('general.labels.education_level'))
