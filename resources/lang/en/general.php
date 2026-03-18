@@ -37,6 +37,7 @@ return [
 
     'edu-levels' => [
         EduLevel::Unknown() => ' Unknown',
+        EduLevel::NotFound() => 'Not Exist',
         EduLevel::First() => 'First Year',
         EduLevel::Second() => 'Second Year',
         EduLevel::Third() => 'Third Year',

@@ -37,6 +37,7 @@ return [
 
     'edu-levels' => [
         EduLevel::Unknown() => 'غير معرف',
+        EduLevel::NotFound() => 'لا يوجد ',
         EduLevel::First() => 'السنة الأولى',
         EduLevel::Second() => 'السنة الثانية',
         EduLevel::Third() => 'السنة الثالثة',

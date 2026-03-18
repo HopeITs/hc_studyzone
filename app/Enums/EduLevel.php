@@ -18,6 +18,7 @@ enum EduLevel: int
     case Fifth = 5;
     case Sixth = 6;
     case Graduate = 7;
+    case NotFound = 8;
 
     // Return the default case
     public static function default(): self
