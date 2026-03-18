@@ -741,6 +741,20 @@ protected static function educationStep(): Wizard\Step
                     return $query->when($data['created_from'], fn (Builder $query, $date): Builder => $query->whereDate('created_at', '>=', $date))->when($data['created_until'], fn (Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date));
                 }),
             SelectFilter::make('educations')->label('المؤهلات العلمية')->relationship('educations', 'name')->searchable()->multiple()->preload(),
+            SelectFilter::make('education_level')
+    ->label(__('general.labels.education_level'))
+    ->options(__('general.edu-levels'))
+    ->searchable()
+    ->query(function (Builder $query, array $data): Builder {
+        if (array_key_exists('value', $data) && $data['value'] !== null && $data['value'] !== '') {
+            return $query->whereHas('studentEducations', function (Builder $studentQuery) use ($data) {
+                $studentQuery->where('level', (int) $data['value']);
+            });
+        }
+        
+        return $query;
+    })
+    ->preload(),
             SelectFilter::make('gender')->label('الجنس')->options(__('general.genders')),
             SelectFilter::make('religion')->label('الديانة')->options(__('general.religions')),
             TernaryFilter::make('national_number')->label('الرقم الوطني / الإقامة')->placeholder('الكل')->trueLabel('يوجد')->falseLabel('لا يوجد')->queries(true: fn (Builder $query) => $query->whereNotNull('national_number'), false: fn (Builder $query) => $query->whereNull('national_number'), blank: fn (Builder $query) => $query),
