@@ -606,6 +606,29 @@ protected static function educationStep(): Wizard\Step
                     },
                 )
                 ->toggleable(),
+               TextColumn::make('education_level')
+    ->label(__('general.labels.education_level'))
+    ->state(function (Student $record) {
+        return $record->studentEducations()
+            ->orderBy('start_date', 'desc')
+            ->first()?->level;
+    })
+    ->formatStateUsing(fn ($state) => $state !== null ? (__('general.edu-levels.'.$state)) : '-')
+    ->sortable(query: function (Builder $query, string $direction): Builder {
+        return $query->orderBy(
+            \App\Models\StudentEducation::select('level')
+                ->whereColumn('student_id', 'students.id')
+                ->orderBy('start_date', 'desc')
+                ->limit(1),
+            $direction
+        );
+    })
+    ->searchable(query: function (Builder $query, string $search): Builder {
+        return $query->whereHas('studentEducations', function (Builder $studentQuery) use ($search) {
+            $studentQuery->where('level', 'like', "%{$search}%");
+        });
+    })
+    ->toggleable(),
             TextColumn::make('street.city.name')->label('City')->sortable()->searchable()->toggleable(isToggledHiddenByDefault: true),
             TextColumn::make('gender')
                 ->label('Gender')

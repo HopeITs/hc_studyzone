@@ -102,108 +102,142 @@ class EntryResource extends Resource
 
         return $table
             ->columns([
-                TextColumn::make('student.firstname')->label('اسم الطالب')->formatStateUsing(fn (Model $record) => $record->student->firstname.' '.$record->student->father_name.' '.$record->student->lastname)->sortable()->searchable(
-                    query: function (Builder $query, string $search): Builder {
-                        return $query->whereHas('student', function (Builder $studentQuery) use ($search) {
-                            $studentQuery
-                                ->where('firstname', 'like', "%{$search}%")
-                                ->orWhere('lastname', 'like', "%{$search}%")
-                                ->orWhere('father_name', 'like', "%{$search}%");
-                        });
-                    },
-                ),
-                IconColumn::make('student.completed_data')->label('حالة البيانات')->boolean()->trueIcon('heroicon-o-check-circle')->falseIcon('heroicon-o-x-circle')->trueColor('success')->falseColor('danger')->sortable()->tooltip(fn ($record) => $record->student->completed_data ? 'البيانات مكتملة' : 'البيانات غير مكتملة'),
-                TextColumn::make('student.national_number')->label('الرقم الوطني / الإقامة')->sortable()->toggleable(),
-                TextColumn::make('student.phone')->label('الموبايل')->searchable()->sortable()->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('student.gender')
-                    ->label('الجنس')
-                    ->sortable()
-                    ->badge()
-                    ->formatStateUsing(fn (string $state) => __("general.genders.{$state}"))
-                    ->color(
-                        fn (int $state): string => match ($state) {
-                            Gender::Unknown() => 'warning',
-                            Gender::Male() => 'info',
-                            Gender::Female() => 'danger',
-                        },
-                    )
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('student.religion')
-                    ->label('الديانة')
-                    ->sortable()
-                    ->badge()
-                    ->formatStateUsing(fn (string $state) => __("general.religions.{$state}"))
-                    ->color(
-                        fn (int $state): string => match ($state) {
-                            Religion::Unknown() => 'warning',
-                            Religion::Christian() => 'success',
-                            Religion::Muslim() => 'secondary',
-                        },
-                    )
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('student.whatsapp')->label('واتساب')->searchable()->sortable()->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('entry_type')->label('نوع الدخول')->sortable()->formatStateUsing(fn ($state) => __('general.entry-types.'.$state)),
-                TextColumn::make('student.education')
-                    ->label('المؤهل العلمي')
-    // ->formatStateUsing(function ($record) {
-    //     $lastEducation = $record->student->studentEducations()
-    //         ->with('education')
-    //         ->orderBy('start_date', 'desc')
-    //         ->first();
+    TextColumn::make('student.firstname')->label('اسم الطالب')->formatStateUsing(fn (Model $record) => $record->student->firstname.' '.$record->student->father_name.' '.$record->student->lastname)->sortable()->searchable(
+        query: function (Builder $query, string $search): Builder {
+            return $query->whereHas('student', function (Builder $studentQuery) use ($search) {
+                $studentQuery
+                    ->where('firstname', 'like', "%{$search}%")
+                    ->orWhere('lastname', 'like', "%{$search}%")
+                    ->orWhere('father_name', 'like', "%{$search}%");
+            });
+        },
+    ),
+    IconColumn::make('student.completed_data')->label('حالة البيانات')->boolean()->trueIcon('heroicon-o-check-circle')->falseIcon('heroicon-o-x-circle')->trueColor('success')->falseColor('danger')->sortable()->tooltip(fn ($record) => $record->student->completed_data ? 'البيانات مكتملة' : 'البيانات غير مكتملة'),
+    TextColumn::make('student.national_number')->label('الرقم الوطني / الإقامة')->sortable()->toggleable(),
+    TextColumn::make('student.phone')->label('الموبايل')->searchable()->sortable()->toggleable(isToggledHiddenByDefault: true),
+    TextColumn::make('student.gender')
+        ->label('الجنس')
+        ->sortable()
+        ->badge()
+        ->formatStateUsing(fn (string $state) => __("general.genders.{$state}"))
+        ->color(
+            fn (int $state): string => match ($state) {
+                Gender::Unknown() => 'warning',
+                Gender::Male() => 'info',
+                Gender::Female() => 'danger',
+            },
+        )
+        ->toggleable(isToggledHiddenByDefault: true),
+    TextColumn::make('student.religion')
+        ->label('الديانة')
+        ->sortable()
+        ->badge()
+        ->formatStateUsing(fn (string $state) => __("general.religions.{$state}"))
+        ->color(
+            fn (int $state): string => match ($state) {
+                Religion::Unknown() => 'warning',
+                Religion::Christian() => 'success',
+                Religion::Muslim() => 'secondary',
+            },
+        )
+        ->toggleable(isToggledHiddenByDefault: true),
+    TextColumn::make('student.whatsapp')->label('واتساب')->searchable()->sortable()->toggleable(isToggledHiddenByDefault: true),
+    TextColumn::make('entry_type')->label('نوع الدخول')->sortable()->formatStateUsing(fn ($state) => __('general.entry-types.'.$state)),
+    TextColumn::make('student.studentEducations.level')
+        ->label('مستوى التعليم')
+        ->formatStateUsing(function ($record) {
+            $lastEducation = $record->student->studentEducations()
+                ->orderBy('start_date', 'desc')
+                ->first();
+            
+            if (!$lastEducation) {
+                return '-';
+            }
+            
+            $levelValue = $lastEducation->level;
+            return __('general.edu-levels.' . (string) $levelValue);
+        })
+        ->sortable(
+            query: function (Builder $query, string $direction): Builder {
+                return $query->orderBy(
+                    \App\Models\StudentEducation::select('level')
+                        ->whereColumn('student_id', 'students.id')
+                        ->orderBy('start_date', 'desc')
+                        ->limit(1),
+                    $direction
+                );
+            },
+        )
+        ->searchable(
+            query: function (Builder $query, string $search): Builder {
+                return $query->whereHas('student.studentEducations', function (Builder $studentQuery) use ($search) {
+                    $studentQuery->where('level', 'like', "%{$search}%");
+                });
+            },
+        )
+        ->toggleable(),
+    
+    TextColumn::make('student.education')
+        ->label('المؤهل العلمي')
+// ->formatStateUsing(function ($record) {
+//     $lastEducation = $record->student->studentEducations()
+//         ->with('education')
+//         ->orderBy('start_date', 'desc')
+//         ->first();
 
-    //     if (!$lastEducation || !$lastEducation->education) {
-    //         return '-';
-    //     }
+//     if (!$lastEducation || !$lastEducation->education) {
+//         return '-';
+//     }
 
-    //     return $lastEducation->education->getTranslation('name', 'ar');
-    // })
-    // ->searchable(
-    //     query: function (Builder $query, string $search): Builder {
-    //         return $query->whereHas('student.studentEducations.education', function (Builder $studentQuery) use ($search) {
-    //             $studentQuery->where('name', 'like', "%{$search}%");
-    //         });
-    //     },
-    // )
-                    ->sortable(
-                        query: function (Builder $query, string $direction): Builder {
-                            return $query->orderBy(
-                                \App\Models\StudentEducation::select('education_id')
-                                    ->whereColumn('student_id', 'students.id')
-                                    ->orderBy('start_date', 'desc')
-                                    ->limit(1),
-                                $direction
-                            );
-                        },
-                    )
-                    ->toggleable(),
-                TextColumn::make('entry_time')->label('تاريخ الدخول')->sortable()->dateTime('Y-m-d H:i'),
-                TextColumn::make('center.city.name')
-                    ->label('المدينة')
-                    ->sortable()
-                    ->visible(auth()->user()->role === Roles::GeneralAdmin())
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('center.name')
-                    ->label('المركز')
-                    ->sortable()
-                    ->hidden(auth()->user()->role === Roles::CenterAdmin())
-                    ->toggleable(isToggledHiddenByDefault: true),
-                CheckboxColumn::make('use_printer')
-                    ->disabled($isObserver || $isMealAdmin)
-                    ->label('طباعة')
-                    ->sortable(),
-                CheckboxColumn::make('use_mecrator')
-                    ->disabled($isObserver || $isMealAdmin)
-                    ->label('ميكراتور')
-                    ->sortable(),
-                CheckboxColumn::make('use_drawer')
-                    ->disabled($isObserver || $isMealAdmin)
-                    ->label('مرسم')
-                    ->sortable(),
-                CheckboxColumn::make('use_plotter')
-                    ->disabled($isObserver || $isMealAdmin)
-                    ->label('بلوتر')
-                    ->sortable(),
-            ])
+//     return $lastEducation->education->getTranslation('name', 'ar');
+// })
+// ->searchable(
+//     query: function (Builder $query, string $search): Builder {
+//         return $query->whereHas('student.studentEducations.education', function (Builder $studentQuery) use ($search) {
+//             $studentQuery->where('name', 'like', "%{$search}%");
+//         });
+//     },
+// )
+        ->sortable(
+            query: function (Builder $query, string $direction): Builder {
+                return $query->orderBy(
+                    \App\Models\StudentEducation::select('education_id')
+                        ->whereColumn('student_id', 'students.id')
+                        ->orderBy('start_date', 'desc')
+                        ->limit(1),
+                    $direction
+                );
+            },
+        )
+        ->toggleable(),
+    TextColumn::make('entry_time')->label('تاريخ الدخول')->sortable()->dateTime('Y-m-d H:i'),
+    TextColumn::make('center.city.name')
+        ->label('المدينة')
+        ->sortable()
+        ->visible(auth()->user()->role === Roles::GeneralAdmin())
+        ->toggleable(isToggledHiddenByDefault: true),
+    TextColumn::make('center.name')
+        ->label('المركز')
+        ->sortable()
+        ->hidden(auth()->user()->role === Roles::CenterAdmin())
+        ->toggleable(isToggledHiddenByDefault: true),
+    CheckboxColumn::make('use_printer')
+        ->disabled($isObserver || $isMealAdmin)
+        ->label('طباعة')
+        ->sortable(),
+    CheckboxColumn::make('use_mecrator')
+        ->disabled($isObserver || $isMealAdmin)
+        ->label('ميكراتور')
+        ->sortable(),
+    CheckboxColumn::make('use_drawer')
+        ->disabled($isObserver || $isMealAdmin)
+        ->label('مرسم')
+        ->sortable(),
+    CheckboxColumn::make('use_plotter')
+        ->disabled($isObserver || $isMealAdmin)
+        ->label('بلوتر')
+        ->sortable(),
+])
             ->filtersLayout(FiltersLayout::Modal)
             ->filtersFormColumns(4)
             ->filters([
