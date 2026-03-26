@@ -20,7 +20,6 @@ class EditService extends EditRecord
     {
         $record = $this->record;
 
-        // Ensure only one price is default after editing
         $activePrice = $record->prices()->where('is_default', true)->first();
 
         if ($activePrice) {

@@ -14,7 +14,6 @@ class CreateService extends CreateRecord
     {
         $record = $this->record;
         
-        // If the new price is set as default, make sure others for this service are not
         $activePrice = $record->prices()->where('is_default', true)->first();
         
         if ($activePrice) {
