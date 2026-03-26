@@ -21,9 +21,6 @@ class Service extends Model
         return $this->hasMany(ServicePrice::class);
     }
 
-    /**
-     * Get the currently active price.
-     */
     public function currentPrice(): HasOne
     {
         return $this->hasOne(ServicePrice::class)->where('is_default', true);

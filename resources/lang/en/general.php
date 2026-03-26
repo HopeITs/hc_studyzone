@@ -130,7 +130,7 @@ return [
     'n_a' => 'N/A',
     'units' => [
         'hour' => 'Hour',
-        'page' => 'Page',
+        'paper' => 'paper',
         'entry' => 'Entry',
     ],
     'validation_open_price' => 'Cannot add a new price because the previous price for this service has no end date.',

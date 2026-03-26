@@ -7,6 +7,9 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
 
 class StudentEntry extends Model
 {
@@ -27,6 +30,23 @@ class StudentEntry extends Model
     public function center(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Center::class);
+    }
+
+    public function entryServices(): HasMany
+    {
+        return $this->hasMany(EntryService::class, 'entry_id');
+    }
+
+    public function getTotalAmountAttribute(): float
+    {
+        return $this->entryServices->sum('price_at_time');
+    }
+
+    public function getServicesListAttribute(): string
+    {
+        return $this->entryServices->map(function ($service) {
+            return $service->service->name;
+        })->implode(', ');
     }
 
 }
