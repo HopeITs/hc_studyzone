@@ -3,13 +3,17 @@
 namespace App\Filament\Pages;
 
 use App\Enums\Roles;
-use App\Models\{Student, Center, City};
-use Filament\Forms\Components\{Section, Select, DatePicker};
-use Filament\Forms\Form;
-use Filament\Pages\Page;
+use App\Models\Center;
+use App\Models\City;
+use App\Models\Student;
 use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Section;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Forms\Form;
+use Filament\Pages\Page;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -17,14 +21,19 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class Reports extends Page
 {
-    use InteractsWithForms;
     use InteractsWithActions;
+    use InteractsWithForms;
 
     protected static ?string $navigationIcon = 'heroicon-o-chart-bar';
+
     protected static ?string $navigationLabel = 'التقارير';
+
     protected static ?string $title = 'التقارير';
+
     protected static ?string $slug = 'reports';
+
     protected static ?int $navigationSort = 50;
+
     protected static string $view = 'filament.pages.reports';
 
     public ?array $data = [
@@ -37,6 +46,7 @@ class Reports extends Page
     public static function shouldRegisterNavigation(): bool
     {
         $user = Auth::user();
+
         return $user && in_array($user->role, [
             Roles::GeneralAdmin(),
             Roles::CityAdmin(),
@@ -65,7 +75,7 @@ class Reports extends Page
                             ->options(City::pluck('name', 'id'))
                             ->live()
                             ->visible(auth()->user()->role === Roles::GeneralAdmin() || auth()->user()->role === Roles::Observer())
-                            ->afterStateUpdated(fn(callable $set) => $set('center_id', []))
+                            ->afterStateUpdated(fn (callable $set) => $set('center_id', []))
                             ->columnSpanFull(),
 
                         Select::make('center_id')
@@ -89,6 +99,7 @@ class Reports extends Page
                                         return Center::where('city_id', $cityId)->orderBy('order')
                                             ->pluck('name', 'id');
                                     }
+
                                     return Center::orderBy('order')
                                         ->pluck('name', 'id');
                                 }
@@ -107,6 +118,7 @@ class Reports extends Page
                             ->hidden(auth()->user()->role === Roles::CenterAdmin())
                             ->default(function () {
                                 $user = auth()->user();
+
                                 return $user->role === Roles::CenterAdmin() ? [$user->center_id] : [];
                             }),
 
@@ -127,13 +139,16 @@ class Reports extends Page
             ->statePath('data');
     }
 
-    protected function getActions(): array
+       protected function getActions(): array
     {
         return [
             Action::make('export_students_by_entry_period')
                 ->label('تصدير الطلاب خلال فترة')
                 ->color('primary')
                 ->action(function (): StreamedResponse {
+                    // 1. Increase execution time for this specific script only
+                    set_time_limit(300); // 5 minutes
+
                     $state = $this->form->getState();
 
                     $from = $state['from'];
@@ -142,7 +157,9 @@ class Reports extends Page
                     $centerIds = $state['center_id'] ?? [];
 
                     $query = Student::query()
-                        ->with(['street.city', 'educations'])
+                        // 2. FIX: Eager load relationships to prevent N+1 queries inside the loop
+                        // We load studentEducations and their related education model NOW
+                        ->with(['street.city', 'studentEducations.education'])
                         ->whereHas('entries', function (Builder $q) use ($from, $to, $cityId, $centerIds) {
                             if ($from) {
                                 $q->whereDate('entry_time', '>=', $from);
@@ -196,7 +213,9 @@ class Reports extends Page
                     $query->addSelect(DB::raw($subquery));
                     $query = $this->applyRoleScope($query);
 
-                    $students = $query->orderBy('firstname')->orderBy('father_name')->orderBy('lastname')->get();
+                    // 3. FIX: Use lazy() instead of get().
+                    // This keeps memory usage low by loading one student at a time instead of all at once.
+                    $students = $query->orderBy('firstname')->orderBy('father_name')->orderBy('lastname')->lazy();
 
                     $headers = [
                         'Content-Type' => 'text/csv; charset=UTF-8',
@@ -206,71 +225,66 @@ class Reports extends Page
 
                     return response()->streamDownload(
                         function () use ($students) {
-    $out = fopen('php://output', 'w');
-    fwrite($out, chr(0xef) . chr(0xbb) . chr(0xbf));
-    fputcsv($out, ['الاسم الثلاثي', 'اسم المركز', 'تاريخ الميلاد', 'الرقم الوطني/الإقامة', 'رقم الهاتف/واتساب', 'عدد الدخوليات', 'الديانة', 'الاختصاص', 'مستوى التعليم', 'مكان الإقامة', 'الجنس', 'الحالة (طالب/موظف)', 'تاريخ الإنشاء']);
+                            $out = fopen('php://output', 'w');
+                            fwrite($out, chr(0xef) . chr(0xbb) . chr(0xbf)); // UTF-8 BOM
+                            fputcsv($out, ['الاسم الثلاثي', 'اسم المركز', 'تاريخ الميلاد', 'الرقم الوطني/الإقامة', 'رقم الهاتف/واتساب', 'عدد الدخوليات', 'الديانة', 'الاختصاص', 'مستوى التعليم', 'مكان الإقامة', 'الجنس', 'الحالة (طالب/موظف)', 'تاريخ الإنشاء']);
 
-    foreach ($students as $s) {
-        $fullName = trim($s->firstname . ' ' . $s->father_name . ' ' . $s->lastname);
-        $centerName = $s->center_names ?? '';
-        $dob = $s->year_of_birth ? (string) $s->year_of_birth : '';
-        $idNum = $s->national_number ?: ($s->foreign_id_number ?: '');
-        $phoneWhats = trim(($s->phone ?? '') . ($s->phone && $s->whatsapp ? ' / ' : '') . ($s->whatsapp ?? ''));
-        $entriesCount = (int) ($s->entries_in_period_count ?? 0);
-        $religion = __('general.religions.' . (string) $s->religion);
-        
-        $specialization = '-';
-        $recentEducations = $s->studentEducations()
-            ->with('education')
-            ->orderBy('start_date', 'desc')
-            ->take(3)
-            ->get();
-        
-        if ($recentEducations->isNotEmpty()) {
-            $names = $recentEducations->map(function($se) {
-                return $se->education?->getTranslation('name', 'ar') ?? '';
-            })->filter()->values();
-            
-            if ($names->isNotEmpty()) {
-                $specialization = $names->implode(', ');
-            }
-        }
-        
-        $educationLevel = '-';
-        $lastEducation = $s->studentEducations()
-            ->with('education')
-            ->orderBy('start_date', 'desc')
-            ->first();
-        
-        if ($lastEducation && $lastEducation->education) {
-            $levelValue = $lastEducation->level;
-            $educationLevel = __('general.edu-levels.' . (string) $levelValue);
-        }
-        
-        $residence = ($s->street->city->name ?? '') . ' - ' . ($s->street->name ?? '');
-        $gender = __('general.genders.' . (string) $s->gender);
-        $statusParts = [];
-        if ($s->is_student) {
-            $statusParts[] = __('general.labels.is_student');
-        }
-        if ($s->is_employed) {
-            $statusParts[] = __('general.labels.is_employed');
-        }
-        $status = implode('/', $statusParts);
-        $created = $s->created_at ? $s->created_at->format('Y-m-d') : '';
+                            foreach ($students as $s) {
+                                // 4. FIX: Access already loaded data instead of querying DB again
+                                $fullName = trim($s->firstname . ' ' . $s->father_name . ' ' . $s->lastname);
+                                $centerName = $s->center_names ?? '';
+                                $dob = $s->year_of_birth ? (string) $s->year_of_birth : '';
+                                $idNum = $s->national_number ?: ($s->foreign_id_number ?: '');
+                                $phoneWhats = trim(($s->phone ?? '') . ($s->phone && $s->whatsapp ? ' / ' : '') . ($s->whatsapp ?? ''));
+                                $entriesCount = (int) ($s->entries_in_period_count ?? 0);
+                                $religion = __('general.religions.' . (string) $s->religion);
 
-        fputcsv($out, [$fullName, $centerName, $dob, $idNum, $phoneWhats, $entriesCount, $religion, $specialization, $educationLevel, $residence, $gender, $status, $created]);
-    }
+                                $specialization = '-';
+                                // We use the collection loaded in memory via eager load
+                                $sortedEducations = $s->studentEducations->sortByDesc('start_date');
+                                $recentEducations = $sortedEducations->take(3);
 
-    fclose($out);
-},
+                                if ($recentEducations->isNotEmpty()) {
+                                    $names = $recentEducations->map(function($se) {
+                                        return $se->education?->getTranslation('name', 'ar') ?? '';
+                                    })->filter()->values();
+
+                                    if ($names->isNotEmpty()) {
+                                        $specialization = $names->implode(', ');
+                                    }
+                                }
+
+                                $educationLevel = '-';
+                                $lastEducation = $sortedEducations->first();
+
+                                if ($lastEducation && $lastEducation->education) {
+                                    $levelValue = $lastEducation->level;
+                                    $educationLevel = __('general.edu-levels.' . (string) $levelValue);
+                                }
+
+                                $residence = ($s->street->city->name ?? '') . ' - ' . ($s->street->name ?? '');
+                                $gender = __('general.genders.' . (string) $s->gender);
+                                $statusParts = [];
+                                if ($s->is_student) {
+                                    $statusParts[] = __('general.labels.is_student');
+                                }
+                                if ($s->is_employed) {
+                                    $statusParts[] = __('general.labels.is_employed');
+                                }
+                                $status = implode('/', $statusParts);
+                                $created = $s->created_at ? $s->created_at->format('Y-m-d') : '';
+
+                                fputcsv($out, [$fullName, $centerName, $dob, $idNum, $phoneWhats, $entriesCount, $religion, $specialization, $educationLevel, $residence, $gender, $status, $created]);
+                            }
+
+                            fclose($out);
+                        },
                         null,
                         $headers,
                     );
                 }),
         ];
     }
-
     protected function applyRoleScope(Builder $query): Builder
     {
         $user = Auth::user();
@@ -280,14 +294,12 @@ class Reports extends Page
         }
 
         if ($user->role === Roles::CityAdmin() || $user->role === Roles::MealAdmin()) {
-            return $query->whereHas('entries.center', fn($q) =>
-                $q->where('city_id', $user->city_id)
+            return $query->whereHas('entries.center', fn ($q) => $q->where('city_id', $user->city_id)
             );
         }
 
         if ($user->role === Roles::CenterAdmin()) {
-            return $query->whereHas('entries', fn($q) =>
-                $q->where('center_id', $user->center_id)
+            return $query->whereHas('entries', fn ($q) => $q->where('center_id', $user->center_id)
             );
         }
 
