@@ -3,79 +3,71 @@
 namespace App\Helpers;
 
 use App\Models\Service;
-use App\Models\ServicePrice;
-use Carbon\Carbon;
+use App\Models\CityServicePrice;
+use Illuminate\Support\Facades\Auth;
 
 class ServiceHelper
 {
-    public static function getCurrentPrice(Service $service): ?float
-    {
-        $activePrice = $service->prices()
-            ->where('is_default', true)
-            ->where('start_at', '<=', Carbon::now())
-            ->where(function ($query) {
-                $query->whereNull('end_at')
-                    ->orWhere('end_at', '>=', Carbon::now());
-            })
-            ->first();
-
-        if ($activePrice) {
-            return $activePrice->price;
-        }
-
-        $latestPrice = $service->prices()
-            ->where('start_at', '<=', Carbon::now())
-            ->orderBy('start_at', 'desc')
-            ->first();
-
-        return $latestPrice?->price;
-    }
-
+    /**
+     * Get all services with their prices for the current user's city
+     */
     public static function getServicesWithPrices(): array
     {
-        $services = Service::with(['prices' => function ($query) {
-            $query->where('start_at', '<=', Carbon::now())
-                ->where(function ($q) {
-                    $q->whereNull('end_at')
-                        ->orWhere('end_at', '>=', Carbon::now());
-                })
-                ->orderBy('is_default', 'desc')
-                ->orderBy('start_at', 'desc');
-        }])->get();
-
+        $user = Auth::user();
+        $cityId = $user->city_id;
+        
+        if (!$cityId) {
+            return [];
+        }
+        
+        $services = Service::where('is_active', true)->get();
         $result = [];
+        
         foreach ($services as $service) {
-            $price = self::getCurrentPrice($service);
+            $price = $service->getPriceForCity($cityId);
             
             if ($price !== null) {
                 $result[] = [
                     'id' => $service->id,
                     'name' => $service->name,
                     'price' => $price,
-                ];
-            } else {
-                $result[] = [
-                    'id' => $service->id,
-                    'name' => $service->name,
-                    'price' => 0,
+                    'category_id' => $service->category_id,
                 ];
             }
         }
-
+        
         return $result;
     }
-
+    
+    /**
+     * Get default entry service (service with 'entry' unit)
+     */
     public static function getDefaultEntryService(): ?array
     {
-        $service = Service::where('name', 'دخولية')->first();
+        $user = Auth::user();
+        $cityId = $user->city_id;
         
+        if (!$cityId) {
+            return null;
+        }
+        
+        $entryCategory = \App\Models\ServiceCategory::where('unit', 'entry')->first();
+        
+        if (!$entryCategory) {
+            return null;
+        }
+        
+        $service = Service::where('category_id', $entryCategory->id)
+            ->where('is_active', true)
+            ->first();
+            
         if (!$service) {
             return null;
         }
         
-        $price = self::getCurrentPrice($service);
+        $price = $service->getPriceForCity($cityId);
         
-        if ($price === null) {
+        if (!$price) {
             return null;
         }
         
@@ -84,5 +76,27 @@ class ServiceHelper
             'name' => $service->name,
             'price' => $price,
         ];
+    }
+    
+    /**
+     * Get all services for a specific city
+     */
+    public static function getServicesForCity(int $cityId): array
+    {
+        $services = Service::where('is_active', true)->get();
+        $result = [];
+        
+        foreach ($services as $service) {
+            $price = $service->getPriceForCity($cityId);
+            
+            $result[] = [
+                'id' => $service->id,
+                'name' => $service->name,
+                'price' => $price,
+                'has_price' => $price !== null,
+            ];
+        }
+        
+        return $result;
     }
 }

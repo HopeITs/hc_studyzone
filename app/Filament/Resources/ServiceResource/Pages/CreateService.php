@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\ServiceResource\Pages;
 
 use App\Filament\Resources\ServiceResource;
-use App\Models\ServicePrice;
+use App\Models\City;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateService extends CreateRecord
@@ -13,13 +13,18 @@ class CreateService extends CreateRecord
     protected function afterCreate(): void
     {
         $record = $this->record;
+        $initialPrice = $this->data['initial_price'] ?? null;
         
-        $activePrice = $record->prices()->where('is_default', true)->first();
-        
-        if ($activePrice) {
-            ServicePrice::where('service_id', $record->id)
-                ->where('id', '!=', $activePrice->id)
-                ->update(['is_default' => false, 'end_at' => now()]);
+        if ($initialPrice && is_numeric($initialPrice)) {
+            $cities = City::where('code', '!=', 'na')->get();
+            
+            foreach ($cities as $city) {
+                $record->cityPrices()->create([
+                    'city_id' => $city->id,
+                    'price' => $initialPrice,
+                    'is_active' => true,
+                ]);
+            }
         }
     }
 

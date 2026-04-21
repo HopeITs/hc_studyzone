@@ -825,7 +825,6 @@ protected static function educationStep(): Wizard\Step
     ->live()
     ->afterStateUpdated(function ($state, callable $set, callable $get) {
         $services = \App\Helpers\ServiceHelper::getServicesWithPrices();
-        $defaultService = \App\Helpers\ServiceHelper::getDefaultEntryService();
         $selectedDetails = [];
         $total = 0;
         
@@ -908,12 +907,17 @@ protected static function educationStep(): Wizard\Step
         
         if (!empty($servicesToAdd)) {
             $services = \App\Helpers\ServiceHelper::getServicesWithPrices();
+            $servicesById = [];
             foreach ($services as $service) {
-                if (in_array($service['id'], $servicesToAdd)) {
+                $servicesById[$service['id']] = $service;
+            }
+            
+            foreach ($servicesToAdd as $serviceId) {
+                if (isset($servicesById[$serviceId])) {
                     \App\Models\EntryService::create([
                         'entry_id' => $entry->id,
-                        'service_id' => $service['id'],
-                        'price_at_time' => $service['price'],
+                        'service_id' => $serviceId,
+                        'price_at_time' => $servicesById[$serviceId]['price'],
                     ]);
                 }
             }
