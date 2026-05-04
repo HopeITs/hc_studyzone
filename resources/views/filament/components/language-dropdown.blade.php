@@ -40,7 +40,7 @@
                         : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
                     }}"
             >
-                <span>🇬🇧</span>
+                {{-- <span>🇬🇧</span> --}}
                 <span>English</span>
                 @if($currentLocale === 'en')
                     <svg class="w-4 h-4 ml-auto text-primary-600 dark:text-primary-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
@@ -56,7 +56,7 @@
                         : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
                     }}"
             >
-                <span>🇸🇦</span>
+                {{-- <span>🇸🇦</span> --}}
                 <span>العربية</span>
                 @if($currentLocale === 'ar')
                     <svg class="w-4 h-4 ml-auto text-primary-600 dark:text-primary-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
