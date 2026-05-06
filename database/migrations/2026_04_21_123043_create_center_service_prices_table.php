@@ -8,21 +8,20 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('city_service_prices', function (Blueprint $table) {
+        Schema::create('center_service_prices', function (Blueprint $table) {
             $table->id();
             $table->foreignId('service_id')->constrained('services')->cascadeOnDelete();
-            $table->foreignId('city_id')->constrained('cities')->cascadeOnDelete();
-            $table->decimal('price', 10, 2);
+            $table->foreignId('center_id')->constrained('centers')->cascadeOnDelete();
+            $table->integer('price')->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
-            
-            $table->unique(['service_id', 'city_id']);
-            $table->index(['city_id', 'is_active']);
+
+            $table->index(['center_id', 'is_active']);
         });
     }
-    
+
     public function down(): void
     {
-        Schema::dropIfExists('city_service_prices');
+        Schema::dropIfExists('center_service_prices');
     }
 };

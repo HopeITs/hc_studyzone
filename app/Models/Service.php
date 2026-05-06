@@ -20,39 +20,39 @@ class Service extends Model
         return $this->belongsTo(ServiceCategory::class, 'category_id');
     }
 
-    public function cityPrices(): HasMany
+    public function centerPrices(): HasMany
     {
-        return $this->hasMany(CityServicePrice::class);
+        return $this->hasMany(CenterServicePrice::class);
     }
 
-    public function getPriceForCity(?int $cityId): ?float
+    public function getPriceForCenter(?int $centerId): ?float
     {
-        if (!$cityId) {
+        if (! $centerId) {
             return null;
         }
-        
-        $price = $this->cityPrices()
-            ->where('city_id', $cityId)
+
+        $price = $this->centerPrices()
+            ->where('center_id', $centerId)
             ->where('is_active', true)
             ->first();
-            
+
         return $price?->price;
     }
-    
+
     public function getAveragePriceAttribute(): ?float
     {
-        $avg = $this->cityPrices()
+        $avg = $this->centerPrices()
             ->where('is_active', true)
             ->select(DB::raw('AVG(price) as average'))
             ->value('average');
-            
+
         return $avg ? round($avg, 2) : null;
     }
-    
-    public function hasPriceForCity(int $cityId): bool
+
+    public function hasPriceForCenter(int $centerId): bool
     {
-        return $this->cityPrices()
-            ->where('city_id', $cityId)
+        return $this->centerPrices()
+            ->where('center_id', $centerId)
             ->where('is_active', true)
             ->exists();
     }

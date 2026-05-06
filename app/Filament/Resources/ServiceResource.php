@@ -3,55 +3,57 @@
 namespace App\Filament\Resources;
 
 use App\Enums\Roles;
+use App\Models\Center;
 use App\Models\Service;
-use App\Models\ServiceCategory;
-use App\Models\City;
 use Filament\Forms;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
-use Filament\Tables\Table;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Enums\FiltersLayout;
-use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\Filter;
-use Filament\Forms\Components\Repeater;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 
 class ServiceResource extends Resource
 {
     protected static ?string $model = Service::class;
+
     protected static ?string $navigationIcon = 'heroicon-o-wrench-screwdriver';
 
-    public static function getNavigationLabel(): string 
-    { 
-        return __('general.services_module.services'); 
+    public static function getNavigationLabel(): string
+    {
+        return __('general.services_module.services');
     }
 
-    public static function getPluralLabel(): string 
-    { 
-        return __('general.services_module.services'); 
+    public static function getPluralLabel(): string
+    {
+        return __('general.services_module.services');
     }
 
-    public static function getModelLabel(): string 
-    { 
-        return __('general.services_module.service'); 
+    public static function getModelLabel(): string
+    {
+        return __('general.services_module.service');
     }
 
     public static function getEloquentQuery(): Builder
     {
         $user = Auth::user();
         $query = parent::getEloquentQuery();
-        
+
         if ($user->role === Roles::GeneralAdmin()) {
             return $query;
         }
-        
+
         if ($user->role === Roles::CityAdmin() && $user->city_id) {
-            return $query->whereHas('cityPrices', function ($q) use ($user) {
-                $q->where('city_id', $user->city_id);
+            return $query->whereHas('centerPrices', function ($q) use ($user) {
+                $q->whereHas('center', function ($p0) use ($user) {
+                    $p0->where('city_id', $user->city_id);
+                });
             });
         }
 
@@ -63,7 +65,7 @@ class ServiceResource extends Resource
         $user = Auth::user();
         $isGeneralAdmin = $user->role === Roles::GeneralAdmin();
         $isCityAdmin = $user->role === Roles::CityAdmin();
-        
+
         return $form
             ->schema([
                 Forms\Components\Section::make()
@@ -72,48 +74,47 @@ class ServiceResource extends Resource
                             ->label(__('general.labels.service_name'))
                             ->required()
                             ->maxLength(255),
-                            
+
                         Forms\Components\Select::make('category_id')
                             ->relationship('category', 'name')
                             ->label(__('general.services_module.category'))
                             ->required()
                             ->searchable()
                             ->preload(),
-                            
+
                         Forms\Components\Toggle::make('is_active')
                             ->label(__('general.services_module.active'))
                             ->default(true)
                             ->visible($isGeneralAdmin),
-                            
+
                         Forms\Components\TextInput::make('initial_price')
                             ->label(__('general.services_module.initial_price'))
                             ->numeric()
                             ->prefix('SYP')
-                            ->required($isGeneralAdmin && !$form->getRecord())
+                            ->required($isGeneralAdmin && ! $form->getRecord())
                             ->visible($isGeneralAdmin)
                             ->helperText('سيتم تعيين هذا السعر لجميع المدن بشكل افتراضي'),
-                            
+
                         Forms\Components\TextInput::make('city_price')
-                            ->label(__('general.services_module.price_for_city') . ' (' . ($user->city?->getTranslation('name', 'ar') ?? '') . ')')
+                            ->label(__('general.services_module.price_for_city').' ('.($user->city?->getTranslation('name', 'ar') ?? '').')')
                             ->numeric()
                             ->prefix('SYP')
                             ->required($isCityAdmin)
                             ->visible($isCityAdmin)
                             ->helperText('سعر هذه الخدمة في مدينتك'),
                     ])->columns(2),
-                    
+
                 Forms\Components\Section::make(__('general.services_module.city_prices'))
                     ->schema([
                         Repeater::make('city_prices')
-                            ->relationship('cityPrices')
+                            ->relationship('centerPrices')
                             ->schema([
-                                Forms\Components\Select::make('city_id')
-                                    ->label(__('general.labels.city'))
-                                    ->options(City::where('code', '!=', 'na')->pluck('name', 'id'))
+                                Forms\Components\Select::make('center_id')
+                                    ->label(__('general.labels.center'))
+                                    ->options(Center::pluck('name', 'id'))
                                     ->required()
                                     ->searchable()
                                     ->preload()
-                                    ->distinct()
                                     ->columnSpan(2),
                                 Forms\Components\TextInput::make('price')
                                     ->label(__('general.services_module.price'))
@@ -142,7 +143,7 @@ class ServiceResource extends Resource
         $isGeneralAdmin = $user->role === Roles::GeneralAdmin();
         $isCityAdmin = $user->role === Roles::CityAdmin();
         $cityId = $user->city_id;
-        
+
         return $table
             ->columns([
                 TextColumn::make('name')
@@ -152,43 +153,48 @@ class ServiceResource extends Resource
 
                 TextColumn::make('category.unit')
                     ->label(__('general.services_module.unit'))
-                    ->formatStateUsing(fn ($state) => __('general.services_module.units.' . $state))
+                    ->formatStateUsing(fn ($state) => __('general.services_module.units.'.$state))
                     ->badge()
                     ->color('info'),
-                    
+
                 TextColumn::make('price_display')
                     ->label(__('general.services_module.price'))
-                    ->state(function (Service $record) use ($isCityAdmin, $cityId, $isGeneralAdmin) {
-                        if ($isCityAdmin && $cityId) {
-                            $price = $record->getPriceForCity($cityId);
-                            return $price ? number_format($price, 2) . ' SYP' : 'غير محدد';
+                    ->state(function (Service $record) {
+                        $range = $record->centerPrices()
+                            ->where('is_active', true)
+                            ->selectRaw('MIN(price) as min_price, MAX(price) as max_price')
+                            ->first();
+
+                        if ($range && $range->min_price !== null) {
+                            $min = $range->min_price;
+                            $max = $range->max_price;
+                            $price = $min === $max ? $min . ' SYP' : $min.' - '. $max;
+
+                            return $price;
                         }
-                        
-                        if ($isGeneralAdmin) {
-                            return 'عبر المدن';
-                        }
-                        
-                        return '-';
+
+                        return null;
+
                     })
                     ->color(fn ($state) => $state !== 'غير محدد' && $state !== 'عبر المدن' ? 'success' : 'warning'),
-                    
+
                 TextColumn::make('average_price')
                     ->label(__('general.services_module.average_price'))
-                    ->formatStateUsing(fn ($state) => $state ? number_format($state, 2) . ' SYP' : '-')
+                    ->formatStateUsing(fn ($state) => $state ? number_format($state, 2).' SYP' : '-')
                     ->color('info')
                     ->visible($isGeneralAdmin),
-                    
+
                 TextColumn::make('cities_count')
                     ->label(__('general.services_module.cities_count'))
-                    ->state(fn (Service $record) => $record->cityPrices()->where('is_active', true)->count())
+                    ->state(fn (Service $record) => $record->centerPrices()->where('is_active', true)->count())
                     ->badge()
                     ->visible($isGeneralAdmin),
-                    
+
                 TextColumn::make('category.name')
                     ->label(__('general.services_module.category'))
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-                    
+
                 TextColumn::make('created_at')
                     ->label(__('general.labels.created_at'))
                     ->date()
@@ -205,7 +211,7 @@ class ServiceResource extends Resource
                     ->multiple()
                     ->preload()
                     ->columnSpan(1),
-                    
+
                 Filter::make('has_price_in_city')
                     ->label(__('general.services_module.has_price_in_my_city'))
                     ->form([
@@ -216,15 +222,18 @@ class ServiceResource extends Resource
                     ->columnSpan(1)
                     ->visible($isCityAdmin)
                     ->query(function (Builder $query, array $data) use ($cityId) {
-                        if (!isset($data['has_price']) || !$data['has_price']) {
+                        if (! isset($data['has_price']) || ! $data['has_price']) {
                             return $query;
                         }
-                        
-                        return $query->whereHas('cityPrices', function ($q) use ($cityId) {
-                            $q->where('city_id', $cityId)->where('is_active', true);
+
+                        return $query->whereHas('centerPrices', function ($q) use ($cityId) {
+                            $q->whereHas('center', function ($p0) use ($cityId) {
+                                $p0->where('city_id', $cityId);
+                            })
+                                ->where('is_active', true);
                         });
                     }),
-                    
+
                 Filter::make('missing_price_in_city')
                     ->label(__('general.services_module.services_without_price'))
                     ->form([
@@ -235,12 +244,15 @@ class ServiceResource extends Resource
                     ->columnSpan(1)
                     ->visible($isCityAdmin)
                     ->query(function (Builder $query, array $data) use ($cityId) {
-                        if (!isset($data['missing_price']) || !$data['missing_price']) {
+                        if (! isset($data['missing_price']) || ! $data['missing_price']) {
                             return $query;
                         }
-                        
-                        return $query->whereDoesntHave('cityPrices', function ($q) use ($cityId) {
-                            $q->where('city_id', $cityId)->where('is_active', true);
+
+                        return $query->whereDoesntHave('centerPrices', function ($q) use ($cityId) {
+                            $q->whereHas('center', function ($p0) use ($cityId) {
+                                $p0->where('city_id', $cityId);
+                            })
+                                ->where('is_active', true);
                         });
                     }),
             ])
@@ -248,11 +260,11 @@ class ServiceResource extends Resource
             ->actions([
                 Tables\Actions\EditAction::make()
                     ->visible(fn () => $isGeneralAdmin || $isCityAdmin),
-                    
+
                 Tables\Actions\DeleteAction::make()
                     ->visible(fn () => $isGeneralAdmin)
                     ->requiresConfirmation(),
-                    
+
                 Tables\Actions\Action::make('remove_from_city')
                     ->label(__('general.services_module.remove_from_city'))
                     ->icon('heroicon-o-trash')
@@ -260,10 +272,13 @@ class ServiceResource extends Resource
                     ->visible($isCityAdmin)
                     ->requiresConfirmation()
                     ->action(function (Service $record) use ($cityId) {
-                        $record->cityPrices()
-                            ->where('city_id', $cityId)
+                        $record->centerPrices()
+                            ->whereHas('center', function ($p0) use ($cityId) {
+                                $p0->where('city_id', $cityId);
+                            })
+
                             ->delete();
-                            
+
                         \Filament\Notifications\Notification::make()
                             ->success()
                             ->title(__('general.services_module.service_removed_from_city'))
@@ -271,7 +286,7 @@ class ServiceResource extends Resource
                     })
                     ->modalHeading(__('general.services_module.remove_service'))
                     ->modalDescription(__('general.services_module.remove_service_confirmation')),
-                    
+
                 Tables\Actions\Action::make('edit_city_price')
                     ->label(__('general.services_module.edit_city_price'))
                     ->icon('heroicon-o-pencil-square')
@@ -286,11 +301,11 @@ class ServiceResource extends Resource
                             ->default(fn (Service $record) => $record->getPriceForCity($cityId)),
                     ])
                     ->action(function (array $data, Service $record) use ($cityId) {
-                        $cityPrice = $record->cityPrices()->firstOrNew(['city_id' => $cityId]);
+                        $cityPrice = $record->centerPrices()->firstOrNew(['city_id' => $cityId]);
                         $cityPrice->price = $data['price'];
                         $cityPrice->is_active = true;
                         $cityPrice->save();
-                        
+
                         \Filament\Notifications\Notification::make()
                             ->success()
                             ->title(__('general.services_module.price_updated'))
@@ -305,7 +320,7 @@ class ServiceResource extends Resource
             ])
             ->paginated([20, 50, 100, 200]);
     }
-    
+
     public static function getPages(): array
     {
         return [
@@ -314,22 +329,25 @@ class ServiceResource extends Resource
             'edit' => ServiceResource\Pages\EditService::route('/{record}/edit'),
         ];
     }
-    
+
     public static function canCreate(): bool
     {
         $user = Auth::user();
+
         return $user->role === Roles::GeneralAdmin();
     }
-    
+
     public static function canEdit($record): bool
     {
         $user = Auth::user();
+
         return $user->role === Roles::GeneralAdmin();
     }
-    
+
     public static function canDelete($record): bool
     {
         $user = Auth::user();
+
         return $user->role === Roles::GeneralAdmin();
     }
 }
