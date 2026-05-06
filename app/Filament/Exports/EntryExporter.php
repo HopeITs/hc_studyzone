@@ -73,6 +73,7 @@ class EntryExporter extends Exporter
             ExportColumn::make('use_printer')->formatStateUsing(fn(string $state): string => $state ? 'نعم' : '-'),
             ExportColumn::make('use_mecrator')->formatStateUsing(fn(string $state): string => $state ? 'نعم' : '-'),
             ExportColumn::make('use_drawer')->formatStateUsing(fn(string $state): string => $state ? 'نعم' : '-'),
+            ExportColumn::make('use_internet')->formatStateUsing(fn(string $state): string => $state ? 'نعم' : '-'),
             ExportColumn::make('entry_time'),
 
         ];

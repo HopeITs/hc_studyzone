@@ -78,6 +78,7 @@ class EntryStats extends BaseWidget
             Stat::make(__('general.labels.mecrator-service'), $this->getPageTableQuery()->where('use_mecrator', true)->count()),
             Stat::make(__('general.labels.drawer-service'), $this->getPageTableQuery()->where('use_drawer', true)->count()),
             Stat::make(__('general.labels.plotter-service'), $this->getPageTableQuery()->where('use_plotter', true)->count()),
+                 Stat::make(__('general.labels.internet-service'), $this->getPageTableQuery()->where('use_internet', true)->count()),
         ];
     }
 }

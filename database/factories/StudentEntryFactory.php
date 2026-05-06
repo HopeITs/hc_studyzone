@@ -30,6 +30,7 @@ class StudentEntryFactory extends Factory
             'use_printer' => $this->faker->boolean(),
             'use_drawer' => $this->faker->boolean(),
             'use_mecrator' => $this->faker->boolean(),
+              'use_internet' => $this->faker->boolean(),
             'entry_time' => $this->faker->dateTimeBetween('-2 years', 'now')->setTime(
                 $this->faker->numberBetween(9, 21), // hours between 9 and 21 (9 PM)
                 $this->faker->numberBetween(0, 59), // random minute

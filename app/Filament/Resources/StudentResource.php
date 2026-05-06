@@ -774,7 +774,7 @@ protected static function educationStep(): Wizard\Step
                 $studentQuery->where('level', (int) $data['value']);
             });
         }
-        
+
         return $query;
     })
     ->preload(),
@@ -815,8 +815,8 @@ protected static function educationStep(): Wizard\Step
                         ->columns(3),
                     Fieldset::make('Services')
                         ->label('خدمات')
-                        ->schema([Checkbox::make('use_printer')->label('خدمة طباعة')->default(false), Checkbox::make('use_drawer')->label('خدمة مرسم')->default(false), Checkbox::make('use_mecrator')->label('خدمة ميكراتور')->default(false), Checkbox::make('use_plotter')->label('خدمة بلوتر')->default(false)])
-                        ->columns(4),
+                        ->schema([Checkbox::make('use_printer')->label('خدمة طباعة')->default(false), Checkbox::make('use_drawer')->label('خدمة مرسم')->default(false), Checkbox::make('use_mecrator')->label('خدمة ميكراتور')->default(false), Checkbox::make('use_plotter')->label('خدمة بلوتر')->default(false),Checkbox::make('use_internet')->label(__('general.labels.internet-service'))->default(false),])
+                        ->columns(5),
                 ])
                 ->modalHeading(__('general.labels.record_student_entry'))
                 ->modalButton(__('general.labels.save_entry'))
@@ -837,6 +837,7 @@ protected static function educationStep(): Wizard\Step
                         'use_printer' => $data['use_printer'],
                         'use_mecrator' => $data['use_mecrator'],
                         'use_plotter' => $data['use_plotter'],
+                           'use_internet' => $data['use_internet'],
                     ]);
                 })
                 ->successNotificationTitle(__('general.labels.entry_recorded_successfully'))

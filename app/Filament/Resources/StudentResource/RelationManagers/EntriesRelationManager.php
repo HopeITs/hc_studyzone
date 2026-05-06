@@ -53,8 +53,9 @@ class EntriesRelationManager extends RelationManager
                     Forms\Components\Checkbox::make('use_mecrator')->label('خدمة ميكراتور')->default(false),
                     Forms\Components\Checkbox::make('use_drawer')->label('خدمة مرسم')->default(false),
                     Forms\Components\Checkbox::make('use_plotter')->label('خدمة بلوتر')->default(false),
+                     Forms\Components\Checkbox::make('use_internet')->label(__('general.labels.internet-service'))->default(false)
                 ])
-                ->columns(4),
+                ->columns(5),
         ])->columns(3);
     }
 
@@ -73,6 +74,7 @@ class EntriesRelationManager extends RelationManager
                 CheckboxColumn::make('use_mecrator')->label('ميكراتور')->sortable(),
                 CheckboxColumn::make('use_drawer')->label('مرسم')->sortable(),
                 CheckboxColumn::make('use_plotter')->label('بلوتر')->sortable(),
+                   CheckboxColumn::make('use_internet')->label('انترنت')->sortable()
             ])
             ->headerActions([
                 Actions\CreateAction::make()

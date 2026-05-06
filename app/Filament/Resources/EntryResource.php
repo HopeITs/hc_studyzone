@@ -91,8 +91,8 @@ class EntryResource extends Resource
             DateTimePicker::make('entry_time')->label(__('general.labels.entry_time'))->default(now())->columnSpan(1)->required(),
             Fieldset::make('Services')
                 ->label('خدمات')
-                ->schema([Checkbox::make('use_printer')->reactive()->label('خدمة طباعة')->default(false), Checkbox::make('use_drawer')->reactive()->label('خدمة مرسم')->default(false), Checkbox::make('use_mecrator')->reactive()->label('خدمة ميكراتور')->default(false), Checkbox::make('use_plotter')->reactive()->label('خدمة بلوتر')->default(false)])
-                ->columns(4),
+                ->schema([Checkbox::make('use_printer')->reactive()->label('خدمة طباعة')->default(false), Checkbox::make('use_drawer')->reactive()->label('خدمة مرسم')->default(false), Checkbox::make('use_mecrator')->reactive()->label('خدمة ميكراتور')->default(false), Checkbox::make('use_plotter')->reactive()->label('خدمة بلوتر')->default(false) ,Checkbox::make('use_internet')->reactive()->label('خدمة انترنت')->default(false)])
+                ->columns(5),
         ]);
     }
 
@@ -219,6 +219,10 @@ class EntryResource extends Resource
     CheckboxColumn::make('use_plotter')
         ->disabled($isObserver || $isMealAdmin)
         ->label('بلوتر')
+        ->sortable(),
+            CheckboxColumn::make('use_internet')
+        ->disabled($isObserver || $isMealAdmin)
+        ->label('انترنت')
         ->sortable(),
 ])
             ->filtersLayout(FiltersLayout::Modal)
@@ -384,6 +388,7 @@ class EntryResource extends Resource
                 TernaryFilter::make('use_mecrator')->label(__('general.labels.mecrator-service'))->placeholder('الكل')->trueLabel('مفعّل')->falseLabel('غير مفعّل')->queries(true: fn (Builder $query) => $query->where('use_mecrator', true), false: fn (Builder $query) => $query->where('use_mecrator', false), blank: fn (Builder $query) => $query)->columnSpan(1),
                 TernaryFilter::make('use_drawer')->label(__('general.labels.drawer-service'))->placeholder('الكل')->trueLabel('مفعّل')->falseLabel('غير مفعّل')->queries(true: fn (Builder $query) => $query->where('use_drawer', true), false: fn (Builder $query) => $query->where('use_drawer', false), blank: fn (Builder $query) => $query)->columnSpan(1),
                 TernaryFilter::make('use_plotter')->label(__('general.labels.plotter-service'))->placeholder('الكل')->trueLabel('مفعّل')->falseLabel('غير مفعّل')->queries(true: fn (Builder $query) => $query->where('use_plotter', true), false: fn (Builder $query) => $query->where('use_plotter', false), blank: fn (Builder $query) => $query)->columnSpan(1),
+                 TernaryFilter::make('use_plotter')->label(__('general.labels.internet-service'))->placeholder('الكل')->trueLabel('مفعّل')->falseLabel('غير مفعّل')->queries(true: fn (Builder $query) => $query->where('use_internet', true), false: fn (Builder $query) => $query->where('use_internet', false), blank: fn (Builder $query) => $query)->columnSpan(1),
             ])
             ->filtersTriggerAction(fn (Action $action) => $action->button()->label(''))
             ->actions([

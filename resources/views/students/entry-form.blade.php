@@ -11,26 +11,26 @@
 </head>
 
 <body class="bg-gray-100" x-data="scannerApp">
-<div class="min-h-screen flex items-center justify-center p-24">
-    <div class="bg-white p-6 rounded-lg shadow-xl w-full ">
-        <h2 class="text-xl font-bold mb-6 text-gray-900">
+<div class="flex items-center justify-center min-h-screen p-24">
+    <div class="w-full p-6 bg-white rounded-lg shadow-xl ">
+        <h2 class="mb-6 text-xl font-bold text-gray-900">
             تسجيل دخول: {{ $student->firstname }} {{ $student->lastname }}
         </h2>
 
         @if (session('success'))
-            <div class="mb-6 p-3 bg-green-100 border border-green-400 text-green-700 rounded">
+            <div class="p-3 mb-6 text-green-700 bg-green-100 border border-green-400 rounded">
                 {{ session('success') }}
             </div>
         @endif
 
         @if (session('error'))
-            <div class="mb-6 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+            <div class="p-3 mb-6 text-red-700 bg-red-100 border border-red-400 rounded">
                 {{ session('error') }}
             </div>
         @endif
 
         @if($errors->any())
-            <ul class="mb-6 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+            <ul class="p-3 mb-6 text-red-700 bg-red-100 border border-red-400 rounded">
                 @foreach($errors->all() as $error)
                     <li>{{ $error }}</li>
                 @endforeach
@@ -38,7 +38,7 @@
         @endif
 
         @if (!$student->completed_data)
-            <div class="mb-6 p-4 bg-yellow-100 border border-yellow-400 text-yellow-700 rounded">
+            <div class="p-4 mb-6 text-yellow-700 bg-yellow-100 border border-yellow-400 rounded">
                 <p class="font-bold">⚠️ بيانات الطالب غير مكتملة</p>
                 <p class="mt-2">لا يمكن تسجيل دخولية حتى يتم إكمال البيانات التالية:</p>
                 <ul class="mt-2 list-disc list-inside">
@@ -48,7 +48,7 @@
                 </ul>
                 <div class="mt-4">
                     <a href="{{ route('filament.admin.resources.students.edit', $student) }}"
-                       class="inline-flex items-center px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-md hover:bg-amber-700">
+                       class="inline-flex items-center px-4 py-2 text-sm font-medium text-white rounded-md bg-amber-600 hover:bg-amber-700">
                         ✏️ تعديل بيانات الطالب
                     </a>
                 </div>
@@ -60,14 +60,14 @@
             @csrf
             <input type="hidden" name="user_id" value="{{ Auth::id() }}">
 
-            <div class="gap-8 grid grid-cols-3">
+            <div class="grid grid-cols-3 gap-8">
 
                 <div class="col-span-1">
-                    <label for="center_id" class="block text-sm font-medium text-gray-700 mb-1">
+                    <label for="center_id" class="block mb-1 text-sm font-medium text-gray-700">
                         @lang('general.labels.center')
                     </label>
                     <select id="center_id" name="center_id" required
-                            class="block h-10 w-full rounded-md  border border-gray-400 shadow-sm focus:border-primary-500 focus:ring focus:ring-primary-500 focus:ring-opacity-50 text-sm">
+                            class="block w-full h-10 text-sm border border-gray-400 rounded-md shadow-sm focus:border-primary-500 focus:ring focus:ring-primary-500 focus:ring-opacity-50">
                         <option disabled @selected(Auth::user()->center_id === null) >اختر مركز</option>
                         @foreach ($centers as  $center)
                             <option
@@ -79,11 +79,11 @@
                 </div>
 
                 <div class="col-span-1">
-                    <label for="entry_type" class="block text-sm font-medium text-gray-700 mb-1">
+                    <label for="entry_type" class="block mb-1 text-sm font-medium text-gray-700">
                         نوع الدخول
                     </label>
                     <select id="entry_type" name="entry_type" required
-                            class="block h-10 w-full rounded-md  border border-gray-300 shadow-sm focus:border-primary-500 focus:ring focus:ring-primary-500 focus:ring-opacity-50 text-sm">
+                            class="block w-full h-10 text-sm border border-gray-300 rounded-md shadow-sm focus:border-primary-500 focus:ring focus:ring-primary-500 focus:ring-opacity-50">
                         @foreach (__('general.entry-types') as $value => $label)
                             <option value="{{ $value }}">{{ $label }}</option>
                         @endforeach
@@ -91,18 +91,18 @@
                 </div>
 
                 <div class="col-span-1">
-                    <label for="entry_time" class="block text-sm font-medium text-gray-700 mb-1">
+                    <label for="entry_time" class="block mb-1 text-sm font-medium text-gray-700">
                         وقت الدخول
                     </label>
                     <input type="datetime-local" name="entry_time" id="entry_time"
                            value="{{ now()->format('Y-m-d\TH:i') }}"
-                           class="block h-10 w-full rounded-md  border border-gray-300 shadow-sm focus:border-primary-500 focus:ring focus:ring-primary-500 focus:ring-opacity-50 text-sm"
+                           class="block w-full h-10 text-sm border border-gray-300 rounded-md shadow-sm focus:border-primary-500 focus:ring focus:ring-primary-500 focus:ring-opacity-50"
                            required>
                 </div>
 
-                <fieldset class="border border-gray-300 p-4 rounded-md col-span-3">
-                    <legend class="text-sm font-medium text-gray-700 mb-2">الخدمات</legend>
-                    <div class="grid grid-cols-4 gap-2">
+                <fieldset class="col-span-3 p-4 border border-gray-300 rounded-md">
+                    <legend class="mb-2 text-sm font-medium text-gray-700">الخدمات</legend>
+                    <div class="grid grid-cols-5 gap-2">
                         <label class="flex items-center space-x-6">
                             <input type="checkbox" name="use_printer" class="size-4 me-3" value="1">
                             <span>خدمة طباعة</span>
@@ -119,29 +119,33 @@
                             <input type="checkbox" name="use_plotter" class="size-4 me-3" value="1">
                             <span>خدمة بلوتر</span>
                         </label>
+                         <label class="flex items-center space-x-2">
+                            <input type="checkbox" name="use_internet" class="size-4 me-3" value="1">
+                            <span>خدمة إنترنت</span>
+                        </label>
                     </div>
                 </fieldset>
 
-                <div class="flex justify-between gap-4 mt-4 col-span-3">
+                <div class="flex justify-between col-span-3 gap-4 mt-4">
                     <a href="{{ route('filament.admin.resources.students.index') }}"
-                       class="inline-flex items-center px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-md hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2">
+                       class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-md hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2">
                         رجوع
                     </a>
 
                     <button type="button" @click="startScanner()"
-                            class="inline-flex items-center px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-md hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2">
+                            class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-md hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2">
                         فتح الكاميرا
                     </button>
 
                     <button type="submit"
-                            class="inline-flex items-center px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-md hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2">
+                            class="inline-flex items-center px-4 py-2 text-sm font-medium text-white rounded-md bg-amber-600 hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2">
                         إرسال
                     </button>
                 </div>
             </div>
         </form>
 
-        <div id="scanner" class="w-full h-64 bg-gray-100 rounded-lg mt-6"></div>
+        <div id="scanner" class="w-full h-64 mt-6 bg-gray-100 rounded-lg"></div>
         @endif
     </div>
 </div>
