@@ -53,7 +53,7 @@ return [
         EntryType::Course() => 'دورة - ورشة',
         EntryType::Hall() => 'قاعة',
         EntryType::Event() => 'فعالية',
-        EntryType::FGT() => 'مجموعة مركزة - FGT'
+        EntryType::FGT() => 'جلسات نقاش مركزة - FGT'
     ],
     'genders' => [
         Gender::Unknown() => 'غير معرف',
