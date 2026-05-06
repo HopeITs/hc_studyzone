@@ -52,6 +52,8 @@ return [
         EntryType::Monthly() => 'شهري',
         EntryType::Course() => 'دورة - ورشة',
         EntryType::Hall() => 'قاعة',
+        EntryType::Event() => 'فعالية',
+        EntryType::FGT() => 'مجموعة مركزة - FGT'
     ],
     'genders' => [
         Gender::Unknown() => 'غير معرف',

@@ -52,6 +52,8 @@ return [
         EntryType::Monthly() => 'Monthly',
         EntryType::Course() => 'Course - Workshop',
         EntryType::Hall() => 'Hall',
+        EntryType::Event() => 'Event',
+        EntryType::FGT() => 'Focus Group Team - FGT'
     ],
     'genders' => [
         Gender::Unknown() => 'Unknown',
