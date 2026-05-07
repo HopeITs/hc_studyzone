@@ -89,7 +89,7 @@ class EntryResource extends Resource
                 ->searchable(),
             Select::make('entry_type')->label(__('general.labels.entry_type'))->default(1)->options(__('general.entry-types'))->columnSpan(1)->required(),
             DateTimePicker::make('entry_time')->label(__('general.labels.entry_time'))->default(now())->columnSpan(1)->required(),
-            
+
         ]);
     }
 

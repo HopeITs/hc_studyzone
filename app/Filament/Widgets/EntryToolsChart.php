@@ -41,12 +41,13 @@ class EntryToolsChart extends ChartWidget
         $printer  = (clone $query)->where('use_printer', true)->count();
         $drawer   = (clone $query)->where('use_drawer', true)->count();
         $plotter  = (clone $query)->where('use_plotter', true)->count();
+           $internet  = (clone $query)->where('use_internet', true)->count();
 
         return [
             'datasets' => [
                 [
                     'label' => 'Count',
-                    'data' => [$mecrator, $printer, $drawer, $plotter],
+                    'data' => [$mecrator, $printer, $drawer, $plotter , $internet],
                     'backgroundColor' => [
                         'rgba(54, 162, 235, 0.2)',
                         'rgba(255, 99, 132, 0.2)',
@@ -62,7 +63,7 @@ class EntryToolsChart extends ChartWidget
                     'borderWidth' => 1,
                 ],
             ],
-            'labels' => ['Micromotor', 'Printing Service', 'Drafting Table', 'Plotter Service'],
+            'labels' => ['Micromotor', 'Printing Service', 'Drafting Table', 'Plotter Service' , __('general.labels.internet-service')],
         ];
     }
 }

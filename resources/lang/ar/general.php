@@ -52,6 +52,8 @@ return [
         EntryType::Monthly() => 'شهري',
         EntryType::Course() => 'دورة - ورشة',
         EntryType::Hall() => 'قاعة',
+        EntryType::Event() => 'فعالية',
+        EntryType::FGT() => 'جلسات نقاش مركزة - FGT'
     ],
     'genders' => [
         Gender::Unknown() => 'غير معرف',
@@ -110,6 +112,7 @@ return [
         'mecrator-service' => 'خدمة المكراتور',
         'drawer-service' => 'خدمة المرسم',
         'plotter-service' => 'خدمة البلوتر',
+        'internet-service' => 'خدمة انترنت',
         'center' => 'المركز',
         'service_name' => 'اسم الخدمة',
         'created_at' => 'تاريخ الإنشاء',

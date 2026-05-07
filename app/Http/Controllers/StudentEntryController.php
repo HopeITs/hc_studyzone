@@ -39,6 +39,7 @@ class StudentEntryController extends Controller
             'use_printer' => 'nullable|boolean',
             'use_mecrator' => 'nullable|boolean',
             'use_plotter' => 'nullable|boolean',
+                  'use_internet' => 'nullable|boolean',
         ]);
 
         StudentEntry::create([
@@ -51,6 +52,7 @@ class StudentEntryController extends Controller
             'use_printer' => $validated['use_printer'] ?? false,
             'use_mecrator' => $validated['use_mecrator'] ?? false,
             'use_plotter' => $validated['use_plotter'] ?? false,
+              'use_internet' => $validated['use_internet'] ?? false,
         ]);
 
         return redirect()->back()->with('success', 'تم تسجيل الدخولية بنجاح');

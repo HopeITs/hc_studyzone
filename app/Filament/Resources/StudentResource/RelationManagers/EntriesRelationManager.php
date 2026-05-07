@@ -72,7 +72,7 @@ class EntriesRelationManager extends RelationManager
                             $services = \App\Helpers\ServiceHelper::getServicesWithPrices();
                             $selectedDetails = [];
                             $total = 0;
-                            
+
                             foreach ($services as $service) {
                                 if (in_array($service['id'], $state)) {
                                     $selectedDetails[] = [
@@ -83,12 +83,12 @@ class EntriesRelationManager extends RelationManager
                                     $total += $service['price'];
                                 }
                             }
-                            
+
                             $set('selected_services_details', $selectedDetails);
                             $set('total_amount', $total);
                         })
                         ->columnSpanFull(),
-                    
+
                     \Filament\Forms\Components\ViewField::make('services_list')
                         ->label('الخدمات المختارة')
                         ->view('filament.forms.components.services-list')
@@ -97,7 +97,7 @@ class EntriesRelationManager extends RelationManager
                         })
                         ->live()
                         ->columnSpanFull(),
-                    
+
                     \Filament\Forms\Components\Checkbox::make('calculate_total')
                         ->label('إغلاق الفاتورة وعرض الإجمالي')
                         ->live()
@@ -110,7 +110,7 @@ class EntriesRelationManager extends RelationManager
                             }
                         })
                         ->columnSpanFull(),
-                    
+
                     \Filament\Forms\Components\ViewField::make('total_display')
                         ->label('الإجمالي')
                         ->view('filament.forms.components.total-display')
@@ -171,11 +171,11 @@ class EntriesRelationManager extends RelationManager
 
                         $defaultService = \App\Helpers\ServiceHelper::getDefaultEntryService();
                         $servicesToAdd = !empty($data['selected_services']) ? $data['selected_services'] : [];
-                        
+
                         if ($defaultService && !in_array($defaultService['id'], $servicesToAdd)) {
                             $servicesToAdd[] = $defaultService['id'];
                         }
-                        
+
                         if (!empty($servicesToAdd)) {
                             $services = \App\Helpers\ServiceHelper::getServicesWithPrices();
                             foreach ($services as $service) {

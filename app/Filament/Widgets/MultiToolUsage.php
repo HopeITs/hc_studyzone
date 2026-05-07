@@ -37,7 +37,7 @@ class MultiToolUsage extends BaseWidget
         $totalEntries = (clone $baseQuery)->count();
 
         $multiToolUsers = (clone $baseQuery)
-            ->whereRaw('(use_printer + use_drawer + use_mecrator) >= 2')
+            ->whereRaw('(use_printer + use_drawer + use_mecrator + use_internet) >= 2')
             ->count();
 
         $multiToolPercentage = $totalEntries > 0

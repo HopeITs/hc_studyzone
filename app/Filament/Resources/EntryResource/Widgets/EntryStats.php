@@ -32,13 +32,15 @@ class EntryStats extends BaseWidget
         return [
             Stat::make('إجمالي الدخوليات', $this->getPageTableQuery()->count())
                  ->description('إجمالي الطلاب '.$this->getPageTableQuery()->distinct('student_id')->count('student_id') ),
-          
+
 
             Stat::make(__('general.entry-types.' . EntryType::Free()), $this->getPageTableQuery()->where('entry_type', EntryType::Free())->count()),
             Stat::make(__('general.entry-types.' . EntryType::Daily()), $this->getPageTableQuery()->where('entry_type', EntryType::Daily())->count()),
             Stat::make(__('general.entry-types.' . EntryType::Monthly()), $this->getPageTableQuery()->where('entry_type', EntryType::Monthly())->count()),
             Stat::make(__('general.entry-types.' . EntryType::Course()), $this->getPageTableQuery()->where('entry_type', EntryType::Course())->count()),
             Stat::make(__('general.entry-types.' . EntryType::Hall()), $this->getPageTableQuery()->where('entry_type', EntryType::Hall())->count()),
+            Stat::make(__('general.entry-types.' . EntryType::Event()), $this->getPageTableQuery()->where('entry_type', EntryType::Event())->count()),
+            Stat::make(__('general.entry-types.' . EntryType::FGT()), $this->getPageTableQuery()->where('entry_type', EntryType::FGT())->count()),
 
 
 
@@ -76,6 +78,7 @@ class EntryStats extends BaseWidget
             Stat::make(__('general.labels.mecrator-service'), $this->getPageTableQuery()->where('use_mecrator', true)->count()),
             Stat::make(__('general.labels.drawer-service'), $this->getPageTableQuery()->where('use_drawer', true)->count()),
             Stat::make(__('general.labels.plotter-service'), $this->getPageTableQuery()->where('use_plotter', true)->count()),
+                 Stat::make(__('general.labels.internet-service'), $this->getPageTableQuery()->where('use_internet', true)->count()),
         ];
     }
 }
