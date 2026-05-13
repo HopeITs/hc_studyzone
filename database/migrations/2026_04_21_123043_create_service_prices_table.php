@@ -8,12 +8,14 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('center_service_prices', function (Blueprint $table) {
+        Schema::create('service_prices', function (Blueprint $table) {
             $table->id();
             $table->foreignId('service_id')->constrained('services')->cascadeOnDelete();
             $table->foreignId('center_id')->constrained('centers')->cascadeOnDelete();
             $table->integer('price')->nullable();
             $table->boolean('is_active')->default(true);
+            $table->date('start_date')->default(now());
+            $table->date('end_date')->nullable();
             $table->timestamps();
 
             $table->index(['center_id', 'is_active']);
@@ -22,6 +24,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('center_service_prices');
+        Schema::dropIfExists('service_prices');
     }
 };

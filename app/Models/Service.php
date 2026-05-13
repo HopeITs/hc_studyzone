@@ -22,7 +22,7 @@ class Service extends Model
 
     public function centerPrices(): HasMany
     {
-        return $this->hasMany(CenterServicePrice::class);
+        return $this->hasMany(ServicePrice::class);
     }
 
     public function getPriceForCenter(?int $centerId): ?float

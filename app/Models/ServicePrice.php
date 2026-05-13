@@ -5,20 +5,17 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class CenterServicePrice extends Model
+class ServicePrice extends Model
 {
-    protected $table = 'center_service_prices';
+    protected $table = 'service_prices';
 
-    protected $fillable = [
-        'service_id',
-        'center_id',
-        'price',
-        'is_active',
-    ];
+    protected $guarded = ['id'];
 
     protected $casts = [
 
         'is_active' => 'boolean',
+        'start_date' => 'date',
+        'end_date' => 'date',
     ];
 
     public function service(): BelongsTo

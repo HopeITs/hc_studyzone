@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Enums\Roles;
+use App\Filament\Resources\ServiceResource\RelationManagers;
 use App\Models\Center;
 use App\Models\Service;
 use Filament\Forms;
@@ -104,36 +105,36 @@ class ServiceResource extends Resource
                             ->helperText('سعر هذه الخدمة في مدينتك'),
                     ])->columns(2),
 
-                Forms\Components\Section::make(__('general.services_module.city_prices'))
-                    ->schema([
-                        Repeater::make('city_prices')
-                            ->relationship('centerPrices')
-                            ->schema([
-                                Forms\Components\Select::make('center_id')
-                                    ->label(__('general.labels.center'))
-                                    ->options(Center::pluck('name', 'id'))
-                                    ->required()
-                                    ->searchable()
-                                    ->preload()
-                                    ->columnSpan(2),
-                                Forms\Components\TextInput::make('price')
-                                    ->label(__('general.services_module.price'))
-                                    ->numeric()
-                                    ->required()
-                                    ->prefix('SYP')
-                                    ->columnSpan(1),
-                                Forms\Components\Toggle::make('is_active')
-                                    ->label(__('general.services_module.active'))
-                                    ->default(true)
-                                    ->columnSpan(1),
-                            ])
-                            ->columns(4)
-                            ->defaultItems(0)
-                            ->addActionLabel(__('general.services_module.add_city_price'))
-                            ->visible($isGeneralAdmin)
-                            ->columnSpanFull(),
-                    ])
-                    ->visible($isGeneralAdmin),
+                // Forms\Components\Section::make(__('general.services_module.city_prices'))
+                    // ->schema([
+                    //     Repeater::make('city_prices')
+                    //         ->relationship('centerPrices')
+                    //         ->schema([
+                    //             Forms\Components\Select::make('center_id')
+                    //                 ->label(__('general.labels.center'))
+                    //                 ->options(Center::pluck('name', 'id'))
+                    //                 ->required()
+                    //                 ->searchable()
+                    //                 ->preload()
+                    //                 ->columnSpan(2),
+                    //             Forms\Components\TextInput::make('price')
+                    //                 ->label(__('general.services_module.price'))
+                    //                 ->numeric()
+                    //                 ->required()
+                    //                 ->prefix('SYP')
+                    //                 ->columnSpan(1),
+                    //             Forms\Components\Toggle::make('is_active')
+                    //                 ->label(__('general.services_module.active'))
+                    //                 ->default(true)
+                    //                 ->columnSpan(1),
+                    //         ])
+                    //         ->columns(4)
+                    //         ->defaultItems(0)
+                    //         ->addActionLabel(__('general.services_module.add_city_price'))
+                    //         ->visible($isGeneralAdmin)
+                    //         ->columnSpanFull(),
+                    // ])
+                    // ->visible($isGeneralAdmin),
             ]);
     }
 
@@ -168,7 +169,7 @@ class ServiceResource extends Resource
                         if ($range && $range->min_price !== null) {
                             $min = $range->min_price;
                             $max = $range->max_price;
-                            $price = $min === $max ? $min . ' SYP' : $min.' - '. $max;
+                            $price = $min === $max ? $min.' SYP' : $min.' - '.$max;
 
                             return $price;
                         }
@@ -328,6 +329,11 @@ class ServiceResource extends Resource
             'create' => ServiceResource\Pages\CreateService::route('/create'),
             'edit' => ServiceResource\Pages\EditService::route('/{record}/edit'),
         ];
+    }
+
+    public static function getRelations(): array
+    {
+        return [RelationManagers\PricesRelationManager::class];
     }
 
     public static function canCreate(): bool
