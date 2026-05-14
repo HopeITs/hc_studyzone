@@ -16,26 +16,24 @@ class ServiceCategoryResource extends Resource
 {
     protected static ?string $model = ServiceCategory::class;
     protected static ?string $navigationIcon = 'heroicon-o-tag';
-    protected static ?string $navigationGroup = 'إدارة الخدمات';
-    
-    protected static bool $shouldRegisterNavigation = false;
-    
-    public static function getNavigationLabel(): string 
-    { 
-        return 'فئات الخدمات'; 
+
+
+    public static function getNavigationLabel(): string
+    {
+        return 'فئات الخدمات';
     }
-    
+
     public static function getEloquentQuery(): Builder
     {
         $user = Auth::user();
-        
+
         if ($user->role === Roles::GeneralAdmin()) {
             return parent::getEloquentQuery();
         }
-        
+
         return parent::getEloquentQuery()->whereRaw('1 = 0');
     }
-    
+
     public static function form(Form $form): Form
     {
         return $form
@@ -46,13 +44,13 @@ class ServiceCategoryResource extends Resource
                 Forms\Components\Select::make('unit')
                     ->required()
                     ->options([
-                        'entry' => 'دخولية',
+                        'day' => 'يوم',
                         'hour' => 'ساعة',
                         'paper' => 'ورقة',
                     ]),
             ]);
     }
-    
+
     public static function table(Table $table): Table
     {
         return $table
@@ -62,7 +60,7 @@ class ServiceCategoryResource extends Resource
                 Tables\Columns\TextColumn::make('unit')
                     ->badge()
                     ->formatStateUsing(fn ($state) => match($state) {
-                        'entry' => 'دخولية',
+                        'day' => 'يوم',
                         'hour' => 'ساعة',
                         'paper' => 'ورقة',
                         default => $state,
@@ -87,7 +85,7 @@ class ServiceCategoryResource extends Resource
                 ]),
             ]);
     }
-    
+
     public static function getPages(): array
     {
         return [
@@ -96,17 +94,17 @@ class ServiceCategoryResource extends Resource
             'edit' => ServiceCategoryResource\Pages\EditServiceCategory::route('/{record}/edit'),
         ];
     }
-    
+
     public static function canCreate(): bool
     {
         return Auth::user()->role === Roles::GeneralAdmin();
     }
-    
+
     public static function canEdit($record): bool
     {
         return Auth::user()->role === Roles::GeneralAdmin();
     }
-    
+
     public static function canDelete($record): bool
     {
         return Auth::user()->role === Roles::GeneralAdmin();

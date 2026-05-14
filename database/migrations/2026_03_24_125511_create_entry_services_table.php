@@ -12,9 +12,10 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->foreignUuid('entry_id')->constrained('student_entries')->cascadeOnDelete();
             $table->foreignId('service_id')->constrained('services')->restrictOnDelete();
-            $table->decimal('price_at_time', 10, 2);
+            $table->integer('amount')->default(1);
+            $table->integer('total')->default(0);
             $table->timestamps();
-            
+
             $table->index(['entry_id', 'service_id']);
         });
     }

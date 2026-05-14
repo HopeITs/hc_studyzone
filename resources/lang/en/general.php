@@ -152,7 +152,7 @@ return [
         'units' => [
             'hour' => 'Hour',
             'paper' => 'Paper',
-            'entry' => 'Entry',
+            'day' => 'Day',
         ],
         'validation_open_price' => 'Cannot add a new price because the previous price for this service has no end date.',
     ],
