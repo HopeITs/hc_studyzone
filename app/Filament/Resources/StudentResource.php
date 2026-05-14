@@ -23,6 +23,7 @@ use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -731,279 +732,337 @@ class StudentResource extends Resource
             Tables\Actions\Action::make('entry')
                 ->label(__('general.labels.entry'))
                 ->icon('heroicon-o-document-text')
-                ->form([
-                    // ═══════════════════════════════════════════════════════
-                    // Entry Details Fieldset
-                    // ═══════════════════════════════════════════════════════
-                    Fieldset::make('تفاصيل الدخول')
-                        ->schema([
-                            Select::make('center_id')
-                                ->label(__('general.labels.center'))
-                                ->options(function () {
-                                    return \App\Models\Center::where('is_active', 1)
-                                        ->when(
-                                            auth()->user()->city_id,
-                                            fn ($query, $cityId) => $query->where('city_id', $cityId)
-                                        )
-                                        ->pluck('name', 'id');
-                                })
-                                ->default(fn () => auth()->user()->center_id)
-                                ->visible(fn () => auth()->user()->role !== \App\Enums\Roles::CenterAdmin())
-                                ->required()
-                                ->searchable()
-                                ->live()
-                                ->afterStateUpdated(function (callable $set, callable $get) {
-                                    // Reset all services when center changes
-                                    $set('services', []);
-                                })
-                                ->columnSpan(1),
+              ->form([
+    // ═══════════════════════════════════════════════════════
+    // Entry Details Fieldset
+    // ═══════════════════════════════════════════════════════
+    Fieldset::make('تفاصيل الدخول')
+        ->schema([
+            Select::make('center_id')
+                ->label(__('general.labels.center'))
+                ->options(function () {
+                    return \App\Models\Center::where('is_active', 1)
+                        ->when(
+                            auth()->user()->city_id,
+                            fn ($query, $cityId) => $query->where('city_id', $cityId)
+                        )
+                        ->pluck('name', 'id');
+                })
+                ->default(fn () => auth()->user()->center_id)
+                ->visible(fn () => auth()->user()->role !== \App\Enums\Roles::CenterAdmin())
+                ->required()
+                ->searchable()
+                ->live()
+                ->afterStateUpdated(function (callable $set, callable $get) {
+                    // Reset ALL services when center changes
+                    $set('services', []);
+                    $set('day_services', []);
+                })
+                ->columnSpan(1),
 
-                            // Hidden field to always have center_id available for calculations
-                            Hidden::make('_center_id_for_calc')
-                                ->default(fn () => auth()->user()->center_id)
-                                ->dehydrateStateUsing(fn ($state, callable $get) => $get('center_id') ?? auth()->user()->center_id
-                                ),
+            Hidden::make('_center_id_for_calc')
+                ->default(fn () => auth()->user()->center_id)
+                ->dehydrateStateUsing(fn ($state, callable $get) => $get('center_id') ?? auth()->user()->center_id),
 
-                            Select::make('entry_type')
-                                ->label(__('general.labels.entry_type'))
-                                ->default(1)
-                                ->options(__('general.entry-types'))
-                                ->required()
-                                ->columnSpan(1),
+            Select::make('entry_type')
+                ->label(__('general.labels.entry_type'))
+                ->default(1)
+                ->options(__('general.entry-types'))
+                ->required()
+                ->columnSpan(1),
 
-                            DateTimePicker::make('entry_time')
-                                ->label(__('general.labels.entry_time'))
-                                ->default(now())
-                                ->required()
-                                ->columnSpan(1),
+            DateTimePicker::make('entry_time')
+                ->label(__('general.labels.entry_time'))
+                ->default(now())
+                ->required()
+                ->columnSpan(1),
+        ])
+        ->columns(3),
+
+    // ═══════════════════════════════════════════════════════
+    // Services Fieldset
+    // ═══════════════════════════════════════════════════════
+    Fieldset::make('الخدمات المطلوبة')
+        ->schema([
+
+            // ───────────────────────────────────────────────────
+            // DAY SERVICES — CheckboxList (unit = 'day')
+            // ───────────────────────────────────────────────────
+            CheckboxList::make('day_services')
+                ->label('خدمات يومية (تُطلب لمرة واحدة)')
+                ->options(function (callable $get) {
+                    $centerId = $get('center_id')
+                        ?? $get('_center_id_for_calc')
+                        ?? auth()->user()->center_id;
+
+                    if (! $centerId) {
+                        return [];
+                    }
+
+                    return \App\Models\Service::where('is_active', 1)
+                        ->whereHas('category', fn ($q) => $q->where('unit', 'day'))
+                        ->whereHas('centerPrices', fn ($q) => $q->where('center_id', $centerId)->where('is_active', 1))
+                        ->with([
+                            'category',
+                            'centerPrices' => fn ($q) => $q->where('center_id', $centerId)->where('is_active', 1),
                         ])
-                        ->columns(3),
+                        ->orderBy('name')
+                        ->get()
+                        ->mapWithKeys(function ($service) {
+                            $price = $service->centerPrices->first()?->price ?? 0;
+                            $categoryName = $service->category?->name ?? '';
 
-                    // ═══════════════════════════════════════════════════════
-                    // Services Fieldset - Enhanced with Category → Service Flow
-                    // ═══════════════════════════════════════════════════════
-                    Fieldset::make('الخدمات المطلوبة')
+                            return [
+                                $service->id => "{$categoryName}: {$service->name} — " . number_format($price) . ' ل.س/يوم',
+                            ];
+                        });
+                })
+                ->visible(function (callable $get) {
+                    $centerId = $get('center_id')
+                        ?? $get('_center_id_for_calc')
+                        ?? auth()->user()->center_id;
+
+                    if (! $centerId) {
+                        return false;
+                    }
+
+                    return \App\Models\ServiceCategory::where('unit', 'day')
+                        ->whereHas('services', function ($q) use ($centerId) {
+                            $q->where('is_active', 1)
+                                ->whereHas('centerPrices', fn ($pq) => $pq->where('center_id', $centerId)->where('is_active', 1));
+                        })
+                        ->exists();
+                })
+                ->live()
+                ->searchable()
+                ->columns(2)
+                ->bulkToggleable()
+                ->columnSpanFull(),
+
+            // ───────────────────────────────────────────────────
+            // INFO TEXT
+            // ───────────────────────────────────────────────────
+            Placeholder::make('services_help')
+                ->label('')
+                ->content('اختر التصنيف ثم الخدمة التابعة لهذا المركز')
+                ->visible(fn (callable $get) => empty($get('services') ?? []) && empty($get('day_services') ?? []))
+                ->columnSpanFull(),
+
+            // ───────────────────────────────────────────────────
+            // REGULAR SERVICES — Repeater (unit ≠ 'day')
+            // ───────────────────────────────────────────────────
+            Repeater::make('services')
+                ->label('')
+                ->schema([
+                    Grid::make()
                         ->schema([
-                            // Info text
-                            Placeholder::make('services_help')
-                                ->label('')
-                                ->content('اختر التصنيف ثم الخدمة التابعة لهذا المركز')
-                                ->visible(fn (callable $get) => empty($get('services') ?? []))
-                                ->columnSpanFull(),
+                            // ─── Category Select (EXCLUDES day-unit categories) ───
+                            Select::make('category_id')
+                                ->label('التصنيف')
+                                ->placeholder('اختر التصنيف أولاً')
+                                ->options(function (callable $get) {
+                                    $centerId = $get('../../center_id')
+                                        ?? $get('../../_center_id_for_calc')
+                                        ?? auth()->user()->center_id;
 
-                            Repeater::make('services')
-                                ->label('')
-                                ->schema([
-                                    Grid::make()
-                                        ->schema([
-                                            // ─── Category Select ───
-                                            // Shows ONLY categories that have services with active prices in selected center
-                                            Select::make('category_id')
-                                                ->label('التصنيف')
-                                                ->placeholder('اختر التصنيف أولاً')
-                                                ->options(function (callable $get) {
-                                                    $centerId = $get('../../center_id')
-                                                        ?? $get('../../_center_id_for_calc')
-                                                        ?? auth()->user()->center_id;
+                                    if (! $centerId) {
+                                        return [];
+                                    }
 
-                                                    if (! $centerId) {
-                                                        return [];
-                                                    }
-
-                                                    // Get categories that have services with active prices in this center
-                                                    return \App\Models\ServiceCategory::
-                                                        whereHas('services', function ($serviceQuery) use ($centerId) {
-                                                            $serviceQuery->where('is_active', 1)
-                                                                ->whereHas('centerPrices', function ($priceQuery) use ($centerId) {
-                                                                    $priceQuery->where('center_id', $centerId)
-                                                                        ->where('is_active', 1);
-                                                                });
-                                                        })
-                                                        ->withCount([
-                                                            'services as available_services_count' => function ($query) use ($centerId) {
-                                                                $query
-                                                                // ->where('is_active', 1)
-                                                                    ->whereHas('centerPrices', function ($q) use ($centerId) {
-                                                                        $q->where('center_id', $centerId)
-                                                                            ->where('is_active', 1);
-                                                                    });
-                                                            },
-                                                        ])
-                                                        ->having('available_services_count', '>', 0)
-                                                        ->orderBy('name')
-                                                        ->get()
-                                                        ->mapWithKeys(function ($category) {
-                                                            return [
-                                                                $category->id => "{$category->name} ({$category->available_services_count} خدمة)",
-                                                            ];
-                                                        });
-                                                })
-                                                ->required()
-                                                ->live()
-                                                ->searchable()
-                                                ->columnSpan(2)
-                                                ->afterStateUpdated(function (callable $set) {
-                                                    $set('service_id', null);
-                                                    $set('price', null);
-                                                    $set('quantity', 1);
-                                                    $set('subtotal', 0);
-                                                }),
-
-                                            // ─── Service Select ───
-                                            // Shows ONLY services belonging to selected category AND having active price in center
-                                            Select::make('service_id')
-                                                ->label('الخدمة')
-                                                ->placeholder('اختر التصنيف أولاً')
-                                                ->options(function (callable $get) {
-                                                    $centerId = $get('../../center_id')
-                                                        ?? $get('../../_center_id_for_calc')
-                                                        ?? auth()->user()->center_id;
-                                                    $categoryId = $get('category_id');
-
-                                                    if (! $categoryId || ! $centerId) {
-                                                        return [];
-                                                    }
-
-                                                    // Get services in this category with active prices in this center
-                                                    return \App\Models\Service::where('category_id', $categoryId)
-                                                        ->where('is_active', 1)
-                                                        ->whereHas('centerPrices', function ($query) use ($centerId) {
-                                                            $query->where('center_id', $centerId)
-                                                                ->where('is_active', 1);
-                                                        })
-                                                        ->with(['centerPrices' => function ($query) use ($centerId) {
-                                                            $query->where('center_id', $centerId)
-                                                                ->where('is_active', 1);
-                                                        }])
-                                                        ->orderBy('name')
-                                                        ->get()
-                                                        ->mapWithKeys(function ($service) {
-                                                            $price = $service->centerPrices->first()?->price ?? 0;
-                                                            $formattedPrice = number_format($price);
-
-                                                            return [
-                                                                $service->id => "{$service->name} — {$formattedPrice} ل.س",
-                                                            ];
-                                                        });
-                                                })
-                                                ->required()
-                                                ->live()
-                                                ->searchable()
-                                                ->columnSpan(4)
-                                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                                                    if ($state) {
-                                                        $centerId = $get('../../center_id')
-                                                            ?? $get('../../_center_id_for_calc')
-                                                            ?? auth()->user()->center_id;
-
-                                                        $price = \App\Models\ServicePrice::where('service_id', $state)
-                                                            ->where('center_id', $centerId)
-                                                            ->where('is_active', 1)
-                                                            ->value('price') ?? 0;
-
-                                                        $set('price', $price);
-                                                        $set('quantity', 1);
-                                                        $set('subtotal', $price);
-                                                    } else {
-                                                        $set('price', null);
-                                                        $set('quantity', 1);
-                                                        $set('subtotal', 0);
-                                                    }
-                                                }),
-
-                                            // ─── Quantity Input ───
-                                            TextInput::make('quantity')
-                                                ->label('الكمية')
-                                                ->placeholder('1')
-                                                ->numeric()
-                                                ->default(1)
-                                                ->minValue(1)
-                                                ->maxValue(999)
-                                                ->required()
-                                                ->live()
-                                                ->columnSpan(1)
-                                                ->afterStateUpdated(function (callable $get, callable $set) {
-                                                    $price = (float) ($get('price') ?? 0);
-                                                    $quantity = max(1, (int) ($get('quantity') ?? 1));
-                                                    $set('subtotal', $price * $quantity);
-                                                }),
-
-                                            // // ─── Price Display (Auto-filled, Read-only) ───
-                                            // TextInput::make('price')
-                                            //     ->label('سعر الوحدة')
-                                            //     ->numeric()
-                                            //     ->disabled()
-                                            //     ->dehydrated(false)
-                                            //     ->formatStateUsing(fn ($state) => $state ? number_format((float) $state) : '—')
-                                            //     ->columnSpan(1),
-
-                                            // // ─── Subtotal Display (Auto-calculated, Read-only) ───
-                                            // TextInput::make('subtotal')
-                                            //     ->label('المجموع')
-                                            //     ->numeric()
-                                            //     ->disabled()
-                                            //     ->dehydrated(false)
-                                            //     ->formatStateUsing(fn ($state) => number_format((float) ($state ?? 0)))
-                                            //     ->columnSpan(1),
+                                    return \App\Models\ServiceCategory::
+                                        where(function ($q) {
+                                            $q->whereNull('unit')
+                                                ->orWhere('unit', '!=', 'day');
+                                        })
+                                        ->whereHas('services', function ($serviceQuery) use ($centerId) {
+                                            $serviceQuery->where('is_active', 1)
+                                                ->whereHas('centerPrices', function ($priceQuery) use ($centerId) {
+                                                    $priceQuery->where('center_id', $centerId)
+                                                        ->where('is_active', 1);
+                                                });
+                                        })
+                                        ->withCount([
+                                            'services as available_services_count' => function ($query) use ($centerId) {
+                                                $query->whereHas('centerPrices', function ($q) use ($centerId) {
+                                                    $q->where('center_id', $centerId)
+                                                        ->where('is_active', 1);
+                                                });
+                                            },
                                         ])
-                                        ->columns(7),
-                                ])
-                                ->columns(1)
-                                ->addActionLabel('+ إضافة خدمة جديدة')
-                                ->itemLabel(function (array $state) {
-                                    if (empty($state['service_id'])) {
-                                        return '⚠️ خدمة غير محددة';
-                                    }
-
-                                    $serviceName = \App\Models\Service::find($state['service_id'])?->name ?? 'خدمة';
-                                    $quantity = (int) ($state['quantity'] ?? 1);
-                                    $subtotal = (float) ($state['subtotal'] ?? 0);
-
-                                    return "{$serviceName} × {$quantity} = ".number_format($subtotal).' ل.س';
+                                        ->having('available_services_count', '>', 0)
+                                        ->orderBy('name')
+                                        ->get()
+                                        ->mapWithKeys(function ($category) {
+                                            return [
+                                                $category->id => "{$category->name} ({$category->available_services_count} خدمة)",
+                                            ];
+                                        });
                                 })
+                                ->required()
                                 ->live()
-                                ->defaultItems(0)
-                                ->minItems(0)
-                                ->deleteAction(
-                                    fn (\Filament\Forms\Components\Actions\Action $action) => $action
-                                        ->requiresConfirmation()
-                                        ->modalHeading('تأكيد الحذف')
-                                        ->modalDescription('هل تريد حذف هذه الخدمة؟')
-                                        ->modalCancelActionLabel('إلغاء')
-                                        ->modalSubmitActionLabel('حذف')
-                                ),
+                                ->searchable()
+                                ->columnSpan(2)
+                                ->afterStateUpdated(function (callable $set) {
+                                    $set('service_id', null);
+                                    $set('price', null);
+                                    $set('quantity', 1);
+                                    $set('subtotal', 0);
+                                }),
 
-                            // ─── Grand Total Display ───
-                            Placeholder::make('grand_total_placeholder')
-                                ->label('')
-                                ->content(function (callable $get) {
-                                    $services = $get('services') ?? [];
-                                    $total = 0;
-                                    $itemsCount = 0;
+                            // ─── Service Select ───
+                            Select::make('service_id')
+                                ->label('الخدمة')
+                                ->placeholder('اختر التصنيف أولاً')
+                                ->options(function (callable $get) {
+                                    $centerId = $get('../../center_id')
+                                        ?? $get('../../_center_id_for_calc')
+                                        ?? auth()->user()->center_id;
+                                    $categoryId = $get('category_id');
 
-                                    foreach ($services as $service) {
-                                        if (! empty($service['service_id'])) {
-                                            $price = (float) ($service['price'] ?? 0);
-                                            $quantity = (int) ($service['quantity'] ?? 1);
-                                            $total += ($price * $quantity);
-                                            $itemsCount++;
-                                        }
+                                    if (! $categoryId || ! $centerId) {
+                                        return [];
                                     }
 
-                                    if ($itemsCount === 0) {
-                                        return null;
-                                    }
+                                    return \App\Models\Service::where('category_id', $categoryId)
+                                        ->where('is_active', 1)
+                                        ->whereHas('centerPrices', function ($query) use ($centerId) {
+                                            $query->where('center_id', $centerId)
+                                                ->where('is_active', 1);
+                                        })
+                                        ->with(['centerPrices' => function ($query) use ($centerId) {
+                                            $query->where('center_id', $centerId)
+                                                ->where('is_active', 1);
+                                        }])
+                                        ->orderBy('name')
+                                        ->get()
+                                        ->mapWithKeys(function ($service) {
+                                            $price = $service->centerPrices->first()?->price ?? 0;
+                                            $formattedPrice = number_format($price);
 
-                                    return view('filament.forms.components.grand-total', [
-                                        'total' => $total,
-                                        'count' => $itemsCount,
-                                    ]);
+                                            return [
+                                                $service->id => "{$service->name} — {$formattedPrice} ل.س",
+                                            ];
+                                        });
                                 })
-                                ->visible(fn (callable $get) => ! empty($get('services') ?? []))
-                                ->live(),
+                                ->required()
+                                ->live()
+                                ->searchable()
+                                ->columnSpan(4)
+                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                    if ($state) {
+                                        $centerId = $get('../../center_id')
+                                            ?? $get('../../_center_id_for_calc')
+                                            ?? auth()->user()->center_id;
+
+                                        $price = \App\Models\ServicePrice::where('service_id', $state)
+                                            ->where('center_id', $centerId)
+                                            ->where('is_active', 1)
+                                            ->value('price') ?? 0;
+
+                                        $set('price', $price);
+                                        $set('quantity', 1);
+                                        $set('subtotal', $price);
+                                    } else {
+                                        $set('price', null);
+                                        $set('quantity', 1);
+                                        $set('subtotal', 0);
+                                    }
+                                }),
+
+                            // ─── Quantity Input ───
+                            TextInput::make('quantity')
+                                ->label('الكمية')
+                                ->placeholder('1')
+                                ->numeric()
+                                ->default(1)
+                                ->minValue(1)
+                                ->maxValue(999)
+                                ->required()
+                                ->live()
+                                ->columnSpan(1)
+                                ->afterStateUpdated(function (callable $get, callable $set) {
+                                    $price = (float) ($get('price') ?? 0);
+                                    $quantity = max(1, (int) ($get('quantity') ?? 1));
+                                    $set('subtotal', $price * $quantity);
+                                }),
                         ])
-                        ->columns(1),
+                        ->columns(7),
                 ])
+                ->columns(1)
+                ->addActionLabel('+ إضافة خدمة جديدة')
+                ->itemLabel(function (array $state) {
+                    if (empty($state['service_id'])) {
+                        return '⚠️ خدمة غير محددة';
+                    }
+
+                    $serviceName = \App\Models\Service::find($state['service_id'])?->name ?? 'خدمة';
+                    $quantity = (int) ($state['quantity'] ?? 1);
+                    $subtotal = (float) ($state['subtotal'] ?? 0);
+
+                    return "{$serviceName} × {$quantity} = " . number_format($subtotal) . ' ل.س';
+                })
+                ->live()
+                ->defaultItems(0)
+                ->minItems(0)
+                ->deleteAction(
+                    fn (\Filament\Forms\Components\Actions\Action $action) => $action
+                        ->requiresConfirmation()
+                        ->modalHeading('تأكيد الحذف')
+                        ->modalDescription('هل تريد حذف هذه الخدمة؟')
+                        ->modalCancelActionLabel('إلغاء')
+                        ->modalSubmitActionLabel('حذف')
+                ),
+
+            // ─── Grand Total Display (includes both day + regular services) ───
+            Placeholder::make('grand_total_placeholder')
+                ->label('')
+                ->content(function (callable $get) {
+                    $services = $get('services') ?? [];
+                    $dayServices = $get('day_services') ?? [];
+                    $total = 0;
+                    $itemsCount = 0;
+
+                    // Regular services
+                    foreach ($services as $service) {
+                        if (! empty($service['service_id'])) {
+                            $price = (float) ($service['price'] ?? 0);
+                            $quantity = (int) ($service['quantity'] ?? 1);
+                            $total += ($price * $quantity);
+                            $itemsCount++;
+                        }
+                    }
+
+                    // Day services (each = quantity 1)
+                    if (! empty($dayServices)) {
+                        $centerId = $get('center_id')
+                            ?? $get('_center_id_for_calc')
+                            ?? auth()->user()->center_id;
+
+                        $dayPrices = \App\Models\ServicePrice::where('center_id', $centerId)
+                            ->where('is_active', 1)
+                            ->whereIn('service_id', $dayServices)
+                            ->pluck('price', 'service_id');
+
+                        foreach ($dayServices as $serviceId) {
+                            $total += (float) ($dayPrices[$serviceId] ?? 0);
+                            $itemsCount++;
+                        }
+                    }
+
+                    if ($itemsCount === 0) {
+                        return null;
+                    }
+
+                    return view('filament.forms.components.grand-total', [
+                        'total' => $total,
+                        'count' => $itemsCount,
+                    ]);
+                })
+                ->visible(fn (callable $get) => ! empty($get('services') ?? []) || ! empty($get('day_services') ?? []))
+                ->live(),
+        ])
+        ->columns(1),
+])
                 ->modalHeading(__('general.labels.record_student_entry'))
                 ->modalButton(__('general.labels.save_entry'))
                 ->modalWidth('5xl')
