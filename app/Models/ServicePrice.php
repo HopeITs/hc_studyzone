@@ -27,4 +27,19 @@ class ServicePrice extends Model
     {
         return $this->belongsTo(Center::class);
     }
+
+    public function isValid()
+    {
+        if (! $this->is_active) {
+            return false;
+        }
+
+        if ($this->start_date->isFuture()) {
+            return false;
+        }
+
+        if ($this->end_date && $this->end_date->isPast()) {
+            return false;
+        }
+    }
 }

@@ -326,7 +326,7 @@ class ServiceResource extends Resource
     {
         return [
             'index' => ServiceResource\Pages\ListServices::route('/'),
-            'create' => ServiceResource\Pages\CreateService::route('/create'),
+           'create' => ServiceResource\Pages\CreateService::route('/create'),
             'edit' => ServiceResource\Pages\EditService::route('/{record}/edit'),
         ];
     }

@@ -8,6 +8,7 @@ use App\Filament\Resources\StudentResource\Pages;
 use App\Filament\Resources\StudentResource\RelationManagers;
 use App\Models\Center;
 use App\Models\City;
+use App\Models\Service;
 use App\Models\Street;
 use App\Models\Student;
 use App\Models\StudentEntry;
@@ -18,6 +19,10 @@ use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Fieldset;
+use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -47,6 +52,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use UnitEnum;
+
+// And your models
 
 class StudentResource extends Resource
 {
@@ -248,7 +255,6 @@ class StudentResource extends Resource
             ->columns(3);
     }
 
-
     protected static function educationStep(): Wizard\Step
     {
         return Wizard\Step::make(__('general.labels.education'))
@@ -310,143 +316,143 @@ class StudentResource extends Resource
                     ->addActionLabel(__('general.labels.add_education'))
                     ->columnSpanFull()
                     ->rules([
-                    function () {
-                        return function (string $attribute, $value, Closure $fail) {
-                            $seenCombinations = [];
-                            $groupedByEducation = [];
+                        function () {
+                            return function (string $attribute, $value, Closure $fail) {
+                                $seenCombinations = [];
+                                $groupedByEducation = [];
 
-                            $timelineItems = [];
-                            $activeItems = [];
-                            $activeDegrees = [];
-                            foreach ($value as $index => $item) {
+                                $timelineItems = [];
+                                $activeItems = [];
+                                $activeDegrees = [];
+                                foreach ($value as $index => $item) {
 
-                                if (! isset($item['degree']) || ! isset($item['level']) || ! isset($item['education_id']) || ! isset($item['start_date'])) {
-                                    continue;
-                                }
+                                    if (! isset($item['degree']) || ! isset($item['level']) || ! isset($item['education_id']) || ! isset($item['start_date'])) {
+                                        continue;
+                                    }
 
-                                if (isset($item['end_date']) && Carbon::parse($item['end_date'])->isFuture()) {
-                                    Notification::make()->danger()->title('خطأ')->body('تاريخ النهاية لا يمكن أن يكون في المستقبل.')->send();
-                                    $fail('تاريخ النهاية لا يمكن أن يكون في المستقبل.');
-
-                                    return;
-                                }
-
-                                $degreeValue = $item['degree'];
-                                if ($degreeValue instanceof UnitEnum) {
-                                    $degreeValue = $degreeValue->value;
-                                }
-                                $degreeValue = (int) $degreeValue;
-
-                                $degreeLevelKey = (string) $degreeValue.'_'.$item['level'].'_'.$item['education_id'];
-                                if (in_array($degreeLevelKey, $seenCombinations)) {
-                                    Notification::make()->danger()->title('خطأ')->body('لا يمكن إضافة سجلين بنفس الدرجة والمستوى.')->send();
-                                    $fail('لا يمكن إضافة سجلين بنفس الدرجة والمستوى.');
-
-                                    return;
-                                }
-                                $seenCombinations[] = $degreeLevelKey;
-
-                                $eduId = $item['education_id'];
-                                if (! isset($groupedByEducation[$eduId])) {
-                                    $groupedByEducation[$eduId] = [];
-                                }
-
-                                $currentStart = Carbon::parse($item['start_date']);
-                                $currentEnd = isset($item['end_date']) ? Carbon::parse($item['end_date']) : null;
-
-                                foreach ($groupedByEducation[$eduId] as $existingItem) {
-                                    $existStart = Carbon::parse($existingItem['start_date']);
-                                    $existEnd = isset($existingItem['end_date']) ? Carbon::parse($existingItem['end_date']) : now()->addYears(100);
-
-                                    $checkEnd = $currentEnd ?? now()->addYears(100);
-
-                                    if ($currentStart->lt($existEnd) && $existStart->lt($checkEnd)) {
-                                        Notification::make()->danger()->title('خطأ')->body('يوجد تعارض في التواريخ لنفس التعليم.')->send();
-                                        $fail('يوجد تعارض في التواريخ: لا يمكن تسجيل نفس التعليم مرتين في نفس الفترة.');
+                                    if (isset($item['end_date']) && Carbon::parse($item['end_date'])->isFuture()) {
+                                        Notification::make()->danger()->title('خطأ')->body('تاريخ النهاية لا يمكن أن يكون في المستقبل.')->send();
+                                        $fail('تاريخ النهاية لا يمكن أن يكون في المستقبل.');
 
                                         return;
                                     }
-                                }
-                                $groupedByEducation[$eduId][] = $item;
 
-                                if (! isset($item['end_date']) || empty($item['end_date'])) {
-                                    $activeDegrees[] = (int) $degreeValue;
-                                }
+                                    $degreeValue = $item['degree'];
+                                    if ($degreeValue instanceof UnitEnum) {
+                                        $degreeValue = $degreeValue->value;
+                                    }
+                                    $degreeValue = (int) $degreeValue;
 
-                                $timelineItems[] = [
-                                    'start' => $currentStart,
-                                    'end' => $currentEnd,
-                                    'degree' => $degreeValue,
-                                    'name' => __("general.edu-degrees.{$degreeValue}") ?? "Degree {$degreeValue}",
-                                ];
+                                    $degreeLevelKey = (string) $degreeValue.'_'.$item['level'].'_'.$item['education_id'];
+                                    if (in_array($degreeLevelKey, $seenCombinations)) {
+                                        Notification::make()->danger()->title('خطأ')->body('لا يمكن إضافة سجلين بنفس الدرجة والمستوى.')->send();
+                                        $fail('لا يمكن إضافة سجلين بنفس الدرجة والمستوى.');
 
-                                if (! $currentEnd) {
-                                    $activeItems[] = [
+                                        return;
+                                    }
+                                    $seenCombinations[] = $degreeLevelKey;
+
+                                    $eduId = $item['education_id'];
+                                    if (! isset($groupedByEducation[$eduId])) {
+                                        $groupedByEducation[$eduId] = [];
+                                    }
+
+                                    $currentStart = Carbon::parse($item['start_date']);
+                                    $currentEnd = isset($item['end_date']) ? Carbon::parse($item['end_date']) : null;
+
+                                    foreach ($groupedByEducation[$eduId] as $existingItem) {
+                                        $existStart = Carbon::parse($existingItem['start_date']);
+                                        $existEnd = isset($existingItem['end_date']) ? Carbon::parse($existingItem['end_date']) : now()->addYears(100);
+
+                                        $checkEnd = $currentEnd ?? now()->addYears(100);
+
+                                        if ($currentStart->lt($existEnd) && $existStart->lt($checkEnd)) {
+                                            Notification::make()->danger()->title('خطأ')->body('يوجد تعارض في التواريخ لنفس التعليم.')->send();
+                                            $fail('يوجد تعارض في التواريخ: لا يمكن تسجيل نفس التعليم مرتين في نفس الفترة.');
+
+                                            return;
+                                        }
+                                    }
+                                    $groupedByEducation[$eduId][] = $item;
+
+                                    if (! isset($item['end_date']) || empty($item['end_date'])) {
+                                        $activeDegrees[] = (int) $degreeValue;
+                                    }
+
+                                    $timelineItems[] = [
+                                        'start' => $currentStart,
+                                        'end' => $currentEnd,
                                         'degree' => $degreeValue,
-                                        'start_date' => $currentStart,
+                                        'name' => __("general.edu-degrees.{$degreeValue}") ?? "Degree {$degreeValue}",
                                     ];
-                                }
-                            }
-                            usort($timelineItems, function ($a, $b) {
-                                return $a['start']->lt($b['start']) ? -1 : 1;
-                            });
 
-                            for ($i = 1; $i < count($timelineItems); $i++) {
-                                $prev = $timelineItems[$i - 1];
-                                $curr = $timelineItems[$i];
-
-                                if ($prev['end']) {
-                                    if ($curr['start']->gt($prev['end'])) {
-                                        Notification::make()
-                                            ->danger()
-                                            ->title('خطأ: فجوة زمنية')
-                                            ->body("لا يمكن وجود فجوة بين الدراسات. دراسة '{$curr['name']}' تبدأ بعد انتهاء دراسة '{$prev['name']}'. يجب أن تكون الدراسة مستمرة.")
-                                            ->send();
-                                        $fail('لا يمكن وجود فجوة بين الدراسات. يجب أن يبدأ التعليم الجديد قبل أو عند انتهاء التعليم السابق.');
-
-                                        return;
+                                    if (! $currentEnd) {
+                                        $activeItems[] = [
+                                            'degree' => $degreeValue,
+                                            'start_date' => $currentStart,
+                                        ];
                                     }
                                 }
-                            }
+                                usort($timelineItems, function ($a, $b) {
+                                    return $a['start']->lt($b['start']) ? -1 : 1;
+                                });
 
-                            $activeCount = count($activeDegrees);
-                            if ($activeCount < 1) {
-                                Notification::make()
-                                    ->danger()
-                                    ->title('خطأ في توحيد البيانات')
-                                    ->body('يجب أن تكون هناك على الأقل دراسة واحدة نشطة (بدون تاريخ نهاية).')
-                                    ->send();
-                                $fail('يجب أن تكون هناك على الأقل دراسة واحدة نشطة (بدون تاريخ نهاية).');
+                                for ($i = 1; $i < count($timelineItems); $i++) {
+                                    $prev = $timelineItems[$i - 1];
+                                    $curr = $timelineItems[$i];
 
-                                return;
-                            }
+                                    if ($prev['end']) {
+                                        if ($curr['start']->gt($prev['end'])) {
+                                            Notification::make()
+                                                ->danger()
+                                                ->title('خطأ: فجوة زمنية')
+                                                ->body("لا يمكن وجود فجوة بين الدراسات. دراسة '{$curr['name']}' تبدأ بعد انتهاء دراسة '{$prev['name']}'. يجب أن تكون الدراسة مستمرة.")
+                                                ->send();
+                                            $fail('لا يمكن وجود فجوة بين الدراسات. يجب أن يبدأ التعليم الجديد قبل أو عند انتهاء التعليم السابق.');
 
-                            if ($activeCount > 2) {
-                                Notification::make()
-                                    ->danger()
-                                    ->title('خطأ في عدد الدراسات النشطة')
-                                    ->body('لا يمكن أن يكون هناك أكثر من دراستين نشطتين في نفس الوقت.')
-                                    ->send();
-                                $fail('لا يمكن أن يكون هناك أكثر من دراستين نشطتين في نفس الوقت.');
+                                            return;
+                                        }
+                                    }
+                                }
 
-                                return;
-                            }
-                            if ($activeCount === 2) {
-                                $hasHighSchoolException = in_array(6, $activeDegrees);
-
-                                if ($hasHighSchoolException) {
+                                $activeCount = count($activeDegrees);
+                                if ($activeCount < 1) {
                                     Notification::make()
                                         ->danger()
-                                        ->title('انتبه في تعدد الدراسات')
-                                        ->body(' هناك دراستان نشطتان إحداهما الثانوية العامة.')
+                                        ->title('خطأ في توحيد البيانات')
+                                        ->body('يجب أن تكون هناك على الأقل دراسة واحدة نشطة (بدون تاريخ نهاية).')
                                         ->send();
+                                    $fail('يجب أن تكون هناك على الأقل دراسة واحدة نشطة (بدون تاريخ نهاية).');
 
                                     return;
                                 }
-                            }
-                        };
-                    },
-                ]),
+
+                                if ($activeCount > 2) {
+                                    Notification::make()
+                                        ->danger()
+                                        ->title('خطأ في عدد الدراسات النشطة')
+                                        ->body('لا يمكن أن يكون هناك أكثر من دراستين نشطتين في نفس الوقت.')
+                                        ->send();
+                                    $fail('لا يمكن أن يكون هناك أكثر من دراستين نشطتين في نفس الوقت.');
+
+                                    return;
+                                }
+                                if ($activeCount === 2) {
+                                    $hasHighSchoolException = in_array(6, $activeDegrees);
+
+                                    if ($hasHighSchoolException) {
+                                        Notification::make()
+                                            ->danger()
+                                            ->title('انتبه في تعدد الدراسات')
+                                            ->body(' هناك دراستان نشطتان إحداهما الثانوية العامة.')
+                                            ->send();
+
+                                        return;
+                                    }
+                                }
+                            };
+                        },
+                    ]),
             ])
             ->columns(1);
     }
@@ -721,117 +727,286 @@ class StudentResource extends Resource
 
         return [
             Tables\Actions\Action::make('view_qr_code')->label(__('general.labels.view_qr_code'))->icon('heroicon-o-qr-code')->modalHeading(__('general.labels.qr_code_modal_heading'))->modalContent(fn (Student $record) => self::qrCodeModalContent($record))->modalCancelAction(false)->modalSubmitAction(false)->hidden($isObserver),
+
             Tables\Actions\Action::make('entry')
                 ->label(__('general.labels.entry'))
                 ->icon('heroicon-o-document-text')
                 ->form([
+                    // ═══════════════════════════════════════════════════════
+                    // Entry Details Fieldset
+                    // ═══════════════════════════════════════════════════════
                     Fieldset::make('تفاصيل الدخول')
                         ->schema([
                             Select::make('center_id')
                                 ->label(__('general.labels.center'))
                                 ->options(function () {
-                                    return Center::where('is_active', 1)
-                                        ->when(auth()->user()->city_id, fn ($query, $cityId) => $query->where('city_id', $cityId))
-                                        ->get()
+                                    return \App\Models\Center::where('is_active', 1)
+                                        ->when(
+                                            auth()->user()->city_id,
+                                            fn ($query, $cityId) => $query->where('city_id', $cityId)
+                                        )
                                         ->pluck('name', 'id');
                                 })
                                 ->default(fn () => auth()->user()->center_id)
-                                ->visible(auth()->user()->role !== Roles::CenterAdmin())
+                                ->visible(fn () => auth()->user()->role !== \App\Enums\Roles::CenterAdmin())
                                 ->required()
-                                ->searchable(),
+                                ->searchable()
+                                ->live()
+                                ->afterStateUpdated(function (callable $set, callable $get) {
+                                    // Reset all services when center changes
+                                    $set('services', []);
+                                })
+                                ->columnSpan(1),
+
+                            // Hidden field to always have center_id available for calculations
+                            Hidden::make('_center_id_for_calc')
+                                ->default(fn () => auth()->user()->center_id)
+                                ->dehydrateStateUsing(fn ($state, callable $get) => $get('center_id') ?? auth()->user()->center_id
+                                ),
+
                             Select::make('entry_type')
                                 ->label(__('general.labels.entry_type'))
                                 ->default(1)
                                 ->options(__('general.entry-types'))
-                                ->columnSpan(1)
-                                ->required(),
+                                ->required()
+                                ->columnSpan(1),
+
                             DateTimePicker::make('entry_time')
                                 ->label(__('general.labels.entry_time'))
                                 ->default(now())
-                                ->columnSpan(1)
-                                ->required(),
+                                ->required()
+                                ->columnSpan(1),
                         ])
                         ->columns(3),
+
+                    // ═══════════════════════════════════════════════════════
+                    // Services Fieldset - Enhanced with Category → Service Flow
+                    // ═══════════════════════════════════════════════════════
                     Fieldset::make('الخدمات المطلوبة')
-                        ->label('الخدمات المطلوبة')
                         ->schema([
-                        \Filament\Forms\Components\Select::make('selected_services')
-                                ->label('اختر الخدمات')
-                                ->multiple()
-                                ->options(function () {
-                                    $services = \App\Helpers\ServiceHelper::getServicesWithPrices();
-                                    $options = [];
-                                    foreach ($services as $service) {
-                                        $options[$service['id']] = "{$service['name']} - {$service['price']} SYP";
+                            // Info text
+                            Placeholder::make('services_help')
+                                ->label('')
+                                ->content('اختر التصنيف ثم الخدمة التابعة لهذا المركز')
+                                ->visible(fn (callable $get) => empty($get('services') ?? []))
+                                ->columnSpanFull(),
+
+                            Repeater::make('services')
+                                ->label('')
+                                ->schema([
+                                    Grid::make()
+                                        ->schema([
+                                            // ─── Category Select ───
+                                            // Shows ONLY categories that have services with active prices in selected center
+                                            Select::make('category_id')
+                                                ->label('التصنيف')
+                                                ->placeholder('اختر التصنيف أولاً')
+                                                ->options(function (callable $get) {
+                                                    $centerId = $get('../../center_id')
+                                                        ?? $get('../../_center_id_for_calc')
+                                                        ?? auth()->user()->center_id;
+
+                                                    if (! $centerId) {
+                                                        return [];
+                                                    }
+
+                                                    // Get categories that have services with active prices in this center
+                                                    return \App\Models\ServiceCategory::
+                                                        whereHas('services', function ($serviceQuery) use ($centerId) {
+                                                            $serviceQuery->where('is_active', 1)
+                                                                ->whereHas('centerPrices', function ($priceQuery) use ($centerId) {
+                                                                    $priceQuery->where('center_id', $centerId)
+                                                                        ->where('is_active', 1);
+                                                                });
+                                                        })
+                                                        ->withCount([
+                                                            'services as available_services_count' => function ($query) use ($centerId) {
+                                                                $query
+                                                                // ->where('is_active', 1)
+                                                                    ->whereHas('centerPrices', function ($q) use ($centerId) {
+                                                                        $q->where('center_id', $centerId)
+                                                                            ->where('is_active', 1);
+                                                                    });
+                                                            },
+                                                        ])
+                                                        ->having('available_services_count', '>', 0)
+                                                        ->orderBy('name')
+                                                        ->get()
+                                                        ->mapWithKeys(function ($category) {
+                                                            return [
+                                                                $category->id => "{$category->name} ({$category->available_services_count} خدمة)",
+                                                            ];
+                                                        });
+                                                })
+                                                ->required()
+                                                ->live()
+                                                ->searchable()
+                                                ->columnSpan(2)
+                                                ->afterStateUpdated(function (callable $set) {
+                                                    $set('service_id', null);
+                                                    $set('price', null);
+                                                    $set('quantity', 1);
+                                                    $set('subtotal', 0);
+                                                }),
+
+                                            // ─── Service Select ───
+                                            // Shows ONLY services belonging to selected category AND having active price in center
+                                            Select::make('service_id')
+                                                ->label('الخدمة')
+                                                ->placeholder('اختر التصنيف أولاً')
+                                                ->options(function (callable $get) {
+                                                    $centerId = $get('../../center_id')
+                                                        ?? $get('../../_center_id_for_calc')
+                                                        ?? auth()->user()->center_id;
+                                                    $categoryId = $get('category_id');
+
+                                                    if (! $categoryId || ! $centerId) {
+                                                        return [];
+                                                    }
+
+                                                    // Get services in this category with active prices in this center
+                                                    return \App\Models\Service::where('category_id', $categoryId)
+                                                        ->where('is_active', 1)
+                                                        ->whereHas('centerPrices', function ($query) use ($centerId) {
+                                                            $query->where('center_id', $centerId)
+                                                                ->where('is_active', 1);
+                                                        })
+                                                        ->with(['centerPrices' => function ($query) use ($centerId) {
+                                                            $query->where('center_id', $centerId)
+                                                                ->where('is_active', 1);
+                                                        }])
+                                                        ->orderBy('name')
+                                                        ->get()
+                                                        ->mapWithKeys(function ($service) {
+                                                            $price = $service->centerPrices->first()?->price ?? 0;
+                                                            $formattedPrice = number_format($price);
+
+                                                            return [
+                                                                $service->id => "{$service->name} — {$formattedPrice} ل.س",
+                                                            ];
+                                                        });
+                                                })
+                                                ->required()
+                                                ->live()
+                                                ->searchable()
+                                                ->columnSpan(4)
+                                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                                    if ($state) {
+                                                        $centerId = $get('../../center_id')
+                                                            ?? $get('../../_center_id_for_calc')
+                                                            ?? auth()->user()->center_id;
+
+                                                        $price = \App\Models\ServicePrice::where('service_id', $state)
+                                                            ->where('center_id', $centerId)
+                                                            ->where('is_active', 1)
+                                                            ->value('price') ?? 0;
+
+                                                        $set('price', $price);
+                                                        $set('quantity', 1);
+                                                        $set('subtotal', $price);
+                                                    } else {
+                                                        $set('price', null);
+                                                        $set('quantity', 1);
+                                                        $set('subtotal', 0);
+                                                    }
+                                                }),
+
+                                            // ─── Quantity Input ───
+                                            TextInput::make('quantity')
+                                                ->label('الكمية')
+                                                ->placeholder('1')
+                                                ->numeric()
+                                                ->default(1)
+                                                ->minValue(1)
+                                                ->maxValue(999)
+                                                ->required()
+                                                ->live()
+                                                ->columnSpan(1)
+                                                ->afterStateUpdated(function (callable $get, callable $set) {
+                                                    $price = (float) ($get('price') ?? 0);
+                                                    $quantity = max(1, (int) ($get('quantity') ?? 1));
+                                                    $set('subtotal', $price * $quantity);
+                                                }),
+
+                                            // // ─── Price Display (Auto-filled, Read-only) ───
+                                            // TextInput::make('price')
+                                            //     ->label('سعر الوحدة')
+                                            //     ->numeric()
+                                            //     ->disabled()
+                                            //     ->dehydrated(false)
+                                            //     ->formatStateUsing(fn ($state) => $state ? number_format((float) $state) : '—')
+                                            //     ->columnSpan(1),
+
+                                            // // ─── Subtotal Display (Auto-calculated, Read-only) ───
+                                            // TextInput::make('subtotal')
+                                            //     ->label('المجموع')
+                                            //     ->numeric()
+                                            //     ->disabled()
+                                            //     ->dehydrated(false)
+                                            //     ->formatStateUsing(fn ($state) => number_format((float) ($state ?? 0)))
+                                            //     ->columnSpan(1),
+                                        ])
+                                        ->columns(7),
+                                ])
+                                ->columns(1)
+                                ->addActionLabel('+ إضافة خدمة جديدة')
+                                ->itemLabel(function (array $state) {
+                                    if (empty($state['service_id'])) {
+                                        return '⚠️ خدمة غير محددة';
                                     }
 
-                                    return $options;
-                                })
-                                ->default(function () {
-                                    $defaultService = \App\Helpers\ServiceHelper::getDefaultEntryService();
+                                    $serviceName = \App\Models\Service::find($state['service_id'])?->name ?? 'خدمة';
+                                    $quantity = (int) ($state['quantity'] ?? 1);
+                                    $subtotal = (float) ($state['subtotal'] ?? 0);
 
-                                    return $defaultService ? [$defaultService['id']] : [];
+                                    return "{$serviceName} × {$quantity} = ".number_format($subtotal).' ل.س';
                                 })
-                                ->searchable()
-                                ->preload()
                                 ->live()
-                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                                    $services = \App\Helpers\ServiceHelper::getServicesWithPrices();
-                                    $selectedDetails = [];
+                                ->defaultItems(0)
+                                ->minItems(0)
+                                ->deleteAction(
+                                    fn (\Filament\Forms\Components\Actions\Action $action) => $action
+                                        ->requiresConfirmation()
+                                        ->modalHeading('تأكيد الحذف')
+                                        ->modalDescription('هل تريد حذف هذه الخدمة؟')
+                                        ->modalCancelActionLabel('إلغاء')
+                                        ->modalSubmitActionLabel('حذف')
+                                ),
+
+                            // ─── Grand Total Display ───
+                            Placeholder::make('grand_total_placeholder')
+                                ->label('')
+                                ->content(function (callable $get) {
+                                    $services = $get('services') ?? [];
                                     $total = 0;
+                                    $itemsCount = 0;
 
                                     foreach ($services as $service) {
-                                        if (in_array($service['id'], $state)) {
-                                            $selectedDetails[] = [
-                                                'id' => $service['id'],
-                                                'name' => $service['name'],
-                                                'price' => $service['price'],
-                                            ];
-                                            $total += $service['price'];
+                                        if (! empty($service['service_id'])) {
+                                            $price = (float) ($service['price'] ?? 0);
+                                            $quantity = (int) ($service['quantity'] ?? 1);
+                                            $total += ($price * $quantity);
+                                            $itemsCount++;
                                         }
                                     }
 
-                                    $set('selected_services_details', $selectedDetails);
-                                    $set('total_amount', $total);
-                                })
-                                ->columnSpanFull(),
-
-                        \Filament\Forms\Components\ViewField::make('services_list')
-                                ->label('الخدمات المختارة')
-                                ->view('filament.forms.components.services-list')
-                                ->afterStateHydrated(function ($component, $get) {
-                                    $component->state($get('selected_services_details'));
-                                })
-                                ->live()
-                                ->columnSpanFull(),
-
-                        \Filament\Forms\Components\Checkbox::make('calculate_total')
-                                ->label('إغلاق الفاتورة وعرض الإجمالي')
-                                ->live()
-                                ->afterStateUpdated(function ($state, callable $get, callable $set) {
-                                    if ($state) {
-                                        $total = $get('total_amount');
-                                        $set('total_display', $total);
-                                    } else {
-                                        $set('total_display', null);
+                                    if ($itemsCount === 0) {
+                                        return null;
                                     }
-                                })
-                                ->columnSpanFull(),
 
-                        \Filament\Forms\Components\ViewField::make('total_display')
-                                ->label('الإجمالي')
-                                ->view('filament.forms.components.total-display')
-                                ->afterStateHydrated(function ($component, $get) {
-                                    $component->state($get('total_display'));
+                                    return view('filament.forms.components.grand-total', [
+                                        'total' => $total,
+                                        'count' => $itemsCount,
+                                    ]);
                                 })
-                                ->live()
-                                ->columnSpanFull(),
-                    ])
+                                ->visible(fn (callable $get) => ! empty($get('services') ?? []))
+                                ->live(),
+                        ])
                         ->columns(1),
                 ])
                 ->modalHeading(__('general.labels.record_student_entry'))
                 ->modalButton(__('general.labels.save_entry'))
-                ->modalWidth('3xl')
+                ->modalWidth('5xl')
                 ->action(function (array $data, Student $record) {
                     if (! $record->completed_data) {
                         Notification::make()
@@ -931,5 +1106,100 @@ class StudentResource extends Resource
     public static function canDelete(Model $record): bool
     {
         return (auth()->user()->role === Roles::CenterAdmin() || auth()->user()->role === Roles::GeneralAdmin()) && auth()->user()->role !== Roles::Observer();
+    }
+
+    protected static function getCenterId(callable $get): ?int
+    {
+        return $get('center_id') ?? auth()->user()->center_id;
+    }
+
+    protected static function applyPriceConstraints($query, int $centerId): mixed
+    {
+        return $query
+            ->where('center_id', $centerId)
+            ->where('is_active', true)
+            ->where('start_date', '<=', now()->toDateString())
+            ->where(function ($q) {
+                $q->whereNull('end_date')
+                    ->orWhere('end_date', '>=', now()->toDateString());
+            });
+    }
+
+    protected static function getCurrentPrice(int $serviceId, int $centerId): int
+    {
+        return \App\Models\ServicePrice::where('service_id', $serviceId)
+            ->where('center_id', $centerId)
+            ->where('is_active', true)
+            ->where('start_date', '<=', now()->toDateString())
+            ->where(function ($q) {
+                $q->whereNull('end_date')
+                    ->orWhere('end_date', '>=', now()->toDateString());
+            })
+            ->latest('start_date')
+            ->value('price') ?? 0;
+    }
+
+    protected static function updateServicePrice($serviceId, callable $set, callable $get): void
+    {
+        $centerId = self::getCenterId($get);
+
+        if ($serviceId && $centerId) {
+            $price = self::getCurrentPrice($serviceId, $centerId);
+            $set('price', $price);
+            $set('amount', 1);
+            $set('subtotal', $price);
+        } else {
+            $set('price', 0);
+            $set('amount', 1);
+            $set('subtotal', 0);
+        }
+    }
+
+    protected static function calculateTotal(callable $get, callable $set): void
+    {
+        $total = self::calculateTotalFromServices($get);
+        $set('total_amount', $total);
+    }
+
+    protected static function calculateTotalFromServices(callable $get): int
+    {
+        $services = $get('services') ?? [];
+        $total = 0;
+
+        foreach ($services as $service) {
+            $total += (int) ($service['subtotal'] ?? 0);
+        }
+
+        return $total;
+    }
+
+    protected static function handleEntryCreation(array $data, Student $record): void
+    {
+        $services = $data['services'] ?? [];
+        $totalAmount = $data['total_amount'] ?? 0;
+        $centerId = $data['center_id'] ?? auth()->user()->center_id;
+
+        $entry = \App\Models\StudentEntry::create([
+            'student_id' => $record->id,
+            'user_id' => \Illuminate\Support\Facades\Auth::id(),
+            'center_id' => $centerId,
+            'entry_type' => $data['entry_type'],
+            'entry_time' => $data['entry_time'],
+            'total_amount' => $totalAmount,
+        ]);
+
+        foreach ($services as $serviceData) {
+            $serviceId = $serviceData['service_id'];
+            $amount = $serviceData['amount'] ?? 1;
+            $price = self::getCurrentPrice($serviceId, $centerId);
+            $total = $price * $amount;
+
+            \App\Models\EntryService::create([
+                'entry_id' => $entry->id,
+                'service_id' => $serviceId,
+                'amount' => $amount,
+                'total' => $total,
+            ]);
+        }
     }
 }

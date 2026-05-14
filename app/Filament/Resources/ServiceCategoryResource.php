@@ -90,8 +90,7 @@ class ServiceCategoryResource extends Resource
     {
         return [
             'index' => ServiceCategoryResource\Pages\ListServiceCategories::route('/'),
-            'create' => ServiceCategoryResource\Pages\CreateServiceCategory::route('/create'),
-            'edit' => ServiceCategoryResource\Pages\EditServiceCategory::route('/{record}/edit'),
+         
         ];
     }
 
