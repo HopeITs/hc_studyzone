@@ -14,6 +14,7 @@ return new class extends Migration
             $table->foreignId('service_id')->constrained('services')->restrictOnDelete();
             $table->integer('amount')->default(1);
             $table->integer('total')->default(0);
+            $table->integer('price_at_time')->default(0);
             $table->timestamps();
 
             $table->index(['entry_id', 'service_id']);

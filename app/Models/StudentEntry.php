@@ -32,19 +32,19 @@ class StudentEntry extends Model
         return $this->belongsTo(Center::class);
     }
 
-    public function entryServices(): HasMany
+    public function services(): HasMany
     {
         return $this->hasMany(EntryService::class, 'entry_id');
     }
 
     public function getTotalAmountAttribute(): float
     {
-        return $this->entryServices->sum('price_at_time');
+        return $this->services->sum('price_at_time');
     }
 
     public function getServicesListAttribute(): string
     {
-        return $this->entryServices->map(function ($service) {
+        return $this->services->map(function ($service) {
             return $service->service->name;
         })->implode(', ');
     }

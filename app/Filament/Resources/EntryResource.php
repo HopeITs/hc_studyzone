@@ -67,27 +67,27 @@ class EntryResource extends Resource
         return parent::getEloquentQuery()->whereRaw('1 = 0');
     }
 
-    public static function form(Form $form): Form
-    {
-        return $form->schema([
-            Placeholder::make('student_full_name')->label('الاسم')->content(fn ($record) => $record?->student ? $record->student->firstname.' '.$record->student->father_name.' '.$record->student->lastname : '-'),
-            Select::make('center_id')
-                ->label(__('general.labels.center'))
-                ->options(function () {
-                    return Center::where('is_active', 1)
-                        ->when(auth()->user()->city_id, fn ($query, $cityId) => $query->where('city_id', $cityId))
-                        ->get()
-                        ->pluck('name', 'id');
-                })
-                ->default(fn () => auth()->user()->center_id)
-                ->visible(auth()->user()->role !== Roles::CenterAdmin())
-                ->required()
-                ->searchable(),
-            Select::make('entry_type')->label(__('general.labels.entry_type'))->default(1)->options(__('general.entry-types'))->columnSpan(1)->required(),
-            DateTimePicker::make('entry_time')->label(__('general.labels.entry_time'))->default(now())->columnSpan(1)->required(),
+    // public static function form(Form $form): Form
+    // {
+    //     return $form->schema([
+    //         Placeholder::make('student_full_name')->label('الاسم')->content(fn ($record) => $record?->student ? $record->student->firstname.' '.$record->student->father_name.' '.$record->student->lastname : '-'),
+    //         Select::make('center_id')
+    //             ->label(__('general.labels.center'))
+    //             ->options(function () {
+    //                 return Center::where('is_active', 1)
+    //                     ->when(auth()->user()->city_id, fn ($query, $cityId) => $query->where('city_id', $cityId))
+    //                     ->get()
+    //                     ->pluck('name', 'id');
+    //             })
+    //             ->default(fn () => auth()->user()->center_id)
+    //             ->visible(auth()->user()->role !== Roles::CenterAdmin())
+    //             ->required()
+    //             ->searchable(),
+    //         Select::make('entry_type')->label(__('general.labels.entry_type'))->default(1)->options(__('general.entry-types'))->columnSpan(1)->required(),
+    //         DateTimePicker::make('entry_time')->label(__('general.labels.entry_time'))->default(now())->columnSpan(1)->required(),
 
-        ]);
-    }
+    //     ]);
+    // }
 
     public static function table(Table $table): Table
 {
@@ -106,7 +106,7 @@ class EntryResource extends Resource
                     });
                 },
             ),
-            IconColumn::make('student.completed_data')->label('حالة البيانات')->boolean()->trueIcon('heroicon-o-check-circle')->falseIcon('heroicon-o-x-circle')->trueColor('success')->falseColor('danger')->sortable()->tooltip(fn ($record) => $record->student->completed_data ? 'البيانات مكتملة' : 'البيانات غير مكتملة'),
+            IconColumn::make('student.completed_data')->label('حالة البيانات')->toggleable(isToggledHiddenByDefault: true)->boolean()->trueIcon('heroicon-o-check-circle')->falseIcon('heroicon-o-x-circle')->trueColor('success')->falseColor('danger')->sortable()->tooltip(fn ($record) => $record->student->completed_data ? 'البيانات مكتملة' : 'البيانات غير مكتملة'),
             TextColumn::make('student.national_number')->label('الرقم الوطني / الإقامة')->sortable()->toggleable(),
             TextColumn::make('student.phone')->label('الموبايل')->searchable()->sortable()->toggleable(isToggledHiddenByDefault: true),
             TextColumn::make('student.gender')
@@ -151,6 +151,7 @@ class EntryResource extends Resource
                     $levelValue = $lastEducation->level;
                     return __('general.edu-levels.' . (string) $levelValue);
                 })
+                ->toggleable(isToggledHiddenByDefault: true)
                 ->sortable(
                     query: function (Builder $query, string $direction): Builder {
                         return $query->orderBy(
@@ -169,7 +170,7 @@ class EntryResource extends Resource
                         });
                     },
                 )
-                ->toggleable(),
+             ,
 
             TextColumn::make('student.education')
                 ->label('المؤهل العلمي')
@@ -353,8 +354,8 @@ class EntryResource extends Resource
             ])
             ->filtersTriggerAction(fn (Action $action) => $action->button()->label(''))
             ->actions([
-                ViewAction::make('view_student')->label('عرض الطالب')->color('info')->icon('heroicon-o-user')->url(fn (Model $record) => \App\Filament\Resources\StudentResource::getUrl('view', ['record' => $record->student_id])),
-                Tables\Actions\EditAction::make()
+                ViewAction::make('view_student')->label('')->color('info')->icon('heroicon-o-user')->url(fn (Model $record) => \App\Filament\Resources\StudentResource::getUrl('view', ['record' => $record->student_id])),
+                Tables\Actions\EditAction::make()->label('')
                     ->hidden(fn () => auth()->user()->role === Roles::Observer())
                     ->disabled(function ($record) {
                         return ! $record->student->completed_data;
@@ -366,7 +367,7 @@ class EntryResource extends Resource
 
                         return null;
                     }),
-                Tables\Actions\DeleteAction::make()->hidden(fn () => auth()->user()->role === Roles::Observer()),
+                Tables\Actions\DeleteAction::make()->label('')->hidden(fn () => auth()->user()->role === Roles::Observer()),
             ])
             ->bulkActions([
                 ExportBulkAction::make()
@@ -388,6 +389,7 @@ class EntryResource extends Resource
     {
         return [
             'index' => Pages\ListEntries::route('/'),
+            'edit' => Pages\EditEntry::route('/{record}/edit'),
         ];
     }
 

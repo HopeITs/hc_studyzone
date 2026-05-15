@@ -60,7 +60,7 @@ Route::group(['middleware' => ['auth']], function () {
     });
 
 
-    Route::get('/student/{uuid}/entry', [StudentEntryController::class, 'showEntryForm'])->name('student.entry');
+    // Route::get('/student/{uuid}/entry', [StudentEntryController::class, 'showEntryForm'])->name('student.entry');
     Route::post('/student/{uuid}/entry', [StudentEntryController::class, 'store'])->name('student.entry.store');
 
 
