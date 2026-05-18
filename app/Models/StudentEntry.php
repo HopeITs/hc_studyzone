@@ -39,7 +39,7 @@ class StudentEntry extends Model
 
     public function getTotalAmountAttribute(): float
     {
-        return $this->services->sum('price_at_time');
+        return $this->services->sum('total');
     }
 
     public function getServicesListAttribute(): string

@@ -749,6 +749,7 @@ class StudentResource extends Resource
             'edit' => Pages\EditStudent::route('/{record}/edit'),
             'view' => Pages\ViewStudent::route('/{record}'),
             'entry' => Pages\CreateStudentEntry::route('/{record}/entry'),
+              'view-entry' => Pages\ViewStudentEntry::route('/{record}/entry/{entry}'),
         ];
     }
 

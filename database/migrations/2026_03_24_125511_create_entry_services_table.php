@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('entry_services', function (Blueprint $table) {
-            $table->uuid('id')->primary();
+          $table->id();
             $table->foreignUuid('entry_id')->constrained('student_entries')->cascadeOnDelete();
             $table->foreignId('service_id')->constrained('services')->restrictOnDelete();
             $table->integer('amount')->default(1);

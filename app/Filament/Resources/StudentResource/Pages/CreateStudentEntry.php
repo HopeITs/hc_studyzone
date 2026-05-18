@@ -217,7 +217,7 @@ class CreateStudentEntry extends Page
                                             ->afterStateUpdated(function (callable $set) {
                                                 $set('service_id', null);
                                                 $set('price', null);
-                                                $set('quantity', 1);
+                                                $set('amount', 1);
                                                 $set('subtotal', 0);
                                             }),
 
@@ -271,16 +271,16 @@ class CreateStudentEntry extends Page
                                                         ->value('price') ?? 0;
 
                                                     $set('price', $price);
-                                                    $set('quantity', 1);
+                                                    $set('amount', 1);
                                                     $set('subtotal', $price);
                                                 } else {
                                                     $set('price', null);
-                                                    $set('quantity', 1);
+                                                    $set('amount', 1);
                                                     $set('subtotal', 0);
                                                 }
                                             }),
 
-                                        TextInput::make('quantity')
+                                        TextInput::make('amount')
                                             ->label('الكمية')
                                             ->placeholder('1')
                                             ->numeric()
@@ -292,8 +292,8 @@ class CreateStudentEntry extends Page
                                             ->columnSpan(1)
                                             ->afterStateUpdated(function (callable $get, callable $set) {
                                                 $price = (float) ($get('price') ?? 0);
-                                                $quantity = max(1, (int) ($get('quantity') ?? 1));
-                                                $set('subtotal', $price * $quantity);
+                                                $amount = max(1, (int) ($get('amount') ?? 1));
+                                                $set('subtotal', $price * $amount);
                                             }),
                                     ])
                                     ->columns(7),
@@ -306,10 +306,10 @@ class CreateStudentEntry extends Page
                                 }
 
                                 $serviceName = \App\Models\Service::find($state['service_id'])?->name ?? 'خدمة';
-                                $quantity = (int) ($state['quantity'] ?? 1);
+                                $amount = (int) ($state['amount'] ?? 1);
                                 $subtotal = (float) ($state['subtotal'] ?? 0);
 
-                                return "{$serviceName} × {$quantity} = " . number_format($subtotal) . ' ل.س';
+                                return "{$serviceName} × {$amount} = " . number_format($subtotal) . ' ل.س';
                             })
                             ->live()
                             ->defaultItems(0)
@@ -335,8 +335,8 @@ class CreateStudentEntry extends Page
                                 foreach ($services as $service) {
                                     if (! empty($service['service_id'])) {
                                         $price = (float) ($service['price'] ?? 0);
-                                        $quantity = (int) ($service['quantity'] ?? 1);
-                                        $total += ($price * $quantity);
+                                        $amount = (int) ($service['amount'] ?? 1);
+                                        $total += ($price * $amount);
                                         $itemsCount++;
                                     }
                                 }
@@ -387,8 +387,8 @@ class CreateStudentEntry extends Page
         $services = $data['services'] ?? [];
         foreach ($services as $serviceData) {
             $price = (float) ($serviceData['price'] ?? 0);
-            $quantity = (int) ($serviceData['quantity'] ?? 1);
-            $totalAmount += ($price * $quantity);
+            $amount = (int) ($serviceData['amount'] ?? 1);
+            $totalAmount += ($price * $amount);
         }
 
         // Day services
@@ -422,14 +422,14 @@ class CreateStudentEntry extends Page
                 EntryService::create([
                     'entry_id'   => $entry->id,
                     'service_id' => $serviceData['service_id'],
-                    'amount'     => (int) ($serviceData['quantity'] ?? 1),
+                    'amount'     => (int) ($serviceData['amount'] ?? 1),
                     'price_at_time' => (float) ($serviceData['price'] ?? 0),
-                    'total'      => (float) ($serviceData['price'] ?? 0) * (int) ($serviceData['quantity'] ?? 1),
+                    'total'      => (float) ($serviceData['price'] ?? 0) * (int) ($serviceData['amount'] ?? 1),
                 ]);
             }
         }
 
-        // Attach day services (quantity = 1)
+        // Attach day services (amount = 1)
         foreach ($dayServices as $serviceId) {
             $price = (float) ($dayPrices[$serviceId] ?? 0);
             EntryService::create([
