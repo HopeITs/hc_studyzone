@@ -12,13 +12,11 @@
     {{ $this->form }}
     </div>
      <div class="flex gap-2">
-             <x-filament::button
-                color="primary"
-                wire:click="create"
-                icon="heroicon-o-check"
-            >
-                {{ __('general.labels.save_entry') }}
-            </x-filament::button>
+        <!-- Find your submit button and change it to: -->
+<x-filament::button wire:click="save" color="success" icon="heroicon-o-check">
+    {{ $entryInstance ? 'حفظ التعديلات' : 'تسجيل الدخولية' }}
+</x-filament::button>
+  
             <x-filament::button
                 color="gray"
                 :href="App\Filament\Resources\StudentResource::getUrl('view', ['record' => $record])"

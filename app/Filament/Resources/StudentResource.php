@@ -718,10 +718,10 @@ class StudentResource extends Resource
 
         return [
             Tables\Actions\Action::make('view_qr_code')->label(__('general.labels.view_qr_code'))->icon('heroicon-o-qr-code')->modalHeading(__('general.labels.qr_code_modal_heading'))->modalContent(fn (Student $record) => self::qrCodeModalContent($record))->modalCancelAction(false)->modalSubmitAction(false)->hidden($isObserver),
-            Tables\Actions\Action::make('entry')
+            Tables\Actions\Action::make('create-entry')
                 ->label(__('general.labels.entry'))
                 ->icon('heroicon-o-document-text')
-                ->url(fn (Student $record) => static::getUrl('entry', ['record' => $record]))
+                ->url(fn (Student $record) => static::getUrl('create-entry', ['record' => $record]))
                 ->disabled(fn (Student $record) => ! $record->completed_data)
                 ->tooltip(function (Student $record) {
                     if (! $record->completed_data) {
@@ -748,8 +748,9 @@ class StudentResource extends Resource
             'create' => Pages\CreateStudent::route('/create'),
             'edit' => Pages\EditStudent::route('/{record}/edit'),
             'view' => Pages\ViewStudent::route('/{record}'),
-            'entry' => Pages\CreateStudentEntry::route('/{record}/entry'),
-              'view-entry' => Pages\ViewStudentEntry::route('/{record}/entry/{entry}'),
+            'create-entry' => Pages\CreateStudentEntry::route('/{record}/entry'),
+                
+
         ];
     }
 

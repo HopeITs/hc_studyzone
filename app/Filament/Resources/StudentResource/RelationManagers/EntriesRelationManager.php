@@ -4,6 +4,7 @@ namespace App\Filament\Resources\StudentResource\RelationManagers;
 
 use App\Enums\Roles;
 use App\Filament\Resources\StudentResource;
+use App\Filament\Resources\EntryResource;
 use App\Models\Center;
 use Filament\Forms;
 use Filament\Forms\Components\Select;
@@ -154,7 +155,7 @@ class EntriesRelationManager extends RelationManager
                     ->label('إضافة دخولية جديدة')
                     ->icon('heroicon-o-plus-circle')
                     // ✅ Use Filament's getUrl() instead of route()
-                    ->url(fn () => StudentResource::getUrl('entry', [
+                    ->url(fn () => StudentResource::getUrl('create-entry', [
                         'record' => $this->ownerRecord->id,
                     ]))
                     ->disabled(fn () => ! $this->ownerRecord->completed_data)
@@ -162,24 +163,31 @@ class EntriesRelationManager extends RelationManager
                         ? '❌ لا يمكن إضافة دخولية: بيانات الطالب غير مكتملة'
                         : 'إضافة دخولية جديدة'),
             ])
-
             ->actions([
                 Action::make('view_bill')
                     ->label('عرض الفاتورة')
                     ->icon('heroicon-o-document-text')
                     ->color('info')
-                    ->url(fn ($record) => StudentResource::getUrl('view-entry', [
-                        'record' => $this->ownerRecord->id, // Student ID
-                        'entry' => $record->id,            // Entry ID
+                    ->url(fn ($record) => EntryResource::getUrl('view', [
+                        'record' => $record->id,
+                     
                     ]))
                     ->openUrlInNewTab(),
-                Actions\EditAction::make()
-                    ->disabled(fn ($record) => ! $record->student->completed_data)
-                    ->tooltip(fn ($record) => ! $record->student->completed_data
-                        ? '❌ لا يمكن التعديل: بيانات الطالب غير مكتملة'
-                        : 'تعديل'),
+
+                // NEW: Edit Action pointing to the custom page
+                Action::make('edit_entry')
+                    ->label('تعديل')
+                    ->icon('heroicon-o-pencil')
+                    ->color('warning')
+                    ->url(fn ($record) => EntryResource::getUrl('edit', [
+                        'record' => $record->id, // Entry ID
+
+                    ]))
+                    ->disabled(fn ($record) => ! $record->student->completed_data),
+
                 Actions\DeleteAction::make(),
             ])
+
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),

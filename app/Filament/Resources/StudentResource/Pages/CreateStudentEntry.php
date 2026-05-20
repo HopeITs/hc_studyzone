@@ -4,10 +4,13 @@ namespace App\Filament\Resources\StudentResource\Pages;
 
 use App\Enums\Roles;
 use App\Filament\Resources\StudentResource;
+use App\Models\Center;
 use App\Models\EntryService;
+use App\Models\Service;
+use App\Models\ServiceCategory;
 use App\Models\ServicePrice;
 use App\Models\StudentEntry;
-use Filament\Actions;
+use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Fieldset;
@@ -19,8 +22,8 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
-use Filament\Resources\Pages\Page;
 use Filament\Resources\Pages\Concerns\InteractsWithRecord;
+use Filament\Resources\Pages\Page;
 use Illuminate\Support\Facades\Auth;
 
 class CreateStudentEntry extends Page
@@ -33,18 +36,67 @@ class CreateStudentEntry extends Page
 
     public ?array $data = [];
 
-    public function mount(int|string $record): void
+    // This will hold the entry instance if we are editing
+    public ?StudentEntry $entryInstance = null;
+
+    public function getHeading(): string
     {
+        return $this->entryInstance ? 'تعديل الدخولية' : 'إضافة دخولية جديدة';
+    }
+    // بدلاً من:
+
+    public function mount(...$args): void
+    {
+        $record = $args['record'] ?? $args[0] ?? null;
+        $entry = $args['entry'] ?? $args[1] ?? null;
+
         $this->record = $this->resolveRecord($record);
 
         abort_if(! $this->record->completed_data, 403, 'بيانات الطالب غير مكتملة');
 
+        if ($entry) {
+            $this->entryInstance = StudentEntry::where('student_id', $this->record->id)
+                ->findOrFail($entry);
+            $this->fillFormForEdit();
+        } else {
+            $this->form->fill([
+                'center_id' => auth()->user()->center_id,
+                'entry_type' => 1,
+                'entry_time' => now(),
+                'services' => [],
+                'day_services' => [],
+            ]);
+        }
+    }
+
+    protected function fillFormForEdit(): void
+    {
+        $entry = $this->entryInstance;
+
+        // Separate day services from regular services
+        $dayServiceIds = $entry->services
+            ->filter(fn ($es) => $es->service && $es->service->category && $es->service->category->unit === 'day')
+            ->pluck('service_id')
+            ->toArray();
+
+        $regularServices = $entry->services
+            ->filter(fn ($es) => ! $es->service || ! $es->service->category || $es->service->category->unit !== 'day')
+            ->map(fn ($es) => [
+                'category_id' => $es->service->category_id ?? null,
+                'service_id' => $es->service_id,
+                'amount' => $es->amount,
+                'price' => $es->price_at_time,
+                'subtotal' => $es->total,
+            ])
+            ->values()
+            ->toArray();
+
         $this->form->fill([
-            'center_id'   => auth()->user()->center_id,
-            'entry_type'  => 1,
-            'entry_time'  => now(),
-            'services'    => [],
-            'day_services'=> [],
+            'center_id' => $entry->center_id,
+            'entry_type' => $entry->entry_type,
+            'entry_time' => $entry->entry_time,
+            'services' => $regularServices,
+            'day_services' => $dayServiceIds,
         ]);
     }
 
@@ -52,7 +104,6 @@ class CreateStudentEntry extends Page
     {
         return $form
             ->schema([
-
                 // ═══════════════════════════════════════════════════════
                 // Entry Details Fieldset
                 // ═══════════════════════════════════════════════════════
@@ -61,7 +112,7 @@ class CreateStudentEntry extends Page
                         Select::make('center_id')
                             ->label(__('general.labels.center'))
                             ->options(function () {
-                                return \App\Models\Center::where('is_active', 1)
+                                return Center::where('is_active', 1)
                                     ->when(
                                         auth()->user()->city_id,
                                         fn ($query, $cityId) => $query->where('city_id', $cityId)
@@ -104,7 +155,6 @@ class CreateStudentEntry extends Page
                 Fieldset::make('الخدمات المطلوبة')
                     ->schema([
 
-                        // ─── Day Services (CheckboxList) ───
                         CheckboxList::make('day_services')
                             ->label('خدمات يومية (تُطلب لمرة واحدة)')
                             ->options(function (callable $get) {
@@ -116,7 +166,7 @@ class CreateStudentEntry extends Page
                                     return [];
                                 }
 
-                                return \App\Models\Service::where('is_active', 1)
+                                return Service::where('is_active', 1)
                                     ->whereHas('category', fn ($q) => $q->where('unit', 'day'))
                                     ->whereHas('centerPrices', fn ($q) => $q->where('center_id', $centerId)->where('is_active', 1))
                                     ->with([
@@ -130,7 +180,7 @@ class CreateStudentEntry extends Page
                                         $categoryName = $service->category?->name ?? '';
 
                                         return [
-                                            $service->id => "{$categoryName}: {$service->name} — " . number_format($price) . ' ل.س/يوم',
+                                            $service->id => "{$categoryName}: {$service->name} — ".number_format($price).' ل.س/يوم',
                                         ];
                                     });
                             })
@@ -143,7 +193,7 @@ class CreateStudentEntry extends Page
                                     return false;
                                 }
 
-                                return \App\Models\ServiceCategory::where('unit', 'day')
+                                return ServiceCategory::where('unit', 'day')
                                     ->whereHas('services', function ($q) use ($centerId) {
                                         $q->where('is_active', 1)
                                             ->whereHas('centerPrices', fn ($pq) => $pq->where('center_id', $centerId)->where('is_active', 1));
@@ -156,14 +206,12 @@ class CreateStudentEntry extends Page
                             ->bulkToggleable()
                             ->columnSpanFull(),
 
-                        // ─── Info Text ───
                         Placeholder::make('services_help')
                             ->label('')
                             ->content('اختر التصنيف ثم الخدمة التابعة لهذا المركز')
                             ->visible(fn (callable $get) => empty($get('services') ?? []) && empty($get('day_services') ?? []))
                             ->columnSpanFull(),
 
-                        // ─── Regular Services (Repeater) ───
                         Repeater::make('services')
                             ->label('')
                             ->schema([
@@ -181,11 +229,10 @@ class CreateStudentEntry extends Page
                                                     return [];
                                                 }
 
-                                                return \App\Models\ServiceCategory::
-                                                    where(function ($q) {
-                                                        $q->whereNull('unit')
-                                                            ->orWhere('unit', '!=', 'day');
-                                                    })
+                                                return ServiceCategory::where(function ($q) {
+                                                    $q->whereNull('unit')
+                                                        ->orWhere('unit', '!=', 'day');
+                                                })
                                                     ->whereHas('services', function ($serviceQuery) use ($centerId) {
                                                         $serviceQuery->where('is_active', 1)
                                                             ->whereHas('centerPrices', function ($priceQuery) use ($centerId) {
@@ -234,7 +281,7 @@ class CreateStudentEntry extends Page
                                                     return [];
                                                 }
 
-                                                return \App\Models\Service::where('category_id', $categoryId)
+                                                return Service::where('category_id', $categoryId)
                                                     ->where('is_active', 1)
                                                     ->whereHas('centerPrices', function ($query) use ($centerId) {
                                                         $query->where('center_id', $centerId)
@@ -305,17 +352,17 @@ class CreateStudentEntry extends Page
                                     return '⚠️ خدمة غير محددة';
                                 }
 
-                                $serviceName = \App\Models\Service::find($state['service_id'])?->name ?? 'خدمة';
+                                $serviceName = Service::find($state['service_id'])?->name ?? 'خدمة';
                                 $amount = (int) ($state['amount'] ?? 1);
                                 $subtotal = (float) ($state['subtotal'] ?? 0);
 
-                                return "{$serviceName} × {$amount} = " . number_format($subtotal) . ' ل.س';
+                                return "{$serviceName} × {$amount} = ".number_format($subtotal).' ل.س';
                             })
                             ->live()
                             ->defaultItems(0)
                             ->minItems(0)
                             ->deleteAction(
-                                fn (\Filament\Forms\Components\Actions\Action $action) => $action
+                                fn (Action $action) => $action
                                     ->requiresConfirmation()
                                     ->modalHeading('تأكيد الحذف')
                                     ->modalDescription('هل تريد حذف هذه الخدمة؟')
@@ -323,7 +370,6 @@ class CreateStudentEntry extends Page
                                     ->modalSubmitActionLabel('حذف')
                             ),
 
-                        // ─── Grand Total ───
                         Placeholder::make('grand_total_placeholder')
                             ->label('')
                             ->content(function (callable $get) {
@@ -374,7 +420,8 @@ class CreateStudentEntry extends Page
             ->statePath('data');
     }
 
-    public function create(): void
+    // Renamed from create() to save() to handle both scenarios
+    public function save(): void
     {
         $data = $this->form->getState();
 
@@ -406,54 +453,58 @@ class CreateStudentEntry extends Page
             }
         }
 
-        // Create entry
-        $entry = StudentEntry::create([
-            'student_id'   => $this->record->id,
-            'user_id'      => Auth::id(),
-            'center_id'    => $centerId,
-            'entry_type'   => $data['entry_type'],
-            'entry_time'   => $data['entry_time'],
+        // ─── Update or Create Entry ───
+        if ($this->entryInstance) {
+            $this->entryInstance->update([
+                'center_id' => $centerId,
+                'entry_type' => $data['entry_type'],
+                'entry_time' => $data['entry_time'],
+            ]);
 
-        ]);
+            $entry = $this->entryInstance;
 
-        // Attach regular services
+            // Delete old services to re-sync them cleanly
+            $entry->services()->delete();
+        } else {
+            $entry = StudentEntry::create([
+                'student_id' => $this->record->id,
+                'user_id' => Auth::id(),
+                'center_id' => $centerId,
+                'entry_type' => $data['entry_type'],
+                'entry_time' => $data['entry_time'],
+            ]);
+        }
+
+        // ─── Re-attach regular services ───
         foreach ($services as $serviceData) {
             if (! empty($serviceData['service_id'])) {
                 EntryService::create([
-                    'entry_id'   => $entry->id,
+                    'entry_id' => $entry->id,
                     'service_id' => $serviceData['service_id'],
-                    'amount'     => (int) ($serviceData['amount'] ?? 1),
+                    'amount' => (int) ($serviceData['amount'] ?? 1),
                     'price_at_time' => (float) ($serviceData['price'] ?? 0),
-                    'total'      => (float) ($serviceData['price'] ?? 0) * (int) ($serviceData['amount'] ?? 1),
+                    'total' => (float) ($serviceData['price'] ?? 0) * (int) ($serviceData['amount'] ?? 1),
                 ]);
             }
         }
 
-        // Attach day services (amount = 1)
+        // ─── Re-attach day services ───
         foreach ($dayServices as $serviceId) {
             $price = (float) ($dayPrices[$serviceId] ?? 0);
             EntryService::create([
-                'entry_id'      => $entry->id,
-                'service_id'    => $serviceId,
-                'amount'        => 1,
+                'entry_id' => $entry->id,
+                'service_id' => $serviceId,
+                'amount' => 1,
                 'price_at_time' => $price,
-                'total'         => $price,
+                'total' => $price,
             ]);
         }
 
         Notification::make()
-            ->title(__('general.labels.entry_recorded_successfully'))
+            ->title($this->entryInstance ? 'تم تحديث الدخولية بنجاح' : __('general.labels.entry_recorded_successfully'))
             ->success()
             ->send();
 
         $this->redirect(static::getResource()::getUrl('view', ['record' => $this->record]));
     }
-
-    // protected function getHeaderActions(): array
-    // {
-    //     return [
-    //         Actions\CancelAction::make()
-    //             ->url(static::getResource()::getUrl('index')),
-    //     ];
-    // }
 }

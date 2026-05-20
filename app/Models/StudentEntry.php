@@ -37,7 +37,7 @@ class StudentEntry extends Model
         return $this->hasMany(EntryService::class, 'entry_id');
     }
 
-    public function getTotalAmountAttribute(): float
+    public function getTotalAmountAttribute(): int
     {
         return $this->services->sum('total');
     }
