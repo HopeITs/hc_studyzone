@@ -42,12 +42,18 @@ class StudentEntry extends Model
         return $this->services->sum('total');
     }
 
-    public function getServicesListAttribute(): string
-    {
-        return $this->services->map(function ($service) {
-            return $service->service->name;
-        })->implode(', ');
-    }
+ public function getServicesListAttribute(): string
+{
+    return $this->services()
+        ->select('service_id')
+        ->distinct()
+        ->get()
+        ->map(function ($service) {
+            return $service->service->category->unit === 'paper' ? 'طباعة' : $service->service->name;
+        })
+        ->unique() // This removes any duplicate strings (like multiple 'طباعة')
+        ->implode(', ');
+}
 
 }
 
