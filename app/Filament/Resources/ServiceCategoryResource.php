@@ -90,13 +90,18 @@ class ServiceCategoryResource extends Resource
     {
         return [
             'index' => ServiceCategoryResource\Pages\ListServiceCategories::route('/'),
-         
+
         ];
     }
 
     public static function canCreate(): bool
     {
         return Auth::user()->role === Roles::GeneralAdmin();
+    }
+
+      public static function canViewAny(): bool
+    {
+        return auth()->user()->role === Roles::GeneralAdmin();
     }
 
     public static function canEdit($record): bool

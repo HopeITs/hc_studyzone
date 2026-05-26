@@ -56,6 +56,10 @@ class ServiceResource extends Resource
                     $p0->where('city_id', $user->city_id);
                 });
             });
+        }else{
+             return $query->whereHas('centerPrices', function ($q) use ($user) {
+                    $q->where('center_id', $user->center_id);
+            });
         }
 
         return $query->whereRaw('1 = 0');
@@ -143,6 +147,7 @@ class ServiceResource extends Resource
         $user = Auth::user();
         $isGeneralAdmin = $user->role === Roles::GeneralAdmin();
         $isCityAdmin = $user->role === Roles::CityAdmin();
+         $isCenterAdmin = $user->role === Roles::CenterAdmin();
         $cityId = $user->city_id;
 
         return $table
@@ -160,11 +165,14 @@ class ServiceResource extends Resource
 
                 TextColumn::make('price_display')
                     ->label(__('general.services_module.price'))
-                    ->state(function (Service $record) {
-                        $range = $record->centerPrices()
-                            ->where('is_active', true)
-                            ->selectRaw('MIN(price) as min_price, MAX(price) as max_price')
-                            ->first();
+                    ->state(function (Service $record) use ($isCenterAdmin) {
+                        if($isCenterAdmin){
+                                return $record->price . ' SYP';
+                        }else{
+                            $range = $record->centerPrices()
+                                ->where('is_active', true)
+                                ->selectRaw('MIN(price) as min_price, MAX(price) as max_price')
+                                ->first();
 
                         if ($range && $range->min_price !== null) {
                             $min = $range->min_price;
@@ -173,6 +181,8 @@ class ServiceResource extends Resource
 
                             return $price;
                         }
+                        }
+
 
                         return null;
 
@@ -183,10 +193,10 @@ class ServiceResource extends Resource
                     ->label(__('general.services_module.average_price'))
                     ->formatStateUsing(fn ($state) => $state ? number_format($state, 2).' SYP' : '-')
                     ->color('info')
-                    ->visible($isGeneralAdmin),
+                    ->visible($isGeneralAdmin || $isCityAdmin),
 
-                TextColumn::make('cities_count')
-                    ->label(__('general.services_module.cities_count'))
+                TextColumn::make('centers_count')
+                    ->label(__('general.services_module.centers_count'))
                     ->state(fn (Service $record) => $record->centerPrices()->where('is_active', true)->count())
                     ->badge()
                     ->visible($isGeneralAdmin),
@@ -213,49 +223,10 @@ class ServiceResource extends Resource
                     ->preload()
                     ->columnSpan(1),
 
-                Filter::make('has_price_in_city')
-                    ->label(__('general.services_module.has_price_in_my_city'))
-                    ->form([
-                        Forms\Components\Toggle::make('has_price')
-                            ->label(__('general.services_module.show_only_with_price'))
-                            ->default(false),
-                    ])
-                    ->columnSpan(1)
-                    ->visible($isCityAdmin)
-                    ->query(function (Builder $query, array $data) use ($cityId) {
-                        if (! isset($data['has_price']) || ! $data['has_price']) {
-                            return $query;
-                        }
 
-                        return $query->whereHas('centerPrices', function ($q) use ($cityId) {
-                            $q->whereHas('center', function ($p0) use ($cityId) {
-                                $p0->where('city_id', $cityId);
-                            })
-                                ->where('is_active', true);
-                        });
-                    }),
 
-                Filter::make('missing_price_in_city')
-                    ->label(__('general.services_module.services_without_price'))
-                    ->form([
-                        Forms\Components\Toggle::make('missing_price')
-                            ->label(__('general.services_module.show_without_price'))
-                            ->default(false),
-                    ])
-                    ->columnSpan(1)
-                    ->visible($isCityAdmin)
-                    ->query(function (Builder $query, array $data) use ($cityId) {
-                        if (! isset($data['missing_price']) || ! $data['missing_price']) {
-                            return $query;
-                        }
 
-                        return $query->whereDoesntHave('centerPrices', function ($q) use ($cityId) {
-                            $q->whereHas('center', function ($p0) use ($cityId) {
-                                $p0->where('city_id', $cityId);
-                            })
-                                ->where('is_active', true);
-                        });
-                    }),
+               
             ])
             ->filtersTriggerAction(fn (Action $action) => $action->button()->label(''))
             ->actions([

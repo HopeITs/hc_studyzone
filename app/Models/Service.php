@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\DB;
-
+use Illuminate\Database\Eloquent\Casts\Attribute;
 class Service extends Model
 {
     protected $fillable = ['name', 'category_id', 'is_active'];
@@ -55,5 +55,12 @@ class Service extends Model
             ->where('center_id', $centerId)
             ->where('is_active', true)
             ->exists();
+    }
+
+      protected function price(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => $this->centerPrices()->whereNull('end_date')->where('is_active',1)->first()?->price,
+        );
     }
 }
