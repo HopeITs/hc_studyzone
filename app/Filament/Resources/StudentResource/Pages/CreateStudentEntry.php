@@ -505,6 +505,6 @@ class CreateStudentEntry extends Page
             ->success()
             ->send();
 
-        $this->redirect(static::getResource()::getUrl('view', ['record' => $this->record]));
+        $this->redirect(static::getResource()::getUrl('index'));
     }
 }

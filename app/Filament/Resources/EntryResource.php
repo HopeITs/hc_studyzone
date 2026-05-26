@@ -223,7 +223,6 @@ class EntryResource extends Resource
                 TextColumn::make('total_amount')
                     ->label('الإجمالي')
                     ->formatStateUsing(fn ($record) => $record->total_amount . ' SYP')
-                    ->sortable()
                     ->color('success')
                     ->toggleable(),
 

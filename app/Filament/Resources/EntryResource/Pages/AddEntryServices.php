@@ -267,16 +267,16 @@ class AddEntryServices extends Page implements HasForms
         ];
     }
 
-    protected function getHeaderActions(): array
-    {
-        return [
-            Action::make('save')
-                ->label('حفظ الخدمات')
+    // protected function getHeaderActions(): array
+    // {
+    //     return [
+    //         Action::make('save')
+    //             ->label('حفظ الخدمات')
 
-                ->icon('heroicon-o-check')
-                ->action('saveServices'),
-        ];
-    }
+    //             ->icon('heroicon-o-check')
+    //             ->action('saveServices'),
+    //     ];
+    // }
 
     public function saveServices(): void
     {
