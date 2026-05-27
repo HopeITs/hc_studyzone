@@ -52,7 +52,7 @@ class StudentEntry extends Model
             return $service->service->category->unit === 'paper' ? 'طباعة' : $service->service->name;
         })
         ->unique() // This removes any duplicate strings (like multiple 'طباعة')
-        ->implode(', ');
+        ->implode(', ') ?? '-' ;
 }
 
 }

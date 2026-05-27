@@ -19,6 +19,7 @@ use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 
 class ServicesRelationManager extends RelationManager
 {
@@ -46,6 +47,7 @@ class ServicesRelationManager extends RelationManager
                     ->label('نوع الخدمة')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('amount')
+                    ->formatStateUsing(fn (Model $record) => $record->amount.' '.__('general.services_module.units.'.$record->service->category->unit))
                     ->label('الكمية')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('price_at_time')
@@ -53,6 +55,11 @@ class ServicesRelationManager extends RelationManager
                     ->money('SYP')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('total')
+                    ->label('السعر الاجمالي')
+                    ->money('SYP')
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('updated_at')
+                    ->formatStateUsing(fn (Model $record) => $record->total * 100)
                     ->label('السعر الاجمالي')
                     ->money('SYP')
                     ->sortable(),
@@ -70,7 +77,7 @@ class ServicesRelationManager extends RelationManager
                     ->modalHeading('شراء خدمات إضافية')
                     ->modalSubmitActionLabel('إضافة وتحديث الإجمالي')
                     ->form(function () {
-                        $record   = $this->getOwnerRecord();
+                        $record = $this->getOwnerRecord();
                         $centerId = $record->center_id;
 
                         // Existing daily service IDs already linked to this entry
@@ -95,10 +102,10 @@ class ServicesRelationManager extends RelationManager
                                         ->orderBy('name')
                                         ->get()
                                         ->mapWithKeys(function ($service) {
-                                            $price       = $service->centerPrices->first()?->price ?? 0;
+                                            $price = $service->centerPrices->first()?->price ?? 0;
                                             $categoryName = $service->category?->name ?? '';
 
-                                            return [$service->id => "{$categoryName}: {$service->name} — " . number_format($price) . ' ل.س/يوم'];
+                                            return [$service->id => "{$categoryName}: {$service->name} — ".number_format($price).' ل.س/يوم'];
                                         });
                                 })
                                 ->searchable()
@@ -149,7 +156,7 @@ class ServicesRelationManager extends RelationManager
                                                         ->mapWithKeys(function ($service) {
                                                             $price = $service->centerPrices->first()?->price ?? 0;
 
-                                                            return [$service->id => "{$service->name} — " . number_format($price) . ' ل.س'];
+                                                            return [$service->id => "{$service->name} — ".number_format($price).' ل.س'];
                                                         });
                                                 })
                                                 ->required()
@@ -191,14 +198,14 @@ class ServicesRelationManager extends RelationManager
                             Placeholder::make('grand_total_placeholder')
                                 ->label('')
                                 ->content(function (callable $get) use ($centerId) {
-                                    $services    = $get('services') ?? [];
+                                    $services = $get('services') ?? [];
                                     $dayServices = $get('day_services') ?? [];
-                                    $total       = 0;
-                                    $itemsCount  = 0;
+                                    $total = 0;
+                                    $itemsCount = 0;
 
                                     foreach ($services as $service) {
                                         if (! empty($service['service_id'])) {
-                                            $price  = (float) ($service['price'] ?? 0);
+                                            $price = (float) ($service['price'] ?? 0);
                                             $amount = (int) ($service['amount'] ?? 1);
                                             $total += ($price * $amount);
                                             $itemsCount++;
@@ -231,7 +238,7 @@ class ServicesRelationManager extends RelationManager
                         ];
                     })
                     ->action(function (array $data) {
-                        $record   = $this->getOwnerRecord();
+                        $record = $this->getOwnerRecord();
                         $centerId = $record->center_id;
 
                         // 1. Add daily services
@@ -244,11 +251,11 @@ class ServicesRelationManager extends RelationManager
                             foreach ($data['day_services'] as $serviceId) {
                                 $price = (float) ($dayPrices[$serviceId] ?? 0);
                                 EntryService::create([
-                                    'entry_id'     => $record->id,
-                                    'service_id'   => $serviceId,
-                                    'amount'       => 1,
+                                    'entry_id' => $record->id,
+                                    'service_id' => $serviceId,
+                                    'amount' => 1,
                                     'price_at_time' => $price,
-                                    'total'        => $price,
+                                    'total' => $price,
                                 ]);
                             }
                         }
@@ -257,15 +264,15 @@ class ServicesRelationManager extends RelationManager
                         if (! empty($data['services'])) {
                             foreach ($data['services'] as $serviceData) {
                                 if (! empty($serviceData['service_id'])) {
-                                    $price  = (float) ($serviceData['price'] ?? 0);
+                                    $price = (float) ($serviceData['price'] ?? 0);
                                     $amount = (int) ($serviceData['amount'] ?? 1);
 
                                     EntryService::create([
-                                        'entry_id'     => $record->id,
-                                        'service_id'   => $serviceData['service_id'],
-                                        'amount'       => $amount,
+                                        'entry_id' => $record->id,
+                                        'service_id' => $serviceData['service_id'],
+                                        'amount' => $amount,
                                         'price_at_time' => $price,
-                                        'total'        => $price * $amount,
+                                        'total' => $price * $amount,
                                     ]);
                                 }
                             }

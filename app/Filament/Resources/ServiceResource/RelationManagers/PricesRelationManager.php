@@ -8,10 +8,11 @@ use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
-use Filament\Tables\Table;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
+use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 
 class PricesRelationManager extends RelationManager
 {
@@ -44,18 +45,18 @@ class PricesRelationManager extends RelationManager
                     ->dehydrated(), // Ensure disabled value is still saved
 
                 Forms\Components\TextInput::make('price')
-                    ->label(__('general.labels.price'))
+                    ->label('السعر (عملة جديدة)')
                     ->numeric()
                     ->suffix('SYP')
                     ->required(),
 
                 Forms\Components\DatePicker::make('start_date')
-                    ->label(__('general.labels.start_date'))
+                    ->label('تاريخ البداية')
                     ->required()
                     ->default(now()),
 
                 Forms\Components\DatePicker::make('end_date')
-                    ->label(__('general.labels.end_date'))
+                    ->label('تاريخ النهاية')
                     ->disabled(fn (Forms\Get $get) => $get('is_active'))
                     ->dehydrated(),
             ]);
@@ -69,7 +70,7 @@ class PricesRelationManager extends RelationManager
             ->modifyQueryUsing(function (Builder $query) use ($user) {
                 // Restrict the query based on the user's role
                 if ($user->role === Roles::CityAdmin()) {
-                    $query->whereHas('center', fn($q) => $q->where('city_id', $user->city_id));
+                    $query->whereHas('center', fn ($q) => $q->where('city_id', $user->city_id));
                 } elseif ($user->role === Roles::CenterAdmin()) {
                     $query->where('center_id', $user->center_id);
                 }
@@ -81,23 +82,27 @@ class PricesRelationManager extends RelationManager
                     ->visible($user->role !== Roles::CenterAdmin()), // Hide column if it's always the same center
 
                 Tables\Columns\TextColumn::make('price')
-                    ->label(__('general.labels.price'))
+                    ->label('السعر')
+                    ->suffix(' SYP'),
+                Tables\Columns\TextColumn::make('created_at') //old price
+                    ->formatStateUsing(fn (Model $record) => $record->price*100)
+                    ->label('السعر (عملة قديمة)')
                     ->suffix(' SYP'),
 
                 Tables\Columns\IconColumn::make('is_active')
-                    ->label(__('general.labels.status'))
+                    ->label('الحالة')
                     ->boolean()
                     ->trueIcon('heroicon-o-check-circle')
                     ->falseIcon('heroicon-o-x-circle')
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('start_date')
-                    ->label(__('general.labels.start_date'))
+                    ->label('تاريخ البداية')
                     ->dateTime('Y-m-d')
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('end_date')
-                    ->label(__('general.labels.end_date'))
+                    ->label('تاريخ النهاية')
                     ->dateTime('Y-m-d')
                     ->placeholder('-'),
             ])
@@ -113,7 +118,7 @@ class PricesRelationManager extends RelationManager
 
                 SelectFilter::make('center_id')
                     ->label('المركز')
-                    ->relationship('center', 'name', fn($query) => $user->role === Roles::CityAdmin() ? $query->where('city_id', $user->city_id) : $query)
+                    ->relationship('center', 'name', fn ($query) => $user->role === Roles::CityAdmin() ? $query->where('city_id', $user->city_id) : $query)
                     ->searchable()
                     ->columnSpan($user->role === Roles::GeneralAdmin() ? 1 : 4)
                     ->hidden($user->role === Roles::CenterAdmin())
@@ -121,10 +126,11 @@ class PricesRelationManager extends RelationManager
                     ->preload(),
 
                 TernaryFilter::make('is_active')
+                ->label('الحالة')
                     ->placeholder('الكل')
-                    ->trueLabel('نعم')
-                    ->falseLabel('لا')
-                    ->columnSpan(1),
+                    ->trueLabel('فعالة')
+                    ->falseLabel('غير فعال')
+                  ,
             ])
             ->headerActions([
                 Tables\Actions\CreateAction::make()
@@ -140,6 +146,7 @@ class PricesRelationManager extends RelationManager
                             ]);
 
                         $data['is_active'] = true;
+
                         return $data;
                     }),
             ])

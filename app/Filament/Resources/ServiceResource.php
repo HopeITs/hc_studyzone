@@ -91,12 +91,12 @@ class ServiceResource extends Resource
                             ->visible($isGeneralAdmin),
 
                         Forms\Components\TextInput::make('initial_price')
-                            ->label(__('general.services_module.initial_price'))
+                            ->label(__('general.services_module.initial_price').' (عملة جديدة) ')
                             ->numeric()
                             ->prefix('SYP')
                             ->required($isGeneralAdmin && ! $form->getRecord())
                             ->visible($isGeneralAdmin)
-                            ->helperText('سيتم تعيين هذا السعر لجميع المراكز بشكل افتراضي'),
+                            ->helperText('سيتم تعيين هذا السعر لجميع المراكز بشكل افتراضي - يرجى إدخال السعر بالعملة الجديدة'),
                     ])->columns(2),
             ]);
     }
@@ -179,28 +179,12 @@ class ServiceResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make()
-                    ->visible(fn () => $isGeneralAdmin || $isCityAdmin || $isCenterAdmin), // Allow all to edit
+                    ->visible(fn () => $isGeneralAdmin || $isCityAdmin ), // Allow all to edit
 
                 Tables\Actions\DeleteAction::make()
                     ->visible(fn () => $isGeneralAdmin),
 
-                Tables\Actions\Action::make('remove_from_city')
-                    ->label(__('general.services_module.remove_from_city'))
-                    ->icon('heroicon-o-trash')
-                    ->color('danger')
-                    ->visible($isCityAdmin)
-                    ->requiresConfirmation()
-                    ->action(function (Service $record) use ($cityId) {
-                        $record->centerPrices()
-                            ->whereHas('center', function ($q) use ($cityId) {
-                                $q->where('city_id', $cityId);
-                            })->delete();
 
-                        \Filament\Notifications\Notification::make()
-                            ->success()
-                            ->title(__('general.services_module.service_removed_from_city'))
-                            ->send();
-                    }),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

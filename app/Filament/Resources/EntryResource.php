@@ -216,13 +216,18 @@ class EntryResource extends Resource
 
                 TextColumn::make('services_list')
                     ->label('الخدمات المقدمة')
-                    ->formatStateUsing(fn ($record) => $record->services_list ?: '-')
+                    ->formatStateUsing(fn ($record) => $record->services_list ?? '-')
                     ->toggleable(),
 
                 TextColumn::make('total_amount')
                     ->label('الإجمالي')
                     ->formatStateUsing(fn ($record) => $record->total_amount . ' SYP')
                     ->color('success')
+                    ->toggleable(),
+                           TextColumn::make('created_at')
+                    ->label('الإجمالي (قديم)')
+                    ->formatStateUsing(fn ($record) => $record->total_amount*100 . ' SYP')
+                    ->color('info')
                     ->toggleable(),
 
                 TextColumn::make('entry_time')
