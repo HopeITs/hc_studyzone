@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+
 class Service extends Model
 {
     protected $fillable = ['name', 'category_id', 'is_active'];
@@ -39,6 +40,15 @@ class Service extends Model
         return $price?->price;
     }
 
+    public function getPriceRangeForCity(int $cityId): ?object
+    {
+        return $this->centerPrices()
+            ->where('is_active', true)
+            ->whereHas('center', fn($q) => $q->where('city_id', $cityId))
+            ->selectRaw('MIN(price) as min_price, MAX(price) as max_price')
+            ->first();
+    }
+
     public function getAveragePriceAttribute(): ?float
     {
         $avg = $this->centerPrices()
@@ -57,10 +67,10 @@ class Service extends Model
             ->exists();
     }
 
-      protected function price(): Attribute
+    protected function price(): Attribute
     {
         return Attribute::make(
-            get: fn () => $this->centerPrices()->whereNull('end_date')->where('is_active',1)->first()?->price,
+            get: fn () => $this->centerPrices()->whereNull('end_date')->where('is_active', 1)->first()?->price,
         );
     }
 }
