@@ -217,7 +217,6 @@ class EntryResource extends Resource
                 TextColumn::make('services_list')
                     ->label('الخدمات المقدمة')
                     ->formatStateUsing(fn ($record) => $record->services_list ?: '-')
-                    ->searchable()
                     ->toggleable(),
 
                 TextColumn::make('total_amount')
