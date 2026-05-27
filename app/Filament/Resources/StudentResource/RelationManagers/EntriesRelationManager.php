@@ -132,6 +132,7 @@ class EntriesRelationManager extends RelationManager
     {
         return $table
             ->recordTitleAttribute('entry_time')
+            ->defaultSort('entry_time','desc')
             ->columns([
                 TextColumn::make('entry_type')
                     ->label('النوع')
@@ -170,7 +171,7 @@ class EntriesRelationManager extends RelationManager
                     ->color('info')
                     ->url(fn ($record) => EntryResource::getUrl('view', [
                         'record' => $record->id,
-                     
+
                     ]))
                     ->openUrlInNewTab(),
 
