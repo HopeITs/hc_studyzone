@@ -216,7 +216,7 @@ class ServiceResource extends Resource
     {
         $user = Auth::user();
         // Allow General Admin, City Admin, and Center Admin to access the edit page
-        return $user->role === Roles::GeneralAdmin() || $user->role === Roles::CityAdmin() || $user->role === Roles::CenterAdmin();
+        return $user->role === Roles::GeneralAdmin() || $user->role === Roles::CityAdmin() ;
     }
 
     public static function canDelete($record): bool
