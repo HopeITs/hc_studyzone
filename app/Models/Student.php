@@ -2,24 +2,29 @@
 
 namespace App\Models;
 
+use App\Enums\Nationality;
 use App\Traits\ActivityLog;
-use Filament\Models\Contracts\FilamentUser;
+use Carbon\Carbon;
 use Filament\Models\Contracts\HasName;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use App\Enums\Nationality;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+
 class Student extends Model implements HasName
 {
-    use HasUuids, HasFactory, ActivityLog;
+    use ActivityLog, HasFactory, HasUuids;
 
     public $incrementing = false;
+
     protected $keyType = 'string';
+
     protected $guarded = ['is_child', 'city_id'];
+
     protected $primaryKey = 'id';
 
     protected $casts = [
@@ -39,7 +44,7 @@ class Student extends Model implements HasName
         });
     }
 
-    public function entries(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function entries(): HasMany
     {
         return $this->hasMany(StudentEntry::class);
     }
@@ -47,12 +52,22 @@ class Student extends Model implements HasName
     public function educations(): BelongsToMany
     {
         return $this->belongsToMany(Education::class, 'student_educations')
-            ->withPivot(['level', 'type' , 'start_date' , 'end_date'])
+            ->withPivot(['level', 'type', 'start_date', 'end_date'])
             ->wherePivot('end_date', null)
             ->withTimestamps();
     }
 
+    public function firstEntry(): HasOne
+    {
+        return $this->hasOne(StudentEntry::class)->oldestOfMany();
+    }
 
+    protected function center(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => $this->firstEntry?->center?->name,
+        );
+    }
 
     protected function education(): Attribute
     {
@@ -99,9 +114,9 @@ class Student extends Model implements HasName
         }
 
         if ($this->nationality === 'syrian' && empty($this->is_child)) {
-            if (empty($this->national_number) && !$this->skip_national_number) {
+            if (empty($this->national_number) && ! $this->skip_national_number) {
                 $errors[] = 'الرقم الوطني مطلوب للطلاب السوريين غير القاصرين';
-            } elseif (!empty($this->national_number) && !preg_match('/^\d{11}$/', $this->national_number)) {
+            } elseif (! empty($this->national_number) && ! preg_match('/^\d{11}$/', $this->national_number)) {
                 $errors[] = 'الرقم الوطني يجب أن يحتوي على 11 رقمًا للطلاب السوريين';
             }
         }
@@ -109,22 +124,22 @@ class Student extends Model implements HasName
         if ($this->nationality === 'syrian') {
             if (empty($this->phone)) {
                 $errors[] = 'رقم الهاتف مطلوب للطلاب السوريين';
-            } elseif (!preg_match('/^9\d{9}$/', $this->phone)) {
+            } elseif (! preg_match('/^9\d{9}$/', $this->phone)) {
                 $errors[] = 'رقم الهاتف السوري يجب أن يبدأ بالرقم 9 ويحتوي على 10 أرقام';
             }
 
-            if (!empty($this->whatsapp) && !preg_match('/^9\d{9}$/', $this->whatsapp)) {
+            if (! empty($this->whatsapp) && ! preg_match('/^9\d{9}$/', $this->whatsapp)) {
                 $errors[] = 'رقم الواتساب السوري يجب أن يبدأ بالرقم 9 ويحتوي على 10 أرقام';
             }
         }
 
-        if ($this->nationality === 'other' && !empty($this->whatsapp)) {
-            if (!preg_match('/^[0-9+\-\s()]+$/', $this->whatsapp)) {
+        if ($this->nationality === 'other' && ! empty($this->whatsapp)) {
+            if (! preg_match('/^[0-9+\-\s()]+$/', $this->whatsapp)) {
                 $errors[] = 'رقم الواتساب الأجنبي غير صحيح';
             }
         }
 
-        if ($this->nationality === 'other' && empty($this->national_number) && empty($this->is_child) && !$this->skip_national_number) {
+        if ($this->nationality === 'other' && empty($this->national_number) && empty($this->is_child) && ! $this->skip_national_number) {
             $errors[] = 'رقم الإقامة/الهوية الأجنبية مطلوب للطلاب غير السوريين غير القاصرين';
         }
 
@@ -156,56 +171,53 @@ class Student extends Model implements HasName
         $this->saveQuietly();
     }
 
+    public function getEducationAtDate($date): ?StudentEducation
+    {
+        return $this->studentEducations()
+            ->where(function ($query) use ($date) {
+                $query->where('start_date', '<=', $date)
+                    ->where(function ($q) use ($date) {
+                        $q->where('end_date', '>=', $date)
+                            ->orWhereNull('end_date');
+                    });
+            })
+            ->first();
+    }
 
-public function getEducationAtDate($date): ?StudentEducation
-{
-    return $this->studentEducations()
-        ->where(function ($query) use ($date) {
-            $query->where('start_date', '<=', $date)
-                ->where(function ($q) use ($date) {
-                    $q->where('end_date', '>=', $date)
-                      ->orWhereNull('end_date');
-                });
-        })
-        ->first();
-}
+    public function getEducationStatsForDateRange($startDate, $endDate)
+    {
+        $startDate = $startDate instanceof Carbon ? $startDate : Carbon::parse($startDate);
+        $endDate = $endDate instanceof Carbon ? $endDate : Carbon::parse($endDate);
 
+        return $this->studentEducations()
+            ->with('education')
+            ->get()
+            ->map(function ($studentEdu) use ($startDate, $endDate) {
+                $eduStart = $studentEdu->start_date instanceof Carbon
+                    ? $studentEdu->start_date
+                    : Carbon::parse($studentEdu->start_date);
 
-   public function getEducationStatsForDateRange($startDate, $endDate)
-{
-    $startDate = $startDate instanceof \Carbon\Carbon ? $startDate : \Carbon\Carbon::parse($startDate);
-    $endDate = $endDate instanceof \Carbon\Carbon ? $endDate : \Carbon\Carbon::parse($endDate);
-    
-    return $this->studentEducations()
-        ->with('education')
-        ->get()
-        ->map(function ($studentEdu) use ($startDate, $endDate) {
-            $eduStart = $studentEdu->start_date instanceof \Carbon\Carbon 
-                ? $studentEdu->start_date 
-                : \Carbon\Carbon::parse($studentEdu->start_date);
-                
-            $eduEnd = $studentEdu->end_date 
-                ? ($studentEdu->end_date instanceof \Carbon\Carbon 
-                    ? $studentEdu->end_date 
-                    : \Carbon\Carbon::parse($studentEdu->end_date))
-                : null;
-            
-            $overlapStart = $eduStart->greaterThan($startDate) ? $eduStart : $startDate;
-            $overlapEnd = $eduEnd && $eduEnd->lessThan($endDate) ? $eduEnd : $endDate;
-            
-            $days = $overlapStart->lessThanOrEqualTo($overlapEnd) 
-                ? $overlapStart->diffInDays($overlapEnd) + 1 
-                : 0;
-            
-            return [
-                'education' => $studentEdu->education,
-                'student_education' => $studentEdu,
-                'overlap_days' => $days,
-                'overlap_start' => $overlapStart->toDateString(),
-                'overlap_end' => $overlapEnd->toDateString(),
-            ];
-        })
-        ->filter(fn($item) => $item['overlap_days'] > 0);
-}
+                $eduEnd = $studentEdu->end_date
+                    ? ($studentEdu->end_date instanceof Carbon
+                        ? $studentEdu->end_date
+                        : Carbon::parse($studentEdu->end_date))
+                    : null;
 
+                $overlapStart = $eduStart->greaterThan($startDate) ? $eduStart : $startDate;
+                $overlapEnd = $eduEnd && $eduEnd->lessThan($endDate) ? $eduEnd : $endDate;
+
+                $days = $overlapStart->lessThanOrEqualTo($overlapEnd)
+                    ? $overlapStart->diffInDays($overlapEnd) + 1
+                    : 0;
+
+                return [
+                    'education' => $studentEdu->education,
+                    'student_education' => $studentEdu,
+                    'overlap_days' => $days,
+                    'overlap_start' => $overlapStart->toDateString(),
+                    'overlap_end' => $overlapEnd->toDateString(),
+                ];
+            })
+            ->filter(fn ($item) => $item['overlap_days'] > 0);
+    }
 }

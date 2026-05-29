@@ -8,8 +8,10 @@ use App\Filament\Resources\StudentResource\Pages;
 use App\Filament\Resources\StudentResource\RelationManagers;
 use App\Models\Center;
 use App\Models\City;
+use App\Models\Education;
 use App\Models\Street;
 use App\Models\Student;
+use App\Models\StudentEducation;
 use App\Models\StudentEntry;
 use Carbon\Carbon;
 use Closure;
@@ -18,6 +20,9 @@ use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Fieldset;
+use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -44,9 +49,12 @@ use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
-use UnitEnum; // Import this for type checking
+use UnitEnum;
+
+// Import this for type checking
 
 class StudentResource extends Resource
 {
@@ -68,7 +76,7 @@ class StudentResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->with('educations');
+        return parent::getEloquentQuery()->with(['educations','firstEntry.center']);
     }
 
     public static function form(Form $form): Form
@@ -81,7 +89,7 @@ class StudentResource extends Resource
         return Wizard\Step::make(__('general.labels.personal_information').' & '.__('general.labels.contact_information'))
             ->schema(
                 fn (?Student $record) => [
-                    \Filament\Forms\Components\Placeholder::make('data_status_notice')
+                    Placeholder::make('data_status_notice')
                         ->label('ملاحظة')
                         ->content(function (?Student $record) {
                             if (! $record) {
@@ -112,7 +120,7 @@ class StudentResource extends Resource
                     TextInput::make('lastname')->label(__('general.labels.lastname'))->required()->maxLength(255)->columnSpan(1),
                     TextInput::make('father_name')->label(__('general.labels.father_name'))->required()->maxLength(255)->columnSpan(1),
 
-                    \Filament\Forms\Components\Grid::make(3)->schema([
+                    Grid::make(3)->schema([
                         Select::make('nationality')
                             ->label(__('general.labels.nationality'))
                             ->options(__('general.nationalities'))
@@ -125,7 +133,7 @@ class StudentResource extends Resource
                                 $set('skip_national_number_reason', null);
                             }),
 
-                        \Filament\Forms\Components\Grid::make(2)
+                        Grid::make(2)
                             ->columnSpan(2)
                             ->schema([
                                 Checkbox::make('is_child')
@@ -301,225 +309,232 @@ class StudentResource extends Resource
     //         ->columns(1);
     // }
 
-protected static function educationStep(): Wizard\Step
-{
-    return Wizard\Step::make(__('general.labels.education'))
-        ->schema([
-            \Filament\Forms\Components\Repeater::make('educations')
-                ->relationship('studentEducations')
-                ->label(__('general.labels.educations'))
-                ->schema([
-                    Select::make('degree')
-                        ->label('الدرجة')
-                        ->options(__('general.edu-degrees'))
-                        ->reactive()
-                        ->afterStateUpdated(fn(callable $set) => $set('education_id', null))
-                        ->dehydrated(false)
-                        ->afterStateHydrated(function ($set, $state, $record) {
-                            if ($record && $record->education) {
-                                $set('degree', $record->education->degree);
-                            }
-                        }),
-                    Select::make('education_id')
-                        ->label(__('general.labels.education'))
-                        ->options(function (callable $get) {
-                            $degree = $get('degree');
-                            if ($degree instanceof UnitEnum) {
-                                $degree = $degree->value;
-                            }
-                            return $degree
-                                ? \App\Models\Education::where('degree', $degree)->pluck('name', 'id')
-                                : \App\Models\Education::pluck('name', 'id');
-                        })
-                        ->searchable()
-                        ->required(),
-                    Select::make('level')
-                        ->label(__('general.labels.education_level'))
-                        ->options(__('general.edu-levels'))
-                        ->required(),
-                    Select::make('type')
-                        ->label(__('general.labels.education_type'))
-                        ->options(__('general.edu-types'))
-                        ->required(),
-
-                    \Filament\Forms\Components\DatePicker::make('start_date')
-                        ->label('تاريخ البداية')
-                        ->default(now())
-                        ->required()
-                        ->displayFormat('Y-m-d'),
-
-                    \Filament\Forms\Components\DatePicker::make('end_date')
-                        ->label('تاريخ النهاية')
-                        ->nullable()
-                        ->after('start_date')
-                        ->helperText('اتركه فارغاً إذا كانت الدراسة مستمرة')
-                        ->maxDate(now())
-                        ->displayFormat('Y-m-d'),
-                ])
-                ->columns(2)
-                ->minItems(1)
-                ->addActionLabel(__('general.labels.add_education'))
-                ->columnSpanFull()
-                ->rules([
-                    function () {
-                        return function (string $attribute, $value, Closure $fail) {
-                            $seenCombinations = [];
-                            $groupedByEducation = [];
-
-                            // 1. Prepare data for Timeline and Active checks
-                            $timelineItems = [];
-                            $activeItems = [];
-// 1. Collect all active degrees for the exception check
-                            $activeDegrees = [];
-                            foreach ($value as $index => $item) {
-                                // Basic Data Check
-                                if (!isset($item['degree']) || !isset($item['level']) || !isset($item['education_id']) || !isset($item['start_date'])) {
-                                    continue;
+    protected static function educationStep(): Wizard\Step
+    {
+        return Wizard\Step::make(__('general.labels.education'))
+            ->schema([
+                Repeater::make('educations')
+                    ->relationship('studentEducations')
+                    ->label(__('general.labels.educations'))
+                    ->schema([
+                        Select::make('degree')
+                            ->label('الدرجة')
+                            ->options(__('general.edu-degrees'))
+                            ->reactive()
+                            ->afterStateUpdated(fn (callable $set) => $set('education_id', null))
+                            ->dehydrated(false)
+                            ->afterStateHydrated(function ($set, $state, $record) {
+                                if ($record && $record->education) {
+                                    $set('degree', $record->education->degree);
+                                }
+                            }),
+                        Select::make('education_id')
+                            ->label(__('general.labels.education'))
+                            ->options(function (callable $get) {
+                                $degree = $get('degree');
+                                if ($degree instanceof UnitEnum) {
+                                    $degree = $degree->value;
                                 }
 
-                                // A. Date Validation (No Future End Date)
-                                if (isset($item['end_date']) && Carbon::parse($item['end_date'])->isFuture()) {
-                                    Notification::make()->danger()->title('خطأ')->body('تاريخ النهاية لا يمكن أن يكون في المستقبل.')->send();
-                                    $fail('تاريخ النهاية لا يمكن أن يكون في المستقبل.');
-                                    return;
-                                }
+                                return $degree
+                                    ? Education::where('degree', $degree)->pluck('name', 'id')
+                                    : Education::pluck('name', 'id');
+                            })
+                            ->searchable()
+                            ->required(),
+                        Select::make('level')
+                            ->label(__('general.labels.education_level'))
+                            ->options(__('general.edu-levels'))
+                            ->required(),
+                        Select::make('type')
+                            ->label(__('general.labels.education_type'))
+                            ->options(__('general.edu-types'))
+                            ->required(),
 
-                                $degreeValue = $item['degree'];
-                                if ($degreeValue instanceof UnitEnum) {
-                                    $degreeValue = $degreeValue->value;
-                                }
-                                $degreeValue = (int) $degreeValue;
+                        DatePicker::make('start_date')
+                            ->label('تاريخ البداية')
+                            ->default(now())
+                            ->required()
+                            ->displayFormat('Y-m-d'),
 
-                                // B. Duplicate Degree + Level Check
-                                $degreeLevelKey = (string)$degreeValue . '_' . $item['level'] . '_'. $item['education_id'];
-                                if (in_array($degreeLevelKey, $seenCombinations)) {
-                                    Notification::make()->danger()->title('خطأ')->body('لا يمكن إضافة سجلين بنفس الدرجة والمستوى.')->send();
-                                    $fail('لا يمكن إضافة سجلين بنفس الدرجة والمستوى.');
-                                    return;
-                                }
-                                $seenCombinations[] = $degreeLevelKey;
+                        DatePicker::make('end_date')
+                            ->label('تاريخ النهاية')
+                            ->nullable()
+                            ->after('start_date')
+                            ->helperText('اتركه فارغاً إذا كانت الدراسة مستمرة')
+                            ->maxDate(now())
+                            ->displayFormat('Y-m-d'),
+                    ])
+                    ->columns(2)
+                    ->minItems(1)
+                    ->addActionLabel(__('general.labels.add_education'))
+                    ->columnSpanFull()
+                    ->rules([
+                        function () {
+                            return function (string $attribute, $value, Closure $fail) {
+                                $seenCombinations = [];
+                                $groupedByEducation = [];
 
-                                // C. Overlap Check (Same Education ID)
-                                $eduId = $item['education_id'];
-                                if (!isset($groupedByEducation[$eduId])) {
-                                    $groupedByEducation[$eduId] = [];
-                                }
+                                // 1. Prepare data for Timeline and Active checks
+                                $timelineItems = [];
+                                $activeItems = [];
+                                // 1. Collect all active degrees for the exception check
+                                $activeDegrees = [];
+                                foreach ($value as $index => $item) {
+                                    // Basic Data Check
+                                    if (! isset($item['degree']) || ! isset($item['level']) || ! isset($item['education_id']) || ! isset($item['start_date'])) {
+                                        continue;
+                                    }
 
-                                $currentStart = Carbon::parse($item['start_date']);
-                                $currentEnd = isset($item['end_date']) ? Carbon::parse($item['end_date']) : null;
+                                    // A. Date Validation (No Future End Date)
+                                    if (isset($item['end_date']) && Carbon::parse($item['end_date'])->isFuture()) {
+                                        Notification::make()->danger()->title('خطأ')->body('تاريخ النهاية لا يمكن أن يكون في المستقبل.')->send();
+                                        $fail('تاريخ النهاية لا يمكن أن يكون في المستقبل.');
 
-                                foreach ($groupedByEducation[$eduId] as $existingItem) {
-                                    $existStart = Carbon::parse($existingItem['start_date']);
-                                    $existEnd = isset($existingItem['end_date']) ? Carbon::parse($existingItem['end_date']) : now()->addYears(100);
-
-                                    // Use null as "far future" for comparison logic only
-                                    $checkEnd = $currentEnd ?? now()->addYears(100);
-
-                                    if ($currentStart->lt($existEnd) && $existStart->lt($checkEnd)) {
-                                        Notification::make()->danger()->title('خطأ')->body('يوجد تعارض في التواريخ لنفس التعليم.')->send();
-                                        $fail("يوجد تعارض في التواريخ: لا يمكن تسجيل نفس التعليم مرتين في نفس الفترة.");
                                         return;
                                     }
-                                }
-                                $groupedByEducation[$eduId][] = $item;
+
+                                    $degreeValue = $item['degree'];
+                                    if ($degreeValue instanceof UnitEnum) {
+                                        $degreeValue = $degreeValue->value;
+                                    }
+                                    $degreeValue = (int) $degreeValue;
+
+                                    // B. Duplicate Degree + Level Check
+                                    $degreeLevelKey = (string) $degreeValue.'_'.$item['level'].'_'.$item['education_id'];
+                                    if (in_array($degreeLevelKey, $seenCombinations)) {
+                                        Notification::make()->danger()->title('خطأ')->body('لا يمكن إضافة سجلين بنفس الدرجة والمستوى.')->send();
+                                        $fail('لا يمكن إضافة سجلين بنفس الدرجة والمستوى.');
+
+                                        return;
+                                    }
+                                    $seenCombinations[] = $degreeLevelKey;
+
+                                    // C. Overlap Check (Same Education ID)
+                                    $eduId = $item['education_id'];
+                                    if (! isset($groupedByEducation[$eduId])) {
+                                        $groupedByEducation[$eduId] = [];
+                                    }
+
+                                    $currentStart = Carbon::parse($item['start_date']);
+                                    $currentEnd = isset($item['end_date']) ? Carbon::parse($item['end_date']) : null;
+
+                                    foreach ($groupedByEducation[$eduId] as $existingItem) {
+                                        $existStart = Carbon::parse($existingItem['start_date']);
+                                        $existEnd = isset($existingItem['end_date']) ? Carbon::parse($existingItem['end_date']) : now()->addYears(100);
+
+                                        // Use null as "far future" for comparison logic only
+                                        $checkEnd = $currentEnd ?? now()->addYears(100);
+
+                                        if ($currentStart->lt($existEnd) && $existStart->lt($checkEnd)) {
+                                            Notification::make()->danger()->title('خطأ')->body('يوجد تعارض في التواريخ لنفس التعليم.')->send();
+                                            $fail('يوجد تعارض في التواريخ: لا يمكن تسجيل نفس التعليم مرتين في نفس الفترة.');
+
+                                            return;
+                                        }
+                                    }
+                                    $groupedByEducation[$eduId][] = $item;
 
                                     // 5. Populate Active Degrees List
-                                // An item is active if end_date is null or empty
-                                if (!isset($item['end_date']) || empty($item['end_date'])) {
-                                    $activeDegrees[] = (int) $degreeValue; // Ensure integer for comparison
-                                }
+                                    // An item is active if end_date is null or empty
+                                    if (! isset($item['end_date']) || empty($item['end_date'])) {
+                                        $activeDegrees[] = (int) $degreeValue; // Ensure integer for comparison
+                                    }
 
-                                // D. Collect for Timeline Check
-                                $timelineItems[] = [
-                                    'start' => $currentStart,
-                                    'end' => $currentEnd, // Can be null
-                                    'degree' => $degreeValue,
-                                    'name' => __("general.edu-degrees.{$degreeValue}") ?? "Degree {$degreeValue}"
-                                ];
-
-                                // E. Collect Active Items
-                                if (!$currentEnd) {
-                                    $activeItems[] = [
+                                    // D. Collect for Timeline Check
+                                    $timelineItems[] = [
+                                        'start' => $currentStart,
+                                        'end' => $currentEnd, // Can be null
                                         'degree' => $degreeValue,
-                                        'start_date' => $currentStart,
+                                        'name' => __("general.edu-degrees.{$degreeValue}") ?? "Degree {$degreeValue}",
                                     ];
-                                }
-                            }
 
-                            // --- 2. NO GAP VALIDATION ---
-                            // Sort items by start date
-                            usort($timelineItems, function ($a, $b) {
-                                return $a['start']->lt($b['start']) ? -1 : 1;
-                            });
-
-                            // Check gaps
-                            for ($i = 1; $i < count($timelineItems); $i++) {
-                                $prev = $timelineItems[$i - 1];
-                                $curr = $timelineItems[$i];
-
-                                // If previous item has an end date, check for gap
-                                if ($prev['end']) {
-                                    // Condition: Current Start MUST be <= Previous End
-                                    // If Current Start > Previous End -> It's a GAP.
-                                    if ($curr['start']->gt($prev['end'])) {
-                                        Notification::make()
-                                            ->danger()
-                                            ->title('خطأ: فجوة زمنية')
-                                            ->body("لا يمكن وجود فجوة بين الدراسات. دراسة '{$curr['name']}' تبدأ بعد انتهاء دراسة '{$prev['name']}'. يجب أن تكون الدراسة مستمرة.")
-                                            ->send();
-                                        $fail('لا يمكن وجود فجوة بين الدراسات. يجب أن يبدأ التعليم الجديد قبل أو عند انتهاء التعليم السابق.');
-                                        return;
+                                    // E. Collect Active Items
+                                    if (! $currentEnd) {
+                                        $activeItems[] = [
+                                            'degree' => $degreeValue,
+                                            'start_date' => $currentStart,
+                                        ];
                                     }
                                 }
-                            }
 
-                        // --- NEW ACTIVE EDUCATION LOGIC ---
+                                // --- 2. NO GAP VALIDATION ---
+                                // Sort items by start date
+                                usort($timelineItems, function ($a, $b) {
+                                    return $a['start']->lt($b['start']) ? -1 : 1;
+                                });
 
-                            $activeCount = count($activeDegrees);
+                                // Check gaps
+                                for ($i = 1; $i < count($timelineItems); $i++) {
+                                    $prev = $timelineItems[$i - 1];
+                                    $curr = $timelineItems[$i];
 
-                            // Rule A: Must have at least one active education
-                            if ($activeCount < 1) {
-                                Notification::make()
-                                    ->danger()
-                                    ->title('خطأ في توحيد البيانات')
-                                    ->body('يجب أن تكون هناك على الأقل دراسة واحدة نشطة (بدون تاريخ نهاية).')
-                                    ->send();
-                                $fail('يجب أن تكون هناك على الأقل دراسة واحدة نشطة (بدون تاريخ نهاية).');
-                                return;
-                            }
+                                    // If previous item has an end date, check for gap
+                                    if ($prev['end']) {
+                                        // Condition: Current Start MUST be <= Previous End
+                                        // If Current Start > Previous End -> It's a GAP.
+                                        if ($curr['start']->gt($prev['end'])) {
+                                            Notification::make()
+                                                ->danger()
+                                                ->title('خطأ: فجوة زمنية')
+                                                ->body("لا يمكن وجود فجوة بين الدراسات. دراسة '{$curr['name']}' تبدأ بعد انتهاء دراسة '{$prev['name']}'. يجب أن تكون الدراسة مستمرة.")
+                                                ->send();
+                                            $fail('لا يمكن وجود فجوة بين الدراسات. يجب أن يبدأ التعليم الجديد قبل أو عند انتهاء التعليم السابق.');
 
-                            // Rule B: Maximum 2 active educations allowed (specifically for the Degree 6 exception)
-                            if ($activeCount > 2) {
-                                Notification::make()
-                                    ->danger()
-                                    ->title('خطأ في عدد الدراسات النشطة')
-                                    ->body('لا يمكن أن يكون هناك أكثر من دراستين نشطتين في نفس الوقت.')
-                                    ->send();
-                                $fail('لا يمكن أن يكون هناك أكثر من دراستين نشطتين في نفس الوقت.');
-                                return;
-                            }
+                                            return;
+                                        }
+                                    }
+                                }
 
-                            // Rule C: If there are 2 active educations, one MUST be Degree 6 (High Secondary)
-                            if ($activeCount === 2) {
-                                // Check if Degree 6 is present in the active list
-                                $hasHighSchoolException = in_array(6, $activeDegrees);
+                                // --- NEW ACTIVE EDUCATION LOGIC ---
 
-                                if ($hasHighSchoolException) {
+                                $activeCount = count($activeDegrees);
+
+                                // Rule A: Must have at least one active education
+                                if ($activeCount < 1) {
                                     Notification::make()
                                         ->danger()
-                                        ->title('انتبه في تعدد الدراسات')
-                                        ->body(' هناك دراستان نشطتان إحداهما الثانوية العامة.')
+                                        ->title('خطأ في توحيد البيانات')
+                                        ->body('يجب أن تكون هناك على الأقل دراسة واحدة نشطة (بدون تاريخ نهاية).')
                                         ->send();
+                                    $fail('يجب أن تكون هناك على الأقل دراسة واحدة نشطة (بدون تاريخ نهاية).');
 
                                     return;
                                 }
-                            }
-                        };
-                    },
-                ]),
-        ])
-        ->columns(1);
-}
+
+                                // Rule B: Maximum 2 active educations allowed (specifically for the Degree 6 exception)
+                                if ($activeCount > 2) {
+                                    Notification::make()
+                                        ->danger()
+                                        ->title('خطأ في عدد الدراسات النشطة')
+                                        ->body('لا يمكن أن يكون هناك أكثر من دراستين نشطتين في نفس الوقت.')
+                                        ->send();
+                                    $fail('لا يمكن أن يكون هناك أكثر من دراستين نشطتين في نفس الوقت.');
+
+                                    return;
+                                }
+
+                                // Rule C: If there are 2 active educations, one MUST be Degree 6 (High Secondary)
+                                if ($activeCount === 2) {
+                                    // Check if Degree 6 is present in the active list
+                                    $hasHighSchoolException = in_array(6, $activeDegrees);
+
+                                    if ($hasHighSchoolException) {
+                                        Notification::make()
+                                            ->danger()
+                                            ->title('انتبه في تعدد الدراسات')
+                                            ->body(' هناك دراستان نشطتان إحداهما الثانوية العامة.')
+                                            ->send();
+
+                                        return;
+                                    }
+                                }
+                            };
+                        },
+                    ]),
+            ])
+            ->columns(1);
+    }
 
     public static function table(Table $table): Table
     {
@@ -573,6 +588,10 @@ protected static function educationStep(): Wizard\Step
             TextColumn::make('entries_count')->counts('entries')->label('Entries')->sortable()->toggleable(),
             TextColumn::make('whatsapp')->label('Whatsapp')->sortable()->searchable()->toggleable(isToggledHiddenByDefault: true),
             TextColumn::make('street.name')->label('Street')->toggleable()->sortable()->searchable(),
+            TextColumn::make('center')
+                ->label('Center')
+                ->toggleable()
+            ,
             TextColumn::make('educations')
                 ->label('Education')
                 ->formatStateUsing(function (Model $record) {
@@ -597,7 +616,7 @@ protected static function educationStep(): Wizard\Step
                 ->sortable(
                     query: function (Builder $query, string $direction): Builder {
                         return $query->orderBy(
-                            \App\Models\StudentEducation::select('education_id')
+                            StudentEducation::select('education_id')
                                 ->whereColumn('student_id', 'students.id')
                                 ->orderBy('start_date', 'desc')
                                 ->limit(1),
@@ -606,36 +625,36 @@ protected static function educationStep(): Wizard\Step
                     },
                 )
                 ->toggleable(),
-               TextColumn::make('education_level')
-    ->label(__('general.labels.education_level'))
-    ->state(function (Student $record) {
-        return $record->studentEducations()
-            ->orderBy('start_date', 'desc')
-            ->first()?->level;
-    })
-    ->formatStateUsing(fn ($state) => $state !== null ? (__('general.edu-levels.'.$state)) : '-')
-    ->sortable(query: function (Builder $query, string $direction): Builder {
-        return $query->orderBy(
-            \App\Models\StudentEducation::select('level')
-                ->whereColumn('student_id', 'students.id')
-                ->orderBy('start_date', 'desc')
-                ->limit(1),
-            $direction
-        );
-    })
-    ->searchable(query: function (Builder $query, string $search): Builder {
-        return $query->whereHas('studentEducations', function (Builder $studentQuery) use ($search) {
-            $studentQuery->where('level', 'like', "%{$search}%");
-        });
-    })
-    ->toggleable(),
+            TextColumn::make('education_level')
+                ->label(__('general.labels.education_level'))
+                ->state(function (Student $record) {
+                    return $record->studentEducations()
+                        ->orderBy('start_date', 'desc')
+                        ->first()?->level;
+                })
+                ->formatStateUsing(fn ($state) => $state !== null ? (__('general.edu-levels.'.$state)) : '-')
+                ->sortable(query: function (Builder $query, string $direction): Builder {
+                    return $query->orderBy(
+                        StudentEducation::select('level')
+                            ->whereColumn('student_id', 'students.id')
+                            ->orderBy('start_date', 'desc')
+                            ->limit(1),
+                        $direction
+                    );
+                })
+                ->searchable(query: function (Builder $query, string $search): Builder {
+                    return $query->whereHas('studentEducations', function (Builder $studentQuery) use ($search) {
+                        $studentQuery->where('level', 'like', "%{$search}%");
+                    });
+                })
+                ->toggleable(),
             TextColumn::make('street.city.name')->label('City')->sortable()->searchable()->toggleable(isToggledHiddenByDefault: true),
             TextColumn::make('gender')
                 ->label('Gender')
                 ->badge()
                 ->sortable()
                 ->formatStateUsing(function ($state) {
-                    \Illuminate\Support\Facades\Log::info('Gender value: '.gettype($state).' - '.json_encode($state));
+                    Log::info('Gender value: '.gettype($state).' - '.json_encode($state));
 
                     return __('general.genders.'.(is_object($state) && method_exists($state, 'value') ? $state->value : $state));
                 })
@@ -666,7 +685,7 @@ protected static function educationStep(): Wizard\Step
                 ->badge()
                 ->sortable()
                 ->formatStateUsing(function ($state) {
-                    \Illuminate\Support\Facades\Log::info('Religion value: '.gettype($state).' - '.json_encode($state));
+                    Log::info('Religion value: '.gettype($state).' - '.json_encode($state));
 
                     return __('general.religions.'.(is_object($state) && method_exists($state, 'value') ? $state->value : $state));
                 })
@@ -712,11 +731,12 @@ protected static function educationStep(): Wizard\Step
     protected static function filterQueryByRole(Builder $query): Builder
     {
         $user = Auth::user();
+
         if ($user->role === Roles::GeneralAdmin() || $user->role === Roles::Observer()) {
             return $query;
         } else {
             $cityId = $user->city_id;
-            $streetsArr = \App\Models\Street::where('city_id', $cityId)->pluck('id')->toArray();
+            $streetsArr = Street::where('city_id', $cityId)->pluck('id')->toArray();
             if (empty($streetsArr)) {
                 return $query->whereRaw('1 = 0');
             }
@@ -757,6 +777,12 @@ protected static function educationStep(): Wizard\Step
                 ->options(City::all()->pluck('name', 'id'))
                 ->searchable(),
             SelectFilter::make('street_id')->label('الشارع')->preload()->options($streets)->searchable(),
+            SelectFilter::make('center')
+             ->relationship('firstEntry.center', 'name')
+                ->label('المركز')
+                ->preload()
+                
+                ->searchable(),
             Filter::make('created_at')
                 ->columns(2)
                 ->form([DatePicker::make('created_from')->label('تاريخ الإضافة من'), DatePicker::make('created_until')->label('تاريخ الإضافة حتى')])
@@ -765,19 +791,19 @@ protected static function educationStep(): Wizard\Step
                 }),
             SelectFilter::make('educations')->label('المؤهلات العلمية')->relationship('educations', 'name')->searchable()->multiple()->preload(),
             SelectFilter::make('education_level')
-    ->label(__('general.labels.education_level'))
-    ->options(__('general.edu-levels'))
-    ->searchable()
-    ->query(function (Builder $query, array $data): Builder {
-        if (array_key_exists('value', $data) && $data['value'] !== null && $data['value'] !== '') {
-            return $query->whereHas('studentEducations', function (Builder $studentQuery) use ($data) {
-                $studentQuery->where('level', (int) $data['value']);
-            });
-        }
+                ->label(__('general.labels.education_level'))
+                ->options(__('general.edu-levels'))
+                ->searchable()
+                ->query(function (Builder $query, array $data): Builder {
+                    if (array_key_exists('value', $data) && $data['value'] !== null && $data['value'] !== '') {
+                        return $query->whereHas('studentEducations', function (Builder $studentQuery) use ($data) {
+                            $studentQuery->where('level', (int) $data['value']);
+                        });
+                    }
 
-        return $query;
-    })
-    ->preload(),
+                    return $query;
+                })
+                ->preload(),
             SelectFilter::make('gender')->label('الجنس')->options(__('general.genders')),
             SelectFilter::make('religion')->label('الديانة')->options(__('general.religions')),
             TernaryFilter::make('national_number')->label('الرقم الوطني / الإقامة')->placeholder('الكل')->trueLabel('يوجد')->falseLabel('لا يوجد')->queries(true: fn (Builder $query) => $query->whereNotNull('national_number'), false: fn (Builder $query) => $query->whereNull('national_number'), blank: fn (Builder $query) => $query),
@@ -790,8 +816,8 @@ protected static function educationStep(): Wizard\Step
         $isObserver = auth()->user()->role === Roles::Observer();
 
         return [
-            Tables\Actions\Action::make('view_qr_code')->label(__('general.labels.view_qr_code'))->icon('heroicon-o-qr-code')->modalHeading(__('general.labels.qr_code_modal_heading'))->modalContent(fn (Student $record) => self::qrCodeModalContent($record))->modalCancelAction(false)->modalSubmitAction(false)->hidden($isObserver),
-            Tables\Actions\Action::make('entry')
+            Action::make('view_qr_code')->label(__('general.labels.view_qr_code'))->icon('heroicon-o-qr-code')->modalHeading(__('general.labels.qr_code_modal_heading'))->modalContent(fn (Student $record) => self::qrCodeModalContent($record))->modalCancelAction(false)->modalSubmitAction(false)->hidden($isObserver),
+            Action::make('entry')
                 ->label(__('general.labels.entry'))
                 ->icon('heroicon-o-document-text')
                 ->form([
@@ -815,7 +841,7 @@ protected static function educationStep(): Wizard\Step
                         ->columns(3),
                     Fieldset::make('Services')
                         ->label('خدمات')
-                        ->schema([Checkbox::make('use_printer')->label('خدمة طباعة')->default(false), Checkbox::make('use_drawer')->label('خدمة مرسم')->default(false), Checkbox::make('use_mecrator')->label('خدمة ميكراتور')->default(false), Checkbox::make('use_plotter')->label('خدمة بلوتر')->default(false),Checkbox::make('use_internet')->label(__('general.labels.internet-service'))->default(false),])
+                        ->schema([Checkbox::make('use_printer')->label('خدمة طباعة')->default(false), Checkbox::make('use_drawer')->label('خدمة مرسم')->default(false), Checkbox::make('use_mecrator')->label('خدمة ميكراتور')->default(false), Checkbox::make('use_plotter')->label('خدمة بلوتر')->default(false), Checkbox::make('use_internet')->label(__('general.labels.internet-service'))->default(false)])
                         ->columns(5),
                 ])
                 ->modalHeading(__('general.labels.record_student_entry'))
@@ -837,7 +863,7 @@ protected static function educationStep(): Wizard\Step
                         'use_printer' => $data['use_printer'],
                         'use_mecrator' => $data['use_mecrator'],
                         'use_plotter' => $data['use_plotter'],
-                           'use_internet' => $data['use_internet'],
+                        'use_internet' => $data['use_internet'],
                     ]);
                 })
                 ->successNotificationTitle(__('general.labels.entry_recorded_successfully'))
