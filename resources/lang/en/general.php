@@ -53,7 +53,7 @@ return [
         EntryType::Course() => 'Course - Workshop',
         EntryType::Hall() => 'Hall',
         EntryType::Event() => 'Event',
-        EntryType::FGT() => 'Focus Group Team - FGT'
+        EntryType::FGD() => 'Focus Group Discussion - FGD',
     ],
     'genders' => [
         Gender::Unknown() => 'Unknown',

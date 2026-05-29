@@ -1,19 +1,161 @@
-<div class="my-2 text-sm tracking-tight">
-    @foreach($getState() ?? [] as $key => $value)
-        <span class="inline-block p-1 mr-1 font-medium text-gray-700 whitespace-normal rounded-md dark:text-gray-200 bg-gray-500/10">
-            {{ $key }}
-        </span>
+@php
+    $record = $getRecord();
+    $state = $getState() ?? [];
 
-        @if(is_array($value))
-            <span class="whitespace-normal divide-x divide-gray-200 divide-solid dark:divide-gray-700">
-                @foreach ($value as $nestedKey => $nestedValue)
-                    <span class="inline-block mr-1">
-                        {{ $nestedKey }}: {{ is_array($nestedValue) ? json_encode($nestedValue) : $nestedValue }}
-                    </span>
-                @endforeach
-            </span>
+    // Extract attributes (new values) and old (previous values)
+    $attributes = $state['attributes'] ?? [];
+    $old = $state['old'] ?? [];
+
+    // Extract clean model name
+    $subjectType = class_basename($record->subject_type);
+    $event = $record->event;
+    $data = $event === 'deleted' ? $old : $attributes;
+
+    // --- RELATIONSHIP HELPERS ---
+    // Note: Assuming your models have a 'name' column.
+    // If your database uses 'title' or 'ar_name', change the ->name part below!
+
+    $getStudent = function ($id) {
+        if (!$id) {
+            return 'N/A';
+        }
+        $student = \App\Models\Student::find($id);
+        return $student
+            ? $student->firstname . ' ' . $student->father_name . ' ' . $student->lastname
+            : 'Unknown Student';
+    };
+
+    $getCenter = function ($id) {
+        if (!$id) {
+            return 'N/A';
+        }
+        $center = \App\Models\Center::find($id);
+        return $center ? $center->name : 'Unknown Center';
+    };
+
+    $getCity = function ($id) {
+        if (!$id) {
+            return 'N/A';
+        }
+        $city = \App\Models\City::find($id);
+        return $city ? $city->name : 'Unknown City';
+    };
+
+    $getEducation = function ($id) {
+        if (!$id) {
+            return 'N/A';
+        }
+        $education = \App\Models\Education::find($id); // Adjust model name if needed
+        return $education ? $education->name : 'Unknown Education';
+    };
+
+    // Helper to resolve IDs in the fallback loop
+    $resolveValue = function ($key, $value) use ($getStudent, $getCenter, $getCity, $getEducation) {
+        if (!$value) {
+            return 'N/A';
+        }
+        return match ($key) {
+            'student_id' => $getStudent($value),
+            'center_id' => $getCenter($value),
+            'city_id' => $getCity($value),
+            'education_id' => $getEducation($value),
+            default => is_array($value) ? json_encode($value) : $value,
+        };
+    };
+
+    // Fields to hide
+    $ignoredFields = [
+        'id',
+        'created_at',
+        'updated_at',
+        'deleted_at',
+        'synced_at',
+        'use_drawer',
+        'use_printer',
+        'use_plotter',
+        'use_mecrator',
+        'use_internet',
+        'password',
+        'remember_token',
+        'email_verified_at'
+    ];
+@endphp
+
+<div class="my-2 text-sm tracking-tight">
+
+    {{-- 1. Status Badge --}}
+    <div class="mb-2">
+        @php
+            $badgeColors = [
+                'created' => 'bg-green-500/10 text-green-700 dark:text-green-400',
+                'updated' => 'bg-blue-500/10 text-blue-700 dark:text-blue-400',
+                'deleted' => 'bg-red-500/10 text-red-700 dark:text-red-400',
+            ];
+            $color = $badgeColors[$event] ?? 'bg-gray-500/10 text-gray-700 dark:text-gray-400';
+        @endphp
+        {{-- <span class="inline-block px-2 py-1 font-medium rounded-md whitespace-normal {{ $color }}">
+            {{ ucfirst($event) }} {{ $subjectType }}
+        </span> --}}
+    </div>
+
+    {{-- 2. Specific Formatting for Core Models --}}
+    <div class="p-3 rounded-sm bg-gray-50 dark:bg-gray-800 ">
+        @if ($subjectType === 'Student' && !empty($data))
+            <div class="flex-col items-start justify-start">
+                <div>
+                    <span class="text-gray-500 dark:text-gray-400">Name:</span>
+                    <strong class="text-gray-900 dark:text-gray-100">{{ $data['firstname'] ?? '' }}
+                        {{ $data['father_name'] ?? '' }} {{ $data['lastname'] ?? '' }}</strong>
+                </div>
+            </div>
+        @elseif($subjectType === 'StudentEntry' && !empty($data))
+            <div class="flex-col items-start justify-start">
+                <div>
+                    <span class="text-gray-500 dark:text-gray-400">Date:</span>
+                    <strong
+                        class="text-gray-900 dark:text-gray-100">{{ isset($data['entry_time']) ? date('Y-m-d H:i', strtotime($data['entry_time'])) : 'N/A' }}</strong>
+                </div>
+                <div>
+                    <span class="text-gray-500 dark:text-gray-400">Center:</span>
+                    <strong
+                        class="text-gray-900 dark:text-gray-100">{{ isset($data['center_id']) ? $getCenter($data['center_id']) : 'N/A' }}</strong>
+                </div>
+                <div>
+                    <span class="text-gray-500 dark:text-gray-400">Student:</span>
+                    <strong
+                        class="text-gray-900 dark:text-gray-100">{{ isset($data['student_id']) ? $getStudent($data['student_id']) : 'N/A' }}</strong>
+                </div>
+            </div>
+        @elseif($subjectType === 'StudentEducation' && !empty($data))
+            <div class="flex-col items-start justify-start">
+                <div>
+                    <span class="text-gray-500 dark:text-gray-400">Education:</span>
+                    <strong
+                        class="text-gray-900 dark:text-gray-100">{{ isset($data['education_id']) ? $getEducation($data['education_id']) : 'N/A' }}</strong>
+                </div>
+                <div class="sm:col-span-2">
+                    <span class="text-gray-500 dark:text-gray-400">Student:</span>
+                    <strong
+                        class="text-gray-900 dark:text-gray-100">{{ isset($data['student_id']) ? $getStudent($data['student_id']) : 'N/A' }}</strong>
+                </div>
+            </div>
         @else
-            <span class="whitespace-normal">{{ $value }}</span>
+            {{-- 3. Fallback: Clean Generic List with Auto-Resolving IDs --}}
+            <div class="flex-col items-start justify-start">
+                @foreach ($data as $key => $val)
+                    @if (!in_array($key, $ignoredFields))
+                        <div class="truncate">
+                            {{-- Strip out '_id' from the label for cleaner reading --}}
+                            <span
+                                class="text-gray-500 capitalize dark:text-gray-400">{{ str_replace(['_id', '_'], ['', ' '], $key) }}:</span>
+                            <span class="font-medium text-gray-900 dark:text-gray-100">
+                                {{ $resolveValue($key, $val) }}
+                            </span>
+                        </div>
+                    @endif
+                @endforeach
+            </div>
         @endif
-    @endforeach
+    </div>
+
 </div>

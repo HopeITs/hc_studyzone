@@ -3,7 +3,9 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Pages;
+use App\Filament\Resources\CustomActivitylogResource;
 use App\Http\Middleware\EnsureUserIsActive;
+use App\Http\Middleware\SetLocale;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -20,6 +22,8 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Rmsramos\Activitylog\ActivitylogPlugin;
+
+// ... your other imports
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -63,7 +67,7 @@ class AdminPanelProvider extends PanelProvider
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
                 'active' => EnsureUserIsActive::class,
-                \App\Http\Middleware\SetLocale::class,
+                SetLocale::class,
             ])
             ->authMiddleware([
                 Authenticate::class,
@@ -74,7 +78,11 @@ class AdminPanelProvider extends PanelProvider
                 NavigationGroup::make()->label('Student Management'),
             ])
             ->plugins([
-                ActivitylogPlugin::make(),
+                ActivitylogPlugin::make()
+                    ->resource(CustomActivitylogResource::class)
+                   ->isRestoreActionHidden(true)
+        ->isResourceActionHidden(false),
+
                 SpatieLaravelTranslatablePlugin::make()->defaultLocales(['en', 'ar']),
             ])
             ->renderHook('panels::body.start', fn () => view('filament.hooks.qr-code-script'))
@@ -82,7 +90,7 @@ class AdminPanelProvider extends PanelProvider
             //     'panels::user-menu.before',
             //     fn () => view('filament.components.language-switcher')
             // )
-                  ->renderHook(
+            ->renderHook(
                 'panels::user-menu.before',
                 fn () => view('filament.components.language-dropdown')
             )
