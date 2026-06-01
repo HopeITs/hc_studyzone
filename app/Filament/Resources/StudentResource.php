@@ -749,7 +749,7 @@ class StudentResource extends Resource
             'edit' => Pages\EditStudent::route('/{record}/edit'),
             'view' => Pages\ViewStudent::route('/{record}'),
             'create-entry' => Pages\CreateStudentEntry::route('/{record}/entry'),
-                
+
 
         ];
     }
@@ -845,33 +845,5 @@ class StudentResource extends Resource
         return $total;
     }
 
-    protected static function handleEntryCreation(array $data, Student $record): void
-    {
-        $services = $data['services'] ?? [];
-        $totalAmount = $data['total_amount'] ?? 0;
-        $centerId = $data['center_id'] ?? auth()->user()->center_id;
 
-        $entry = \App\Models\StudentEntry::create([
-            'student_id' => $record->id,
-            'user_id' => \Illuminate\Support\Facades\Auth::id(),
-            'center_id' => $centerId,
-            'entry_type' => $data['entry_type'],
-            'entry_time' => $data['entry_time'],
-            'total_amount' => $totalAmount,
-        ]);
-
-        foreach ($services as $serviceData) {
-            $serviceId = $serviceData['service_id'];
-            $amount = $serviceData['amount'] ?? 1;
-            $price = self::getCurrentPrice($serviceId, $centerId);
-            $total = $price * $amount;
-
-            \App\Models\EntryService::create([
-                'entry_id' => $entry->id,
-                'service_id' => $serviceId,
-                'amount' => $amount,
-                'total' => $total,
-            ]);
-        }
-    }
 }

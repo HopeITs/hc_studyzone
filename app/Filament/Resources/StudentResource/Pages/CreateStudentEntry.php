@@ -43,7 +43,6 @@ class CreateStudentEntry extends Page
     {
         return $this->entryInstance ? 'تعديل الدخولية' : 'إضافة دخولية جديدة';
     }
-    // بدلاً من:
 
     public function mount(...$args): void
     {
@@ -420,7 +419,6 @@ class CreateStudentEntry extends Page
             ->statePath('data');
     }
 
-    // Renamed from create() to save() to handle both scenarios
     public function save(): void
     {
         $data = $this->form->getState();
@@ -499,6 +497,44 @@ class CreateStudentEntry extends Page
                 'total' => $price,
             ]);
         }
+
+        // ─── NEW: Sync reference_column_name to student_entries ───
+
+        // 1. Collect all service IDs that were just saved
+        $allSavedServiceIds = array_unique(array_merge(
+            collect($services)->pluck('service_id')->filter()->toArray(),
+            $dayServices
+        ));
+
+        // 2. Fetch all possible reference columns to reset removed ones to false (handles edit scenario)
+        $allPossibleColumns = Service::whereNotNull('reference_column_name')
+            ->pluck('reference_column_name')
+            ->unique()
+            ->filter()
+            ->toArray();
+
+        // Initialize all possible columns to false
+        $entryUpdates = array_fill_keys($allPossibleColumns, false);
+
+        // 3. Fetch the reference_column_name(s) for the currently selected services
+        $activeReferenceColumns = Service::whereIn('id', $allSavedServiceIds)
+            ->whereNotNull('reference_column_name')
+            ->pluck('reference_column_name')
+            ->unique()
+            ->filter()
+            ->toArray();
+
+        // Override the active columns to true
+        foreach ($activeReferenceColumns as $column) {
+            $entryUpdates[$column] = true;
+        }
+
+        // 4. Update the StudentEntry record
+        if (!empty($entryUpdates)) {
+            $entry->update($entryUpdates);
+        }
+
+        // ─── END NEW ───
 
         Notification::make()
             ->title($this->entryInstance ? 'تم تحديث الدخولية بنجاح' : __('general.labels.entry_recorded_successfully'))

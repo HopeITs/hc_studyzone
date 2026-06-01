@@ -93,6 +93,7 @@ class EntryResource extends Resource
         $isMealAdmin = $user->role === Roles::MealAdmin();
 
         return $table
+                 ->defaultSort('entry_time','desc')
             ->columns([
                 TextColumn::make('student.firstname')
                     ->label('اسم الطالب')

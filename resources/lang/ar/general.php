@@ -53,7 +53,7 @@ return [
         EntryType::Course() => 'دورة - ورشة',
         EntryType::Hall() => 'قاعة',
         EntryType::Event() => 'فعالية',
-        EntryType::FGT() => 'جلسات نقاش مركزة - FGT'
+        EntryType::FGT() => 'جلسات نقاش مركزة - FGT',
     ],
     'genders' => [
         Gender::Unknown() => 'غير معرف',
@@ -116,6 +116,8 @@ return [
         'center' => 'المركز',
         'service_name' => 'اسم الخدمة',
         'created_at' => 'تاريخ الإنشاء',
+        'reservation' => 'حجز قاعة',
+        'stationary' => 'قرطاسية',
     ],
     'services_module' => [
         'services' => 'الخدمات',

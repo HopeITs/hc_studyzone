@@ -267,72 +267,92 @@ class AddEntryServices extends Page implements HasForms
         ];
     }
 
-    // protected function getHeaderActions(): array
-    // {
-    //     return [
-    //         Action::make('save')
-    //             ->label('حفظ الخدمات')
 
-    //             ->icon('heroicon-o-check')
-    //             ->action('saveServices'),
-    //     ];
-    // }
 
-    public function saveServices(): void
-    {
-        $data        = $this->form->getState();
-        $record      = $this->record;
-        $centerId    = (int) $record->center_id;
-        $now         = now();
-        $rows        = [];
+  public function saveServices(): void
+{
+    $data        = $this->form->getState();
+    $record      = $this->record;
+    $centerId    = (int) $record->center_id;
+    $now         = now();
+    $rows        = [];
 
-        $services    = $data['services'] ?? [];
-        $dayServices = $data['day_services'] ?? [];
+    $services    = $data['services'] ?? [];
+    $dayServices = $data['day_services'] ?? [];
 
-        // Fetch day prices fresh from DB
-        $dayPrices = [];
-        if (!empty($dayServices)) {
-            $dayPrices = ServicePrice::where('center_id', $centerId)
-                ->where('is_active', 1)
-                ->whereIn('service_id', $dayServices)
-                ->pluck('price', 'service_id')
-                ->toArray();
-        }
+    // Fetch day prices fresh from DB
+    $dayPrices = [];
+    if (!empty($dayServices)) {
+        $dayPrices = ServicePrice::where('center_id', $centerId)
+            ->where('is_active', 1)
+            ->whereIn('service_id', $dayServices)
+            ->pluck('price', 'service_id')
+            ->toArray();
+    }
 
-        foreach ($dayServices as $serviceId) {
-            $price  = (float) ($dayPrices[$serviceId] ?? 0);
+    foreach ($dayServices as $serviceId) {
+        $price  = (float) ($dayPrices[$serviceId] ?? 0);
+        $rows[] = [
+            'entry_id'      => $record->id,
+            'service_id'    => $serviceId,
+            'amount'        => 1,
+            'price_at_time' => $price,
+            'total'         => $price,
+            'created_at'    => $now,
+            'updated_at'    => $now,
+        ];
+    }
+
+    foreach ($services as $s) {
+        if (!empty($s['service_id'])) {
+            $price  = (float) ($s['price'] ?? 0);
+            $amount = (int) ($s['amount'] ?? 1);
             $rows[] = [
                 'entry_id'      => $record->id,
-                'service_id'    => $serviceId,
-                'amount'        => 1,
+                'service_id'    => $s['service_id'],
+                'amount'        => $amount,
                 'price_at_time' => $price,
-                'total'         => $price,
+                'total'         => $price * $amount,
                 'created_at'    => $now,
                 'updated_at'    => $now,
             ];
         }
-
-        foreach ($services as $s) {
-            if (!empty($s['service_id'])) {
-                $price  = (float) ($s['price'] ?? 0);
-                $amount = (int) ($s['amount'] ?? 1);
-                $rows[] = [
-                    'entry_id'      => $record->id,
-                    'service_id'    => $s['service_id'],
-                    'amount'        => $amount,
-                    'price_at_time' => $price,
-                    'total'         => $price * $amount,
-                    'created_at'    => $now,
-                    'updated_at'    => $now,
-                ];
-            }
-        }
-
-        if (!empty($rows)) {
-            DB::table('entry_services')->insert($rows);
-        }
-
-        Notification::make()->title('تم الحفظ بنجاح')->success()->send();
-        $this->redirect(EntryResource::getUrl('index'));
     }
+
+    if (!empty($rows)) {
+        DB::table('entry_services')->insert($rows);
+    }
+
+    // ── NEW: Update reference columns in student_entries ──────────────────
+
+    // 1. Collect all service IDs that were just saved
+    $allSavedServiceIds = array_unique(array_merge(
+        $dayServices,
+        array_map(fn($s) => $s['service_id'], array_filter($services, fn($s) => !empty($s['service_id'])))
+    ));
+
+    // 2. Get the unique reference_column_name(s) for these services
+    $referenceColumns = Service::whereIn('id', $allSavedServiceIds)
+        ->whereNotNull('reference_column_name')
+        ->pluck('reference_column_name')
+        ->unique()
+        ->filter() // Removes null/empty values
+        ->toArray();
+
+    // 3. Dynamically prepare the update array for student_entries
+    $entryUpdates = [];
+    foreach ($referenceColumns as $column) {
+        $entryUpdates[$column] = true;
+    }
+
+    // 4. Apply the updates to the StudentEntry record
+    if (!empty($entryUpdates)) {
+        $record->update($entryUpdates);
+    }
+
+    // ── END NEW ──────────────────────────────────────────────────────────
+
+    Notification::make()->title('تم الحفظ بنجاح')->success()->send();
+    $this->redirect(EntryResource::getUrl('index'));
+}
 }

@@ -35,6 +35,46 @@ class ServicesRelationManager extends RelationManager
             ]);
     }
 
+    // ─── NEW: Sync Method ───────────────────────────────────────────
+    protected function syncEntryReferenceColumns(): void
+    {
+        $entry = $this->getOwnerRecord();
+
+        // 1. Get all service IDs currently attached to this entry
+        $currentServiceIds = $entry->services()->pluck('service_id')->toArray();
+
+        // 2. Fetch all possible reference columns to reset them safely to false
+        $allPossibleColumns = Service::whereNotNull('reference_column_name')
+            ->pluck('reference_column_name')
+            ->unique()
+            ->filter()
+            ->toArray();
+
+        // Initialize all to false (handles deletions automatically)
+        $entryUpdates = array_fill_keys($allPossibleColumns, false);
+
+        // 3. Fetch the reference_column_name(s) for the currently attached services
+        if (!empty($currentServiceIds)) {
+            $activeReferenceColumns = Service::whereIn('id', $currentServiceIds)
+                ->whereNotNull('reference_column_name')
+                ->pluck('reference_column_name')
+                ->unique()
+                ->filter()
+                ->toArray();
+
+            // Override active columns to true
+            foreach ($activeReferenceColumns as $column) {
+                $entryUpdates[$column] = true;
+            }
+        }
+
+        // 4. Update the StudentEntry record
+        if (!empty($entryUpdates)) {
+            $entry->update($entryUpdates);
+        }
+    }
+    // ─── END NEW ────────────────────────────────────────────────────
+
     public function table(Table $table): Table
     {
         return $table
@@ -278,6 +318,9 @@ class ServicesRelationManager extends RelationManager
                             }
                         }
 
+                        // ─── NEW: Sync reference columns after adding ───
+                        $this->syncEntryReferenceColumns();
+
                         // 3. Dispatch event to refresh main form's Grand Total
                         $this->dispatch('entry-services-updated');
 
@@ -290,12 +333,22 @@ class ServicesRelationManager extends RelationManager
             ])
             ->actions([
                 Tables\Actions\DeleteAction::make()
-                    ->after(fn () => $this->dispatch('entry-services-updated')),
+                    ->after(function () {
+                        // ─── NEW: Sync reference columns after deletion ───
+                        $this->syncEntryReferenceColumns();
+
+                        $this->dispatch('entry-services-updated');
+                    }),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
-                        ->after(fn () => $this->dispatch('entry-services-updated')),
+                        ->after(function () {
+                            // ─── NEW: Sync reference columns after bulk deletion ───
+                            $this->syncEntryReferenceColumns();
+
+                            $this->dispatch('entry-services-updated');
+                        }),
                 ]),
             ]);
     }
