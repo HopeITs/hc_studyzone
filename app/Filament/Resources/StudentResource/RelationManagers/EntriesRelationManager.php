@@ -47,15 +47,80 @@ class EntriesRelationManager extends RelationManager
                 ->default(now())
                 ->required(),
 
-            Forms\Components\Fieldset::make('خدمات')
+            Forms\Components\Fieldset::make('الخدمات المطلوبة')
+                ->label('الخدمات المطلوبة')
                 ->schema([
-                    Forms\Components\Checkbox::make('use_printer')->label('خدمة طباعة')->default(false),
-                    Forms\Components\Checkbox::make('use_mecrator')->label('خدمة ميكراتور')->default(false),
-                    Forms\Components\Checkbox::make('use_drawer')->label('خدمة مرسم')->default(false),
-                    Forms\Components\Checkbox::make('use_plotter')->label('خدمة بلوتر')->default(false),
-                     Forms\Components\Checkbox::make('use_internet')->label(__('general.labels.internet-service'))->default(false)
+                    Forms\Components\Select::make('selected_services')
+                        ->label('اختر الخدمات')
+                        ->multiple()
+                        ->options(function () {
+                            $services = \App\Helpers\ServiceHelper::getServicesWithPrices();
+                            $options = [];
+                            foreach ($services as $service) {
+                                $options[$service['id']] = "{$service['name']} - {$service['price']} SYP";
+                            }
+                            return $options;
+                        })
+                        ->default(function () {
+                            $defaultService = \App\Helpers\ServiceHelper::getDefaultEntryService();
+                            return $defaultService ? [$defaultService['id']] : [];
+                        })
+                        ->searchable()
+                        ->preload()
+                        ->live()
+                        ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                            $services = \App\Helpers\ServiceHelper::getServicesWithPrices();
+                            $selectedDetails = [];
+                            $total = 0;
+
+                            foreach ($services as $service) {
+                                if (in_array($service['id'], $state)) {
+                                    $selectedDetails[] = [
+                                        'id' => $service['id'],
+                                        'name' => $service['name'],
+                                        'price' => $service['price'],
+                                    ];
+                                    $total += $service['price'];
+                                }
+                            }
+
+                            $set('selected_services_details', $selectedDetails);
+                            $set('total_amount', $total);
+                        })
+                        ->columnSpanFull(),
+
+                    \Filament\Forms\Components\ViewField::make('services_list')
+                        ->label('الخدمات المختارة')
+                        ->view('filament.forms.components.services-list')
+                        ->afterStateHydrated(function ($component, $get) {
+                            $component->state($get('selected_services_details'));
+                        })
+                        ->live()
+                        ->columnSpanFull(),
+
+                    \Filament\Forms\Components\Checkbox::make('calculate_total')
+                        ->label('إغلاق الفاتورة وعرض الإجمالي')
+                        ->live()
+                        ->afterStateUpdated(function ($state, callable $get, callable $set) {
+                            if ($state) {
+                                $total = $get('total_amount');
+                                $set('total_display', $total);
+                            } else {
+                                $set('total_display', null);
+                            }
+                        })
+                        ->columnSpanFull(),
+
+                    \Filament\Forms\Components\ViewField::make('total_display')
+                        ->label('الإجمالي')
+                        ->view('filament.forms.components.total-display')
+                        ->afterStateHydrated(function ($component, $get) {
+                            $component->state($get('total_display'));
+                        })
+                        ->live()
+                        ->columnSpanFull(),
                 ])
-                ->columns(5),
+                ->columns(1),
         ])->columns(3);
     }
 
@@ -70,11 +135,15 @@ class EntriesRelationManager extends RelationManager
                     ->sortable(),
                 TextColumn::make('center.name')->label('المركز')->sortable(),
                 TextColumn::make('entry_time')->label('التاريخ')->dateTime('Y-m-d H:i')->sortable(),
-                CheckboxColumn::make('use_printer')->label('طباعة')->sortable(),
-                CheckboxColumn::make('use_mecrator')->label('ميكراتور')->sortable(),
-                CheckboxColumn::make('use_drawer')->label('مرسم')->sortable(),
-                CheckboxColumn::make('use_plotter')->label('بلوتر')->sortable(),
-                   CheckboxColumn::make('use_internet')->label('انترنت')->sortable()
+                TextColumn::make('services_list')
+                    ->label('الخدمات المقدمة')
+                    ->formatStateUsing(fn($record) => $record->services_list ?: '-')
+                    ->toggleable(),
+                TextColumn::make('total_amount')
+                    ->label('الإجمالي')
+                    ->formatStateUsing(fn($record) => number_format($record->total_amount, 2) . ' SYP')
+                    ->sortable()
+                    ->color('success'),
             ])
             ->headerActions([
                 Actions\CreateAction::make()
@@ -92,7 +161,33 @@ class EntriesRelationManager extends RelationManager
                             return;
                         }
 
-                        $livewire->ownerRecord->entries()->create($data);
+                        $entry = $livewire->ownerRecord->entries()->create([
+                            'student_id' => $livewire->ownerRecord->id,
+                            'user_id' => Auth::id(),
+                            'center_id' => $data['center_id'] ?? auth()->user()->center_id,
+                            'entry_type' => $data['entry_type'],
+                            'entry_time' => $data['entry_time'],
+                        ]);
+
+                        $defaultService = \App\Helpers\ServiceHelper::getDefaultEntryService();
+                        $servicesToAdd = !empty($data['selected_services']) ? $data['selected_services'] : [];
+
+                        if ($defaultService && !in_array($defaultService['id'], $servicesToAdd)) {
+                            $servicesToAdd[] = $defaultService['id'];
+                        }
+
+                        if (!empty($servicesToAdd)) {
+                            $services = \App\Helpers\ServiceHelper::getServicesWithPrices();
+                            foreach ($services as $service) {
+                                if (in_array($service['id'], $servicesToAdd)) {
+                                    \App\Models\EntryService::create([
+                                        'entry_id' => $entry->id,
+                                        'service_id' => $service['id'],
+                                        'price_at_time' => $service['price'],
+                                    ]);
+                                }
+                            }
+                        }
                     }),
             ])
             ->actions([

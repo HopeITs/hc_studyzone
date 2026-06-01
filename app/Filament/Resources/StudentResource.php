@@ -46,7 +46,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
-use UnitEnum; // Import this for type checking
+use UnitEnum;
+use App\Helpers\ServiceHelper;
+use App\Models\EntryService;
 
 class StudentResource extends Resource
 {
@@ -366,18 +368,15 @@ protected static function educationStep(): Wizard\Step
                             $seenCombinations = [];
                             $groupedByEducation = [];
 
-                            // 1. Prepare data for Timeline and Active checks
                             $timelineItems = [];
                             $activeItems = [];
-// 1. Collect all active degrees for the exception check
                             $activeDegrees = [];
                             foreach ($value as $index => $item) {
-                                // Basic Data Check
+
                                 if (!isset($item['degree']) || !isset($item['level']) || !isset($item['education_id']) || !isset($item['start_date'])) {
                                     continue;
                                 }
 
-                                // A. Date Validation (No Future End Date)
                                 if (isset($item['end_date']) && Carbon::parse($item['end_date'])->isFuture()) {
                                     Notification::make()->danger()->title('خطأ')->body('تاريخ النهاية لا يمكن أن يكون في المستقبل.')->send();
                                     $fail('تاريخ النهاية لا يمكن أن يكون في المستقبل.');
@@ -390,7 +389,7 @@ protected static function educationStep(): Wizard\Step
                                 }
                                 $degreeValue = (int) $degreeValue;
 
-                                // B. Duplicate Degree + Level Check
+
                                 $degreeLevelKey = (string)$degreeValue . '_' . $item['level'] . '_'. $item['education_id'];
                                 if (in_array($degreeLevelKey, $seenCombinations)) {
                                     Notification::make()->danger()->title('خطأ')->body('لا يمكن إضافة سجلين بنفس الدرجة والمستوى.')->send();
@@ -399,7 +398,6 @@ protected static function educationStep(): Wizard\Step
                                 }
                                 $seenCombinations[] = $degreeLevelKey;
 
-                                // C. Overlap Check (Same Education ID)
                                 $eduId = $item['education_id'];
                                 if (!isset($groupedByEducation[$eduId])) {
                                     $groupedByEducation[$eduId] = [];
@@ -412,7 +410,6 @@ protected static function educationStep(): Wizard\Step
                                     $existStart = Carbon::parse($existingItem['start_date']);
                                     $existEnd = isset($existingItem['end_date']) ? Carbon::parse($existingItem['end_date']) : now()->addYears(100);
 
-                                    // Use null as "far future" for comparison logic only
                                     $checkEnd = $currentEnd ?? now()->addYears(100);
 
                                     if ($currentStart->lt($existEnd) && $existStart->lt($checkEnd)) {
@@ -423,21 +420,18 @@ protected static function educationStep(): Wizard\Step
                                 }
                                 $groupedByEducation[$eduId][] = $item;
 
-                                    // 5. Populate Active Degrees List
-                                // An item is active if end_date is null or empty
+
                                 if (!isset($item['end_date']) || empty($item['end_date'])) {
-                                    $activeDegrees[] = (int) $degreeValue; // Ensure integer for comparison
+                                    $activeDegrees[] = (int) $degreeValue;
                                 }
 
-                                // D. Collect for Timeline Check
                                 $timelineItems[] = [
                                     'start' => $currentStart,
-                                    'end' => $currentEnd, // Can be null
+                                    'end' => $currentEnd,
                                     'degree' => $degreeValue,
                                     'name' => __("general.edu-degrees.{$degreeValue}") ?? "Degree {$degreeValue}"
                                 ];
 
-                                // E. Collect Active Items
                                 if (!$currentEnd) {
                                     $activeItems[] = [
                                         'degree' => $degreeValue,
@@ -445,22 +439,16 @@ protected static function educationStep(): Wizard\Step
                                     ];
                                 }
                             }
-
-                            // --- 2. NO GAP VALIDATION ---
-                            // Sort items by start date
                             usort($timelineItems, function ($a, $b) {
                                 return $a['start']->lt($b['start']) ? -1 : 1;
                             });
 
-                            // Check gaps
                             for ($i = 1; $i < count($timelineItems); $i++) {
                                 $prev = $timelineItems[$i - 1];
                                 $curr = $timelineItems[$i];
 
-                                // If previous item has an end date, check for gap
+
                                 if ($prev['end']) {
-                                    // Condition: Current Start MUST be <= Previous End
-                                    // If Current Start > Previous End -> It's a GAP.
                                     if ($curr['start']->gt($prev['end'])) {
                                         Notification::make()
                                             ->danger()
@@ -473,11 +461,7 @@ protected static function educationStep(): Wizard\Step
                                 }
                             }
 
-                        // --- NEW ACTIVE EDUCATION LOGIC ---
-
                             $activeCount = count($activeDegrees);
-
-                            // Rule A: Must have at least one active education
                             if ($activeCount < 1) {
                                 Notification::make()
                                     ->danger()
@@ -488,7 +472,6 @@ protected static function educationStep(): Wizard\Step
                                 return;
                             }
 
-                            // Rule B: Maximum 2 active educations allowed (specifically for the Degree 6 exception)
                             if ($activeCount > 2) {
                                 Notification::make()
                                     ->danger()
@@ -498,10 +481,7 @@ protected static function educationStep(): Wizard\Step
                                 $fail('لا يمكن أن يكون هناك أكثر من دراستين نشطتين في نفس الوقت.');
                                 return;
                             }
-
-                            // Rule C: If there are 2 active educations, one MUST be Degree 6 (High Secondary)
                             if ($activeCount === 2) {
-                                // Check if Degree 6 is present in the active list
                                 $hasHighSchoolException = in_array(6, $activeDegrees);
 
                                 if ($hasHighSchoolException) {
@@ -786,75 +766,173 @@ protected static function educationStep(): Wizard\Step
     }
 
     protected static function tableActions(): array
-    {
-        $isObserver = auth()->user()->role === Roles::Observer();
+{
+    $isObserver = auth()->user()->role === Roles::Observer();
 
-        return [
-            Tables\Actions\Action::make('view_qr_code')->label(__('general.labels.view_qr_code'))->icon('heroicon-o-qr-code')->modalHeading(__('general.labels.qr_code_modal_heading'))->modalContent(fn (Student $record) => self::qrCodeModalContent($record))->modalCancelAction(false)->modalSubmitAction(false)->hidden($isObserver),
-            Tables\Actions\Action::make('entry')
-                ->label(__('general.labels.entry'))
-                ->icon('heroicon-o-document-text')
-                ->form([
-                    Fieldset::make('تفاصيل')
-                        ->schema([
-                            Select::make('center_id')
-                                ->label(__('general.labels.center'))
-                                ->options(function () {
-                                    return Center::where('is_active', 1)
-                                        ->when(auth()->user()->city_id, fn ($query, $cityId) => $query->where('city_id', $cityId))
-                                        ->get()
-                                        ->pluck('name', 'id');
-                                })
-                                ->default(fn () => auth()->user()->center_id)
-                                ->visible(auth()->user()->role !== Roles::CenterAdmin())
-                                ->required()
-                                ->searchable(),
-                            Select::make('entry_type')->label(__('general.labels.entry_type'))->default(1)->options(__('general.entry-types'))->columnSpan(1)->required(),
-                            DateTimePicker::make('entry_time')->label(__('general.labels.entry_time'))->default(now())->columnSpan(1)->required(),
-                        ])
-                        ->columns(3),
-                    Fieldset::make('Services')
-                        ->label('خدمات')
-                        ->schema([Checkbox::make('use_printer')->label('خدمة طباعة')->default(false), Checkbox::make('use_drawer')->label('خدمة مرسم')->default(false), Checkbox::make('use_mecrator')->label('خدمة ميكراتور')->default(false), Checkbox::make('use_plotter')->label('خدمة بلوتر')->default(false),Checkbox::make('use_internet')->label(__('general.labels.internet-service'))->default(false),])
-                        ->columns(5),
-                ])
-                ->modalHeading(__('general.labels.record_student_entry'))
-                ->modalButton(__('general.labels.save_entry'))
-                ->action(function (array $data, Student $record) {
-                    if (! $record->completed_data) {
-                        Notification::make()->title('❌ لا يمكن إدخال بيانات الطالب')->danger()->body('بيانات الطالب غير مكتملة. الرجاء مراجعة البيانات المطلوبة أولاً.')->send();
+    return [
+        Tables\Actions\Action::make('view_qr_code')->label(__('general.labels.view_qr_code'))->icon('heroicon-o-qr-code')->modalHeading(__('general.labels.qr_code_modal_heading'))->modalContent(fn (Student $record) => self::qrCodeModalContent($record))->modalCancelAction(false)->modalSubmitAction(false)->hidden($isObserver),
+        Tables\Actions\Action::make('entry')
+    ->label(__('general.labels.entry'))
+    ->icon('heroicon-o-document-text')
+    ->form([
+        Fieldset::make('تفاصيل الدخول')
+            ->schema([
+                Select::make('center_id')
+                    ->label(__('general.labels.center'))
+                    ->options(function () {
+                        return Center::where('is_active', 1)
+                            ->when(auth()->user()->city_id, fn ($query, $cityId) => $query->where('city_id', $cityId))
+                            ->get()
+                            ->pluck('name', 'id');
+                    })
+                    ->default(fn () => auth()->user()->center_id)
+                    ->visible(auth()->user()->role !== Roles::CenterAdmin())
+                    ->required()
+                    ->searchable(),
+                Select::make('entry_type')
+                    ->label(__('general.labels.entry_type'))
+                    ->default(1)
+                    ->options(__('general.entry-types'))
+                    ->columnSpan(1)
+                    ->required(),
+                DateTimePicker::make('entry_time')
+                    ->label(__('general.labels.entry_time'))
+                    ->default(now())
+                    ->columnSpan(1)
+                    ->required(),
+            ])
+            ->columns(3),
+        Fieldset::make('الخدمات المطلوبة')
+            ->label('الخدمات المطلوبة')
+            ->schema([
+               \Filament\Forms\Components\Select::make('selected_services')
+    ->label('اختر الخدمات')
+    ->multiple()
+    ->options(function () {
+        $services = \App\Helpers\ServiceHelper::getServicesWithPrices();
+        $options = [];
+        foreach ($services as $service) {
+            $options[$service['id']] = "{$service['name']} - {$service['price']} SYP";
+        }
+        return $options;
+    })
+    ->default(function () {
+        $defaultService = \App\Helpers\ServiceHelper::getDefaultEntryService();
+        return $defaultService ? [$defaultService['id']] : [];
+    })
+    ->searchable()
+    ->preload()
+    ->live()
+    ->afterStateUpdated(function ($state, callable $set, callable $get) {
+        $services = \App\Helpers\ServiceHelper::getServicesWithPrices();
+        $defaultService = \App\Helpers\ServiceHelper::getDefaultEntryService();
+        $selectedDetails = [];
+        $total = 0;
 
-                        return;
-                    }
+        foreach ($services as $service) {
+            if (in_array($service['id'], $state)) {
+                $selectedDetails[] = [
+                    'id' => $service['id'],
+                    'name' => $service['name'],
+                    'price' => $service['price'],
+                ];
+                $total += $service['price'];
+            }
+        }
 
-                    StudentEntry::create([
-                        'student_id' => $record->id,
-                        'user_id' => Auth::id(),
-                        'center_id' => $data['center_id'] ?? auth()->user()->center_id,
-                        'entry_type' => $data['entry_type'],
-                        'entry_time' => $data['entry_time'],
-                        'use_drawer' => $data['use_drawer'],
-                        'use_printer' => $data['use_printer'],
-                        'use_mecrator' => $data['use_mecrator'],
-                        'use_plotter' => $data['use_plotter'],
-                           'use_internet' => $data['use_internet'],
+        $set('selected_services_details', $selectedDetails);
+        $set('total_amount', $total);
+    })
+    ->columnSpanFull(),
+
+                \Filament\Forms\Components\ViewField::make('services_list')
+                    ->label('الخدمات المختارة')
+                    ->view('filament.forms.components.services-list')
+                    ->afterStateHydrated(function ($component, $get) {
+                        $component->state($get('selected_services_details'));
+                    })
+                    ->live()
+                    ->columnSpanFull(),
+
+                \Filament\Forms\Components\Checkbox::make('calculate_total')
+                    ->label('إغلاق الفاتورة وعرض الإجمالي')
+                    ->live()
+                    ->afterStateUpdated(function ($state, callable $get, callable $set) {
+                        if ($state) {
+                            $total = $get('total_amount');
+                            $set('total_display', $total);
+                        } else {
+                            $set('total_display', null);
+                        }
+                    })
+                    ->columnSpanFull(),
+
+                \Filament\Forms\Components\ViewField::make('total_display')
+                    ->label('الإجمالي')
+                    ->view('filament.forms.components.total-display')
+                    ->afterStateHydrated(function ($component, $get) {
+                        $component->state($get('total_display'));
+                    })
+                    ->live()
+                    ->columnSpanFull(),
+            ])
+            ->columns(1),
+    ])
+    ->modalHeading(__('general.labels.record_student_entry'))
+    ->modalButton(__('general.labels.save_entry'))
+    ->modalWidth('lg')
+    ->action(function (array $data, Student $record) {
+        if (! $record->completed_data) {
+            Notification::make()
+                ->title('❌ لا يمكن إدخال بيانات الطالب')
+                ->danger()
+                ->body('بيانات الطالب غير مكتملة. الرجاء مراجعة البيانات المطلوبة أولاً.')
+                ->send();
+            return;
+        }
+
+        $entry = StudentEntry::create([
+            'student_id' => $record->id,
+            'user_id' => Auth::id(),
+            'center_id' => $data['center_id'] ?? auth()->user()->center_id,
+            'entry_type' => $data['entry_type'],
+            'entry_time' => $data['entry_time'],
+        ]);
+
+        $defaultService = \App\Helpers\ServiceHelper::getDefaultEntryService();
+        $servicesToAdd = !empty($data['selected_services']) ? $data['selected_services'] : [];
+
+        if ($defaultService && !in_array($defaultService['id'], $servicesToAdd)) {
+            $servicesToAdd[] = $defaultService['id'];
+        }
+
+        if (!empty($servicesToAdd)) {
+            $services = \App\Helpers\ServiceHelper::getServicesWithPrices();
+            foreach ($services as $service) {
+                if (in_array($service['id'], $servicesToAdd)) {
+                    \App\Models\EntryService::create([
+                        'entry_id' => $entry->id,
+                        'service_id' => $service['id'],
+                        'price_at_time' => $service['price'],
                     ]);
-                })
-                ->successNotificationTitle(__('general.labels.entry_recorded_successfully'))
-                ->disabled(function (Student $record) {
-                    return ! $record->completed_data;
-                })
-                ->tooltip(function (Student $record) {
-                    if (! $record->completed_data) {
-                        return '❌ لا يمكن إضافة دخولية: بيانات الطالب غير مكتملة';
-                    }
-
-                    return 'إضافة دخولية جديدة';
-                })
-                ->hidden($isObserver),
-            ActionGroup::make([Tables\Actions\ViewAction::make(), Tables\Actions\EditAction::make()->hidden($isObserver), Tables\Actions\DeleteAction::make()->hidden($isObserver)])->icon('heroicon-m-ellipsis-horizontal'),
-        ];
-    }
+                }
+            }
+        }
+    })
+    ->successNotificationTitle(__('general.labels.entry_recorded_successfully'))
+    ->disabled(function (Student $record) {
+        return ! $record->completed_data;
+    })
+    ->tooltip(function (Student $record) {
+        if (! $record->completed_data) {
+            return '❌ لا يمكن إضافة دخولية: بيانات الطالب غير مكتملة';
+        }
+        return 'إضافة دخولية جديدة';
+    })
+    ->hidden($isObserver),
+        ActionGroup::make([Tables\Actions\ViewAction::make(), Tables\Actions\EditAction::make()->hidden($isObserver), Tables\Actions\DeleteAction::make()->hidden($isObserver)])->icon('heroicon-m-ellipsis-horizontal'),
+    ];
+}
 
     public static function getRelations(): array
     {
