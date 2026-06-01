@@ -74,7 +74,7 @@ class EntryStats extends BaseWidget
             Stat::make(__('general.entry-types.' . EntryType::Course()), $this->getPageTableQuery()->where('entry_type', EntryType::Course())->count()),
             Stat::make(__('general.entry-types.' . EntryType::Hall()), $this->getPageTableQuery()->where('entry_type', EntryType::Hall())->count()),
             Stat::make(__('general.entry-types.' . EntryType::Event()), $this->getPageTableQuery()->where('entry_type', EntryType::Event())->count()),
-            Stat::make(__('general.entry-types.' . EntryType::FGD()), $this->getPageTableQuery()->where('entry_type', EntryType::FGT())->count()),
+            Stat::make(__('general.entry-types.' . EntryType::FGD()), $this->getPageTableQuery()->where('entry_type', EntryType::FGD())->count()),
 
             Stat::make(' دخوليات طلاب العمارة',
                 $this->getPageTableQuery()

@@ -30,7 +30,7 @@ class EntryTypeChart extends ChartWidget
             EntryType::Course(),
             EntryType::Hall(),
             EntryType::Event(),
-            EntryType::FGT(),
+            EntryType::FGD(),
         ];
 
         $labels = [];
