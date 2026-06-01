@@ -10,7 +10,7 @@ class CategorySeeder extends Seeder
     public function run(): void
     {
         $categories = [
-            ['name' => 'خدمة دخولية', 'unit' => 'entry'],
+            ['name' => 'خدمة يومية', 'unit' => 'day'],
             ['name' => 'خدمة ساعية', 'unit' => 'hour'],
             ['name' => 'خدمة ورقية', 'unit' => 'paper'],
         ];

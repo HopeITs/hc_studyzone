@@ -7,16 +7,39 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ServicePrice extends Model
 {
-    protected $fillable = ['service_id', 'price', 'is_default', 'start_at', 'end_at'];
+    protected $table = 'service_prices';
+
+    protected $guarded = ['id'];
 
     protected $casts = [
-        'start_at' => 'datetime',
-        'end_at' => 'datetime',
-        'is_default' => 'boolean',
+
+        'is_active' => 'boolean',
+        'start_date' => 'date',
+        'end_date' => 'date',
     ];
 
     public function service(): BelongsTo
     {
         return $this->belongsTo(Service::class);
+    }
+
+    public function center(): BelongsTo
+    {
+        return $this->belongsTo(Center::class);
+    }
+
+    public function isValid()
+    {
+        if (! $this->is_active) {
+            return false;
+        }
+
+        if ($this->start_date->isFuture()) {
+            return false;
+        }
+
+        if ($this->end_date && $this->end_date->isPast()) {
+            return false;
+        }
     }
 }

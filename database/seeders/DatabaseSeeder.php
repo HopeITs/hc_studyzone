@@ -15,33 +15,35 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $this->call(CitySeeder::class);
-        $this->call(StreetSeeder::class);
+        // $this->call(CitySeeder::class);
+        // $this->call(StreetSeeder::class);
 
-        User::factory()->create([
-            'name' => 'Administrator',
-            'email' => 'admin@sz.com',
-            'role' => Roles::GeneralAdmin
-        ]);
+        // User::factory()->create([
+        //     'name' => 'Administrator',
+        //     'email' => 'admin@sz.com',
+        //     'role' => Roles::GeneralAdmin
+        // ]);
 
-        User::factory()->create([
-            'name' => 'Administrator',
-            'email' => 'admin_city@sz.com',
-            'city_id' => 2,
-            'role' => Roles::CityAdmin
-        ]);
+        // User::factory()->create([
+        //     'name' => 'Administrator',
+        //     'email' => 'admin_city@sz.com',
+        //     'city_id' => 2,
+        //     'role' => Roles::CityAdmin
+        // ]);
 
-        User::factory()->create([
-            'name' => 'Observer',
-            'email' => 'observer@sz.com',
-            'role' => Roles::Observer
-        ]);
+        // User::factory()->create([
+        //     'name' => 'Observer',
+        //     'email' => 'observer@sz.com',
+        //     'role' => Roles::Observer
+        // ]);
 
-        $this->call(CenterSeeder::class);
-        $this->call(EducationSeeder::class);
-        $this->call(StudentSeeder::class);
-        $this->call(SocialLinksSeeder::class);
+        // $this->call(CenterSeeder::class);
+        // $this->call(EducationSeeder::class);
+        // $this->call(StudentSeeder::class);
+        // $this->call(SocialLinksSeeder::class);
+
         $this->call(CategorySeeder::class);
-
+        $this->call(ServiceSeeder::class);
+        $this->call(ServicePriceSeeder::class);
     }
 }

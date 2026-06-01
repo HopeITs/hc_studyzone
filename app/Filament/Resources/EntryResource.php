@@ -89,7 +89,6 @@ class EntryResource extends Resource
                 ->searchable(),
             Select::make('entry_type')->label(__('general.labels.entry_type'))->default(1)->options(__('general.entry-types'))->columnSpan(1)->required(),
             DateTimePicker::make('entry_time')->label(__('general.labels.entry_time'))->default(now())->columnSpan(1)->required(),
-
         ]);
     }
 
@@ -354,6 +353,12 @@ class EntryResource extends Resource
 
                         return $query;
                     }),
+
+                TernaryFilter::make('use_printer')->label(__('general.labels.print-service'))->placeholder('الكل')->trueLabel('مفعّل')->falseLabel('غير مفعّل')->queries(true: fn (Builder $query) => $query->where('use_printer', true), false: fn (Builder $query) => $query->where('use_printer', false), blank: fn (Builder $query) => $query)->columnSpan(1),
+                TernaryFilter::make('use_mecrator')->label(__('general.labels.mecrator-service'))->placeholder('الكل')->trueLabel('مفعّل')->falseLabel('غير مفعّل')->queries(true: fn (Builder $query) => $query->where('use_mecrator', true), false: fn (Builder $query) => $query->where('use_mecrator', false), blank: fn (Builder $query) => $query)->columnSpan(1),
+                TernaryFilter::make('use_drawer')->label(__('general.labels.drawer-service'))->placeholder('الكل')->trueLabel('مفعّل')->falseLabel('غير مفعّل')->queries(true: fn (Builder $query) => $query->where('use_drawer', true), false: fn (Builder $query) => $query->where('use_drawer', false), blank: fn (Builder $query) => $query)->columnSpan(1),
+                TernaryFilter::make('use_plotter')->label(__('general.labels.plotter-service'))->placeholder('الكل')->trueLabel('مفعّل')->falseLabel('غير مفعّل')->queries(true: fn (Builder $query) => $query->where('use_plotter', true), false: fn (Builder $query) => $query->where('use_plotter', false), blank: fn (Builder $query) => $query)->columnSpan(1),
+                 TernaryFilter::make('use_plotter')->label(__('general.labels.internet-service'))->placeholder('الكل')->trueLabel('مفعّل')->falseLabel('غير مفعّل')->queries(true: fn (Builder $query) => $query->where('use_internet', true), false: fn (Builder $query) => $query->where('use_internet', false), blank: fn (Builder $query) => $query)->columnSpan(1),
             ])
             ->filtersTriggerAction(fn (Action $action) => $action->button()->label(''))
             ->actions([

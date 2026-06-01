@@ -32,22 +32,28 @@ class StudentEntry extends Model
         return $this->belongsTo(Center::class);
     }
 
-    public function entryServices(): HasMany
+    public function services(): HasMany
     {
         return $this->hasMany(EntryService::class, 'entry_id');
     }
 
-    public function getTotalAmountAttribute(): float
+    public function getTotalAmountAttribute(): int
     {
-        return $this->entryServices->sum('price_at_time');
+        return $this->services->sum('total');
     }
 
-    public function getServicesListAttribute(): string
-    {
-        return $this->entryServices->map(function ($service) {
-            return $service->service->name;
-        })->implode(', ');
-    }
+ public function getServicesListAttribute(): string
+{
+    return $this->services()
+        ->select('service_id')
+        ->distinct()
+        ->get()
+        ->map(function ($service) {
+            return $service->service->category->unit === 'paper' ? 'طباعة' : $service->service->name;
+        })
+        ->unique() // This removes any duplicate strings (like multiple 'طباعة')
+        ->implode(', ') ?? '-' ;
+}
 
 }
 
