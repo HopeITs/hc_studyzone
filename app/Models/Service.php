@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 
 class Service extends Model
 {
-    protected $fillable = ['name', 'category_id', 'is_active'];
+    protected $guarded = ['id'];
 
     protected $casts = [
         'is_active' => 'boolean',

@@ -121,6 +121,7 @@ return [
     ],
     'services_module' => [
         'services' => 'الخدمات',
+        'reference' => 'مرجعية',
         'service' => 'خدمة',
         'service_prices' => 'أسعار الخدمات',
         'service_price' => 'سعر',

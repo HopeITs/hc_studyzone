@@ -84,6 +84,21 @@ class ServiceResource extends Resource
                             ->searchable()
                             ->preload()
                             ->disabled(!$isGeneralAdmin), // Disable for City/Center Admins
+                                  Forms\Components\Select::make('reference_column_name')
+                            ->options([
+                                'use_internet' =>  'use_internet' ,
+                                'use_mecrator' =>  'use_mecrator' ,
+                                'use_drawer' =>  'use_drawer' ,
+                                'use_plotter' =>  'use_plotter' ,
+                                'use_printer' =>  'use_printer' ,
+                                'reservation' =>  'reservation' ,
+                                'stationary' =>  'stationary' ,
+                            ])
+                            ->label(__('general.services_module.reference'))
+                            ->required()
+                            ->searchable()
+                            ->preload()
+                            ->disabled(!$isGeneralAdmin),
 
                         Forms\Components\Toggle::make('is_active')
                             ->label(__('general.services_module.active'))
@@ -113,6 +128,10 @@ class ServiceResource extends Resource
             ->columns([
                 TextColumn::make('name')
                     ->label(__('general.labels.service_name'))
+                    ->sortable()
+                    ->searchable(),
+                        TextColumn::make('reference_column_name')
+                    ->label(__('general.labels.reference'))
                     ->sortable()
                     ->searchable(),
 
