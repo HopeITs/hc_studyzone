@@ -58,8 +58,8 @@ class StreetResource extends Resource
         return $form->schema([
             Select::make('city_id')->relationship('city', 'name')->required(),
             TranslatableContainer::make(Forms\Components\TextInput::make('name')->maxLength(255)->required())
-                ->onlyMainLocaleRequired() // optional
-                ->requiredLocales(['en', 'ar']), // optional
+                ->onlyMainLocaleRequired() 
+                ->requiredLocales(['en', 'ar']), 
         ]);
     }
 

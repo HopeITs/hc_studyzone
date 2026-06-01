@@ -1,0 +1,28 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('entry_services', function (Blueprint $table) {
+          $table->id();
+            $table->foreignUuid('entry_id')->constrained('student_entries')->cascadeOnDelete();
+            $table->foreignId('service_id')->constrained('services')->restrictOnDelete();
+            $table->integer('amount')->default(1);
+            $table->integer('total')->default(0);
+            $table->integer('price_at_time')->default(0);
+            $table->timestamps();
+
+            $table->index(['entry_id', 'service_id']);
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('entry_services');
+    }
+};
