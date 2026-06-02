@@ -45,14 +45,23 @@ class StudentEntry extends Model
  public function getServicesListAttribute(): string
 {
     return $this->services()
-        ->select('service_id')
-        ->distinct()
+        ->with('service')
         ->get()
-        ->map(function ($service) {
-            return $service->service->category->unit === 'paper' ? 'طباعة' : $service->service->name;
+        ->groupBy(fn ($item) => $item->service->reference_column_name)
+        ->map(function ($group, $referenceColumnName) {
+            return match ($referenceColumnName) {
+                'use_printer'  => 'طباعة',
+                'use_plotter'  => 'بلوتر',
+                'use_mecrator'   => 'ميكراتور',
+                'use_internet' => 'انترنت',
+                'use_drawer' => 'مرسم',
+                'reservation' => 'حجز',
+                'stationary' => 'قرطاسية',
+
+                default        => $group->first()->service->name,
+            };
         })
-        ->unique() // This removes any duplicate strings (like multiple 'طباعة')
-        ->implode(', ') ?? '-' ;
+        ->implode(', ') ?: '-';
 }
 
 }
