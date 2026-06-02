@@ -75,6 +75,7 @@ return [
         'firstname' => 'First Name',
         'lastname' => 'Last Name',
         'father_name' => "Father's Name",
+        'reference' => 'Reference',
         'national_number' => 'National Number',
         'foreign_id_number' => 'Residency / Foreign ID Number',
         'nationality' => 'Nationality',

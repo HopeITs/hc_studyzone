@@ -75,6 +75,7 @@ return [
         'firstname' => 'الاسم الأول',
         'lastname' => 'اسم العائلة',
         'father_name' => 'اسم الأب',
+         'reference' => 'المرجعية',
         'national_number' => 'الرقم الوطني',
         'foreign_id_number' => 'رقم الإقامة / الهوية الأجنبية',
         'nationality' => 'الجنسية',
