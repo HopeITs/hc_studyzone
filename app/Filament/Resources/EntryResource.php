@@ -11,23 +11,11 @@ use App\Filament\Resources\EntryResource\RelationManagers\ServicesRelationManage
 use App\Filament\Resources\EntryResource\Widgets\EntryStats;
 use App\Filament\Resources\EntryResource\Widgets\EntryTypeChart;
 use App\Models\Education;
-use App\Models\Service;
-use App\Models\EntryService;
-use App\Models\ServiceCategory;
-use App\Models\ServicePrice;
 use App\Models\StudentEducation;
 use App\Models\StudentEntry;
 use Carbon\Carbon;
 use Filament\Actions\Exports\Enums\ExportFormat;
-use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\DateTimePicker;
-use Filament\Forms\Components\Grid;
-use Filament\Forms\Components\Hidden;
-use Filament\Forms\Components\Repeater;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Placeholder;
-use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Actions\Action;
@@ -43,7 +31,6 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 
 class EntryResource extends Resource
 {
@@ -71,10 +58,10 @@ class EntryResource extends Resource
 
         return match (true) {
             $user->role === Roles::GeneralAdmin(),
-            $user->role === Roles::Observer()    => $query,
+            $user->role === Roles::Observer() => $query,
 
             $user->role === Roles::CityAdmin(),
-            $user->role === Roles::MealAdmin()   => $query->whereHas(
+            $user->role === Roles::MealAdmin() => $query->whereHas(
                 'center',
                 fn ($q) => $q->where('city_id', $user->city_id)
             ),
@@ -88,12 +75,12 @@ class EntryResource extends Resource
     public static function table(Table $table): Table
     {
         // Resolve once — reused across all column/filter/action closures
-        $user        = auth()->user();
-        $isObserver  = $user->role === Roles::Observer();
+        $user = auth()->user();
+        $isObserver = $user->role === Roles::Observer();
         $isMealAdmin = $user->role === Roles::MealAdmin();
 
         return $table
-                 ->defaultSort('entry_time','desc')
+            ->defaultSort('entry_time', 'desc')
             ->columns([
                 TextColumn::make('student.firstname')
                     ->label('اسم الطالب')
@@ -144,8 +131,8 @@ class EntryResource extends Resource
                     ->formatStateUsing(fn (string $state) => __("general.genders.{$state}"))
                     ->color(fn (int $state): string => match ($state) {
                         Gender::Unknown() => 'warning',
-                        Gender::Male()    => 'info',
-                        Gender::Female()  => 'danger',
+                        Gender::Male() => 'info',
+                        Gender::Female() => 'danger',
                     })
                     ->toggleable(isToggledHiddenByDefault: true),
 
@@ -155,9 +142,9 @@ class EntryResource extends Resource
                     ->badge()
                     ->formatStateUsing(fn (string $state) => __("general.religions.{$state}"))
                     ->color(fn (int $state): string => match ($state) {
-                        Religion::Unknown()   => 'warning',
+                        Religion::Unknown() => 'warning',
                         Religion::Christian() => 'success',
-                        Religion::Muslim()    => 'secondary',
+                        Religion::Muslim() => 'secondary',
                     })
                     ->toggleable(isToggledHiddenByDefault: true),
 
@@ -170,7 +157,7 @@ class EntryResource extends Resource
                 TextColumn::make('entry_type')
                     ->label('نوع الدخول')
                     ->sortable()
-                    ->formatStateUsing(fn ($state) => __('general.entry-types.' . $state)),
+                    ->formatStateUsing(fn ($state) => __('general.entry-types.'.$state)),
 
                 TextColumn::make('student.studentEducations.level')
                     ->label('مستوى التعليم')
@@ -182,7 +169,7 @@ class EntryResource extends Resource
                             ->first();
 
                         return $lastEdu
-                            ? __('general.edu-levels.' . (string) $lastEdu->level)
+                            ? __('general.edu-levels.'.(string) $lastEdu->level)
                             : '-';
                     })
                     ->toggleable(isToggledHiddenByDefault: true)
@@ -222,12 +209,12 @@ class EntryResource extends Resource
 
                 TextColumn::make('total_amount')
                     ->label('الإجمالي')
-                    ->formatStateUsing(fn ($record) => $record->total_amount . ' SYP')
+                    ->formatStateUsing(fn ($record) => $record->total_amount.' SYP')
                     ->color('success')
                     ->toggleable(),
-                           TextColumn::make('created_at')
+                TextColumn::make('created_at')
                     ->label('الإجمالي (قديم)')
-                    ->formatStateUsing(fn ($record) => $record->total_amount*100 . ' SYP')
+                    ->formatStateUsing(fn ($record) => $record->total_amount * 100 .' SYP')
                     ->color('info')
                     ->toggleable(),
 
@@ -267,7 +254,7 @@ class EntryResource extends Resource
                     ->columns(2)
                     ->query(fn (Builder $query, array $data): Builder => $query
                         ->when($data['from'], fn ($q, $date) => $q->where('entry_time', '>=', $date))
-                        ->when($data['to'],   fn ($q, $date) => $q->where('entry_time', '<=', $date))
+                        ->when($data['to'], fn ($q, $date) => $q->where('entry_time', '<=', $date))
                     ),
 
                 SelectFilter::make('entry_type')
@@ -284,7 +271,7 @@ class EntryResource extends Resource
                     ->trueLabel('نعم - البيانات مكتملة')
                     ->falseLabel('لا - البيانات غير مكتملة')
                     ->queries(
-                        true:  fn (Builder $query) => $query->whereHas('student', fn ($q) => $q->where('completed_data', true)),
+                        true: fn (Builder $query) => $query->whereHas('student', fn ($q) => $q->where('completed_data', true)),
                         false: fn (Builder $query) => $query->whereHas('student', fn ($q) => $q->where('completed_data', false)),
                         blank: fn (Builder $query) => $query,
                     )
@@ -322,7 +309,7 @@ class EntryResource extends Resource
 
                         $entryTimeData = $livewire->tableFilters['entry_time'] ?? null;
                         $from = $entryTimeData['from'] ?? null;
-                        $to   = $entryTimeData['to']   ?? null;
+                        $to = $entryTimeData['to'] ?? null;
 
                         return $query->whereHas(
                             'student.studentEducations',
@@ -369,7 +356,7 @@ class EntryResource extends Resource
                     ->trueLabel('يوجد')
                     ->falseLabel('لا يوجد')
                     ->queries(
-                        true:  fn (Builder $query) => $query->whereHas('student', fn ($q) => $q->whereNotNull('national_number')),
+                        true: fn (Builder $query) => $query->whereHas('student', fn ($q) => $q->whereNotNull('national_number')),
                         false: fn (Builder $query) => $query->whereHas('student', fn ($q) => $q->whereNull('national_number')),
                         blank: fn (Builder $query) => $query,
                     )
@@ -404,6 +391,15 @@ class EntryResource extends Resource
 
                         return $query;
                     }),
+
+                TernaryFilter::make('use_printer')->label(__('general.labels.print-service'))->placeholder('الكل')->trueLabel('مفعّل')->falseLabel('غير مفعّل')->queries(true: fn (Builder $query) => $query->where('use_printer', true), false: fn (Builder $query) => $query->where('use_printer', false), blank: fn (Builder $query) => $query)->columnSpan(1),
+                TernaryFilter::make('use_mecrator')->label(__('general.labels.mecrator-service'))->placeholder('الكل')->trueLabel('مفعّل')->falseLabel('غير مفعّل')->queries(true: fn (Builder $query) => $query->where('use_mecrator', true), false: fn (Builder $query) => $query->where('use_mecrator', false), blank: fn (Builder $query) => $query)->columnSpan(1),
+                TernaryFilter::make('use_drawer')->label(__('general.labels.drawer-service'))->placeholder('الكل')->trueLabel('مفعّل')->falseLabel('غير مفعّل')->queries(true: fn (Builder $query) => $query->where('use_drawer', true), false: fn (Builder $query) => $query->where('use_drawer', false), blank: fn (Builder $query) => $query)->columnSpan(1),
+                TernaryFilter::make('use_plotter')->label(__('general.labels.plotter-service'))->placeholder('الكل')->trueLabel('مفعّل')->falseLabel('غير مفعّل')->queries(true: fn (Builder $query) => $query->where('use_plotter', true), false: fn (Builder $query) => $query->where('use_plotter', false), blank: fn (Builder $query) => $query)->columnSpan(1),
+                TernaryFilter::make('use_internet')->label(__('general.labels.internet-service'))->placeholder('الكل')->trueLabel('مفعّل')->falseLabel('غير مفعّل')->queries(true: fn (Builder $query) => $query->where('use_internet', true), false: fn (Builder $query) => $query->where('use_internet', false), blank: fn (Builder $query) => $query)->columnSpan(1),
+                TernaryFilter::make('reservation')->label(__('general.labels.reservation'))->placeholder('الكل')->trueLabel('مفعّل')->falseLabel('غير مفعّل')->queries(true: fn (Builder $query) => $query->where('reservation', true), false: fn (Builder $query) => $query->where('reservation', false), blank: fn (Builder $query) => $query)->columnSpan(1),
+                TernaryFilter::make('stationary')->label(__('general.labels.stationary'))->placeholder('الكل')->trueLabel('مفعّل')->falseLabel('غير مفعّل')->queries(true: fn (Builder $query) => $query->where('stationary', true), false: fn (Builder $query) => $query->where('stationary', false), blank: fn (Builder $query) => $query)->columnSpan(1),
+
             ])
             ->filtersTriggerAction(fn (Action $action) => $action->button()->label(''))
             ->actions([
@@ -412,12 +408,11 @@ class EntryResource extends Resource
                     ->color('info')
                     ->icon('heroicon-o-user')
                     ->url(fn (Model $record) => StudentResource::getUrl('view', ['record' => $record->student_id])),
-Action::make('addServices')
-    ->label('')
-    ->icon('heroicon-o-shopping-cart')
-    ->url(fn ($record) =>
-        EntryResource::getUrl('add-services', ['record' => $record])
-    ),
+                Action::make('addServices')
+                    ->label('')
+                    ->icon('heroicon-o-shopping-cart')
+                    ->url(fn ($record) => EntryResource::getUrl('add-services', ['record' => $record])
+                    ),
 
                 Tables\Actions\EditAction::make()
                     ->label('')
@@ -454,9 +449,9 @@ Action::make('addServices')
     {
         return [
             'index' => Pages\ListEntries::route('/'),
-            'edit'  => Pages\EditEntry::route('/{record}/edit'),
+            'edit' => Pages\EditEntry::route('/{record}/edit'),
             'add-services' => Pages\AddEntryServices::route('/{record}/services'),
-            'view'  => Pages\ViewEntry::route('/{record}'),
+            'view' => Pages\ViewEntry::route('/{record}'),
 
         ];
     }
