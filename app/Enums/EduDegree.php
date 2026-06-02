@@ -8,7 +8,8 @@ use ArchTech\Enums\Values;
 enum EduDegree: int
 {
     use InvokableCases, Values;
-
+    case Illiterate = 1;
+    case PrimarySchool = 3;
     case MiddleSchool = 4;
     case HighSchool = 5;
     case HigherSecondary = 6;

@@ -19,6 +19,8 @@ return [
     ],
 
     'edu-degrees' => [
+        EduDegree::Illiterate() => 'أُمّي',
+        EduDegree::PrimarySchool() => 'المرحلة الإبتدائية',
         EduDegree::MiddleSchool() => 'المرحلة الإعدادية',
         EduDegree::HighSchool() => 'المرحلة الثانوية',
         EduDegree::HigherSecondary() => 'الثانوية العليا',
