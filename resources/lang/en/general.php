@@ -19,6 +19,8 @@ return [
     ],
 
     'edu-degrees' => [
+        EduDegree::Illiterate() => 'Illiterate',
+        EduDegree::PrimarySchool() => 'Primary School',
         EduDegree::MiddleSchool() => 'Middle School',
         EduDegree::HighSchool() => 'High School',
         EduDegree::HigherSecondary() => 'Higher Secondary',
