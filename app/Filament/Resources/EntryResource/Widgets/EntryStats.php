@@ -5,9 +5,12 @@ namespace App\Filament\Resources\EntryResource\Widgets;
 use App\Enums\EntryType;
 use App\Filament\Resources\EntryResource\Pages\ListEntries;
 use App\Models\EntryService;
+use App\Models\Service;
+use App\Models\StudentEntry;
 use Filament\Widgets\Concerns\InteractsWithPageTable;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
+use Illuminate\Support\Facades\DB;
 
 class EntryStats extends BaseWidget
 {
@@ -30,38 +33,60 @@ class EntryStats extends BaseWidget
         // Get base query for entries to fetch IDs
         $entryIdsQuery = $this->getPageTableQuery()->select('id');
 
-        // 1. Calculate Printer Stats (aggregated from category unit = 'paper')
-        $printerStats = EntryService::whereIn('entry_id', $entryIdsQuery)
-            ->whereHas('service.category', function ($query) {
-                $query->where('unit', 'paper');
-            })
-            ->selectRaw('SUM(amount) as total_count, SUM(total) as total_amount, COUNT(DISTINCT entry_id) as entries_count')
-            ->first();
+        // 1. Get all unique reference columns from services
+        $referenceColumns = Service::whereNotNull('reference_column_name')
+            ->pluck('reference_column_name')
+            ->unique()
+            ->filter()
+            ->toArray();
 
-        $printerCount = $printerStats ? (int) $printerStats->total_count : 0;
-        $printerTotal = $printerStats ? (int) $printerStats->total_amount : 0;
-        $printerEntries = $printerStats ? (int) $printerStats->entries_count : 0;
+        // 2. Calculate entry counts for each reference column using a single efficient query
+        $counts = null;
+        if (!empty($referenceColumns)) {
+            $selects = [];
+            foreach ($referenceColumns as $col) {
+                $selects[] = "SUM(CASE WHEN `{$col}` = 1 THEN 1 ELSE 0 END) as `{$col}_count`";
+            }
 
-        // 2. Calculate Other Services Stats (everything EXCEPT category unit = 'paper')
-        $otherServiceStats = EntryService::whereIn('entry_id', $entryIdsQuery)
-            ->whereDoesntHave('service.category', function ($query) {
-                $query->where('unit', 'paper');
-            })
-            ->with('service.category') // Eager load service name for the label
-            ->selectRaw('service_id, SUM(amount) as total_count, SUM(total) as total_amount, COUNT(DISTINCT entry_id) as entries_count')
-            ->groupBy('service_id')
-            ->get();
+            $counts = StudentEntry::whereIn('id', $entryIdsQuery)
+                ->selectRaw(implode(', ', $selects))
+                ->first();
+        }
 
-        // Build the stats array dynamically
-        $otherServicesStatArray = [];
-        foreach ($otherServiceStats as $stat) {
-            $serviceName = $stat->service?->name ?? 'خدمة محذوفة';
-            $count =  $stat->total_count . ' ' . __('general.services_module.units.'.$stat->service->category->unit);
-            $total = (int) $stat->total_amount;
-            $entries = (int) $stat->entries_count;
+        // 3. Calculate amounts and quantities from entry_services grouped by reference_column_name
+        $serviceStats = EntryService::whereIn('entry_id', $entryIdsQuery)
+            ->whereHas('service', fn ($q) => $q->whereNotNull('reference_column_name'))
+            ->join('services', 'entry_services.service_id', '=', 'services.id')
+            ->select(
+                'services.reference_column_name',
+                DB::raw('SUM(hcsz_entry_services.amount) as total_quantity'),
+                DB::raw('SUM(hcsz_entry_services.total) as total_amount')
+            )
+            ->groupBy('services.reference_column_name')
+            ->get()
+            ->keyBy('reference_column_name');
 
-            $otherServicesStatArray[] = Stat::make($serviceName, $entries)
-                  ->description( $count . ' ('.$total .' SYP)');
+        // 4. Build stats dynamically based on the reference columns
+        $referenceStatArray = [];
+        foreach ($referenceColumns as $col) {
+            $entriesCount = (int) ($counts->{"{$col}_count"} ?? 0);
+            $quantity = (int) ($serviceStats[$col]->total_quantity ?? 0);
+            $amount = (int) ($serviceStats[$col]->total_amount ?? 0);
+
+            // Map column names to readable Arabic labels
+            $label = match($col) {
+                'use_drawer' => 'المرسم',
+                'use_mecrator' => 'الميكراتور',
+                'use_pinter' => 'الطباعة',
+                'use_plotter' => 'البلوتر',
+                'stationary' => 'القرطاسية',
+                'use_internet' => 'الانترنت',
+                'reservation' => 'الحجز',
+                default => ucfirst(str_replace(['use_', '_'], ['', ' '], $col)),
+            };
+
+            $referenceStatArray[] = Stat::make($label, $entriesCount)
+                ->description("الكمية: {$quantity} - الإجمالي: " . number_format($amount) . " ل.س");
         }
 
         return [
@@ -105,12 +130,8 @@ class EntryStats extends BaseWidget
                     ->count()
             ),
 
-            // Printer Stat (Category unit = paper)
-            Stat::make(__('general.labels.print-service'), $printerEntries )
-                ->description( $printerCount . ' ' . __('general.services_module.units.paper') . ' ('.$printerTotal .' SYP)'),
-
-            // Dynamically generated Stats for all other services
-            ...$otherServicesStatArray,
+            // Dynamically generated Stats for all reference columns
+            ...$referenceStatArray,
         ];
     }
 }
