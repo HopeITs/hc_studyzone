@@ -20,7 +20,7 @@ class CreateStudent extends CreateRecord
 
         $qrContent = json_encode([
             'uuid' => $data['id'],
-            'url' => route('student.entry', ['uuid' => $data['id']]),
+            'url' => url("students/{$data['id']}/entry"),
         ]);
 
         $fileName = 'qr-codes/' . $data['id'] . '.png';
