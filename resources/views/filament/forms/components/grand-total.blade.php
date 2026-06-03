@@ -28,7 +28,7 @@
             <div class="text-xs text-gray-500 dark:text-gray-400">الإجمالي الكلي</div>
             <div class="flex justify-between gap-x-3">
                 <div class="text-2xl font-bold ">
-                    {{ number_format($total) * 100 }}
+                   {{ number_format($total * 100) }}
                     <span class="mr-1 text-base font-medium text-gray-500 dark:text-gray-400">ل.س.ق</span>
 
                 </div>
