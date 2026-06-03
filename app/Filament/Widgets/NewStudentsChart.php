@@ -2,7 +2,6 @@
 
 namespace App\Filament\Widgets;
 
-use App\Models\Center;
 use App\Models\Student;
 use Carbon\Carbon;
 use Filament\Widgets\ChartWidget;
@@ -13,6 +12,7 @@ class NewStudentsChart extends ChartWidget
     use InteractsWithPageFilters;
 
     protected static ?string $heading = 'New Students';
+
     protected static ?int $sort = 2;
 
     protected function getType(): string
@@ -22,11 +22,11 @@ class NewStudentsChart extends ChartWidget
 
     protected function getData(): array
     {
-        $startDate = !empty($this->filters['startDate'] ?? null)
+        $startDate = ! empty($this->filters['startDate'] ?? null)
             ? Carbon::parse($this->filters['startDate'])->startOfDay()
             : now()->startOfYear();
 
-        $endDate = !empty($this->filters['endDate'] ?? null)
+        $endDate = ! empty($this->filters['endDate'] ?? null)
             ? Carbon::parse($this->filters['endDate'])->endOfDay()
             : now()->endOfDay();
 
@@ -37,19 +37,14 @@ class NewStudentsChart extends ChartWidget
 
         $query = Student::query()
             ->whereBetween('created_at', [$startDate, $endDate])
-            ->when(!empty($cityIds), function ($query) use ($cityIds) {
+            ->when(! empty($cityIds), function ($query) use ($cityIds) {
                 $query->whereHas('street', function ($q) use ($cityIds) {
                     $q->whereIn('city_id', (array) $cityIds);
                 });
             })
-            ->when(!empty($centerIds), function ($query) use ($centerIds) {
-                $cities = Center::whereIn('id', $centerIds)
-                    ->distinct()
-                    ->pluck('city_id')
-                    ->toArray();
-
-                $query->whereHas('street', function ($q) use ($cities) {
-                    $q->whereIn('city_id', (array) $cities);
+            ->when(! empty($centerIds), function ($query) use ($centerIds) {
+                $query->whereHas('firstEntry', function ($p0) use ($centerIds) {
+                    $p0->whereIn('center_id', $centerIds);
                 });
             });
 
@@ -109,5 +104,4 @@ class NewStudentsChart extends ChartWidget
             ],
         ];
     }
-
 }
