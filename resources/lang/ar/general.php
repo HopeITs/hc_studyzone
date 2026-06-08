@@ -35,6 +35,7 @@ return [
         EduType::Private() => 'التعليم الخاص',
         EduType::Open() => 'التعليم المفتوح',
         EduType::Virtual() => 'التعليم الافتراضي',
+        EduType::None() => 'لا يوجد',
     ],
 
     'edu-levels' => [

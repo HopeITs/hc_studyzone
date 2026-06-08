@@ -14,6 +14,7 @@ enum EduType: int
     case Private  = 1;
     case Open  = 2;
     case Virtual  = 3;
+    case None = 4;
 
 
 

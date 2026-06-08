@@ -35,6 +35,7 @@ return [
         EduType::Private() => 'Private Education',
         EduType::Open() => 'Open Education',
         EduType::Virtual() => 'Virtual Education',
+        EduType::None() => 'None',
     ],
 
     'edu-levels' => [
