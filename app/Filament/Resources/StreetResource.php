@@ -27,16 +27,23 @@ class StreetResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
-    protected static ?string $label = 'شارع';
-
-    protected static ?string $modelLabel = 'شارع';
-
-    protected static ?string $navigationLabel = 'الشوارع';
-
-    protected static ?string $pluralModelLabel = 'الشوارع';
-
     protected static ?int $navigationSort = 3;
     use Translatable;
+
+    public static function getNavigationLabel(): string
+    {
+        return __('general.labels.streets');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('general.labels.street_singular');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('general.labels.streets');
+    }
 
     public static function getTranslatableLocales(): array
     {
@@ -66,10 +73,10 @@ class StreetResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->columns([Tables\Columns\TextColumn::make('name')->label('Name')->formatStateUsing(fn(Model $record) => $record->getTranslation('name', 'ar') . ' - ' . $record->getTranslation('name', 'en'))->sortable()->searchable(), Tables\Columns\TextColumn::make('city.name')->sortable()->searchable()])
+            ->columns([Tables\Columns\TextColumn::make('name')->label(__('general.labels.name'))->formatStateUsing(fn(Model $record) => $record->getTranslation('name', 'ar') . ' - ' . $record->getTranslation('name', 'en'))->sortable()->searchable(), Tables\Columns\TextColumn::make('city.name')->sortable()->searchable()])
             ->filters([
                 SelectFilter::make('city_id')
-                    ->label('Filter by City')
+                    ->label(__('general.labels.filter_by_city'))
                     ->options(City::all()->pluck('name', 'id'))
                     ->searchable(),
             ])

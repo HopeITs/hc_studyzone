@@ -73,9 +73,9 @@ class AdminPanelProvider extends PanelProvider
                 Authenticate::class,
             ])
             ->navigationGroups([
-                NavigationGroup::make()->label('Admin Management'),
-                NavigationGroup::make()->label('City Management'),
-                NavigationGroup::make()->label('Student Management'),
+                NavigationGroup::make()->label(__('general.navigation.admin_management')),
+                NavigationGroup::make()->label(__('general.navigation.city_management')),
+                NavigationGroup::make()->label(__('general.navigation.student_management')),
             ])
             ->plugins([
                 ActivitylogPlugin::make()

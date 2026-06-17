@@ -19,9 +19,14 @@ class EntriesByCenterTable extends Widget
 
     protected static string $view = 'filament.widgets.entries-by-center-table';
 
-    protected static ?string $heading = 'Entries by Center';
+    protected static ?string $heading = null;
     protected int|string|array $columnSpan = 'full';
     protected static ?int $sort = 3;
+
+    public function getHeading(): string
+    {
+        return __('general.labels.entries_by_center');
+    }
 
     public function getViewData(): array
     {

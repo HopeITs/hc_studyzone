@@ -11,9 +11,14 @@ class FrequentStudentsChart extends ChartWidget
 {
     use InteractsWithPageFilters;
 
-    protected static ?string $heading = 'Frequent Students (More than X Visits)';
+    protected static ?string $heading = null;
     protected int|string|array $columnSpan = 'full';
     protected static ?int $sort = 3;
+
+    public function getHeading(): string
+    {
+        return __('general.labels.frequent_students');
+    }
 
     protected function getType(): string
     {
@@ -67,7 +72,7 @@ class FrequentStudentsChart extends ChartWidget
         return [
             'datasets' => [
                 [
-                    'label' => "Students ≥ {$minVisits} Visits",
+                    'label' => __('general.labels.students_min_visits', ['count' => $minVisits]),
                     'data' => $data,
                     'fill' => 'start',
                     'backgroundColor' => [

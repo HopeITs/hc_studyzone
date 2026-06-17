@@ -60,7 +60,7 @@ class AddEntryServices extends Page implements HasForms
         return [
             // ── Daily Services ──────────────────────────────────────────
             CheckboxList::make('day_services')
-                ->label('خدمات يومية')
+                ->label(__('general.labels.daily_services'))
                 ->options(function () use ($centerId, $entryId) {
                     // Exclude already-added daily services for this entry
                     $existingIds = EntryService::where('entry_id', $entryId)
@@ -100,21 +100,21 @@ class AddEntryServices extends Page implements HasForms
 
             // ── Additional Services (Repeater) ───────────────────────────
             Repeater::make('services')
-                ->label('خدمات إضافية')
+                ->label(__('general.labels.additional_services'))
                 ->defaultItems(0)
                 ->minItems(0)
-                ->addActionLabel('+ إضافة خدمة جديدة')
+                ->addActionLabel('+ '.__('general.labels.add_new_service'))
                 ->live()
                 ->deleteAction(
                     fn(FormAction $action) => $action
                         ->requiresConfirmation()
-                        ->modalHeading('تأكيد الحذف')
-                        ->modalDescription('هل تريد حذف هذه الخدمة؟')
-                        ->modalCancelActionLabel('إلغاء')
-                        ->modalSubmitActionLabel('حذف')
+                        ->modalHeading(__('general.labels.confirm_delete'))
+                        ->modalDescription(__('general.labels.delete_service_question'))
+                        ->modalCancelActionLabel(__('general.labels.cancel'))
+                        ->modalSubmitActionLabel(__('general.labels.delete'))
                 )
                 ->itemLabel(function (array $state) {
-                    if (empty($state['service_id'])) return '⚠️ خدمة غير محددة';
+                    if (empty($state['service_id'])) return '⚠️ '.__('general.labels.unspecified_service');
 
                     $serviceName = Service::find($state['service_id'])?->name ?? 'خدمة';
                     $amount      = (int) ($state['amount'] ?? 1);
@@ -126,8 +126,8 @@ class AddEntryServices extends Page implements HasForms
                     Grid::make(7)->schema([
 
                         Select::make('category_id')
-                            ->label('التصنيف')
-                            ->placeholder('اختر التصنيف أولاً')
+                            ->label(__('general.labels.category'))
+                            ->placeholder(__('general.labels.select_category_first'))
                             ->options(function () use ($centerId) {
                                 return ServiceCategory::where(fn($q) => $q
                                     ->whereNull('unit')
@@ -155,8 +155,8 @@ class AddEntryServices extends Page implements HasForms
                             }),
 
                         Select::make('service_id')
-                            ->label('الخدمة')
-                            ->placeholder('اختر التصنيف أولاً')
+                            ->label(__('general.labels.service'))
+                            ->placeholder(__('general.labels.select_category_first'))
                             ->options(function (callable $get) use ($centerId) {
                                 $categoryId = $get('category_id');
                                 if (!$categoryId) return [];
@@ -205,7 +205,7 @@ class AddEntryServices extends Page implements HasForms
                         Hidden::make('price'),
 
                         TextInput::make('amount')
-                            ->label('الكمية')
+                            ->label(__('general.labels.quantity'))
                             ->numeric()
                             ->default(1)
                             ->minValue(1)
@@ -352,7 +352,7 @@ class AddEntryServices extends Page implements HasForms
 
     // ── END NEW ──────────────────────────────────────────────────────────
 
-    Notification::make()->title('تم الحفظ بنجاح')->success()->send();
+    Notification::make()->title(__('general.labels.saved_successfully'))->success()->send();
     $this->redirect(EntryResource::getUrl('index'));
 }
 }

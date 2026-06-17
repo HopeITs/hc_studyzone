@@ -11,9 +11,14 @@ class EntryGenderChart extends ChartWidget
 {
     use InteractsWithPageFilters;
 
-    protected static ?string $heading = 'Gender Distribution (Entries)';
+    protected static ?string $heading = null;
     protected static ?int $sort = 6;
     protected static ?string $maxHeight = '300px';
+
+    public function getHeading(): string
+    {
+        return __('general.labels.entries_gender_distribution');
+    }
 
     protected function getData(): array
     {
@@ -40,10 +45,10 @@ class EntryGenderChart extends ChartWidget
             ->pluck('total', 'gender');
 
         $genderLabels = [
-            3 => 'Total',
-            1 => 'Male',
-            2 => 'Female',
-            0 => 'Unknown',
+            3 => __('general.labels.total'),
+            1 => __('general.labels.males'),
+            2 => __('general.labels.females'),
+            0 => __('general.labels.unknown'),
         ];
 
         $labels = array_values($genderLabels);
@@ -58,7 +63,7 @@ class EntryGenderChart extends ChartWidget
             'labels' => $labels,
             'datasets' => [
                 [
-                    'label' => 'Entries',
+                    'label' => __('general.labels.entries'),
                     'data' => $data,
                     'backgroundColor' => [
                         'rgba(255, 159, 64, 0.2)',

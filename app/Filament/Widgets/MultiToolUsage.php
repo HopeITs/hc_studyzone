@@ -96,23 +96,23 @@ class MultiToolUsage extends BaseWidget
             : 0;
 
         return [
-//            Card::make('استخدام أكثر من خدمة', "{$multiToolPercentage}%")
-//                ->description('من الطلاب استخدموا أكثر من خدمة في الزيارة')
+//            Card::make(__('general.labels.more_than_one_service_usage'), "{$multiToolPercentage}%")
+//                ->description(__('general.labels.more_than_one_service_usage_description'))
 //                ->color($multiToolPercentage >= 50 ? 'success' : 'warning')
 //                ->icon('heroicon-o-adjustments-horizontal'),
 
-            Card::make('طلاب زاروا أكثر من مركز', $studentsWithMultipleCenters)
-                ->description('عدد الطلاب الذين زاروا أكثر من مركز في المدينة المحددة')
+            Card::make(__('general.labels.students_visited_multiple_centers'), $studentsWithMultipleCenters)
+                ->description(__('general.labels.students_visited_multiple_centers_description'))
                 ->color('info')
                 ->icon('heroicon-o-map-pin'),
 
-            Card::make('طلاب هندسة العمارة', "{$architecturePercentage}%")
-                ->description('نسبة طلاب هندسة العمارة من إجمالي الطلاب')
+            Card::make(__('general.labels.architecture_students'), "{$architecturePercentage}%")
+                ->description(__('general.labels.architecture_students_description'))
                 ->color('success')
                 ->icon('heroicon-o-academic-cap'),
 
-            Card::make('طلاب طب الأسنان', "{$dentistryPercentage}%")
-                ->description('نسبة طلاب طب الأسنان من إجمالي الطلاب')
+            Card::make(__('general.labels.dentistry_students'), "{$dentistryPercentage}%")
+                ->description(__('general.labels.dentistry_students_description'))
                 ->color('success')
                 ->icon('heroicon-o-academic-cap'),
         ];

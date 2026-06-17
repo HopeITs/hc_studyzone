@@ -20,7 +20,17 @@ class ServiceCategoryResource extends Resource
 
     public static function getNavigationLabel(): string
     {
-        return 'فئات الخدمات';
+        return __('general.labels.service_categories');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('general.labels.service_category');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('general.labels.service_categories');
     }
 
     public static function getEloquentQuery(): Builder
@@ -42,12 +52,9 @@ class ServiceCategoryResource extends Resource
                     ->required()
                     ->maxLength(255),
                 Forms\Components\Select::make('unit')
+                    ->label(__('general.labels.unit'))
                     ->required()
-                    ->options([
-                        'day' => 'يوم',
-                        'hour' => 'ساعة',
-                        'paper' => 'ورقة',
-                    ]),
+                    ->options(__('general.services_module.units')),
             ]);
     }
 
@@ -59,12 +66,7 @@ class ServiceCategoryResource extends Resource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('unit')
                     ->badge()
-                    ->formatStateUsing(fn ($state) => match($state) {
-                        'day' => 'يوم',
-                        'hour' => 'ساعة',
-                        'paper' => 'ورقة',
-                        default => $state,
-                    }),
+                    ->formatStateUsing(fn ($state) => __('general.services_module.units.'.$state) !== 'general.services_module.units.'.$state ? __('general.services_module.units.'.$state) : $state),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

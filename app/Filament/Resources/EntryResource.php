@@ -40,11 +40,20 @@ class EntryResource extends Resource
 
     protected static ?int $navigationSort = 7;
 
-    protected static ?string $navigationLabel = 'الدخوليات';
+    public static function getNavigationLabel(): string
+    {
+        return __('general.labels.entries');
+    }
 
-    protected static ?string $label = 'دخولية';
+    public static function getModelLabel(): string
+    {
+        return __('general.labels.entry_singular');
+    }
 
-    protected static ?string $pluralModelLabel = 'الدخوليات';
+    public static function getPluralModelLabel(): string
+    {
+        return __('general.labels.entries');
+    }
 
     public static function getEloquentQuery(): Builder
     {
@@ -83,7 +92,7 @@ class EntryResource extends Resource
             ->defaultSort('entry_time', 'desc')
             ->columns([
                 TextColumn::make('student.firstname')
-                    ->label('اسم الطالب')
+                    ->label(__('general.labels.student_name'))
                     ->formatStateUsing(fn (Model $record) => implode(' ', [
                         $record->student->firstname,
                         $record->student->father_name,
@@ -101,7 +110,7 @@ class EntryResource extends Resource
                     ),
 
                 IconColumn::make('student.completed_data')
-                    ->label('حالة البيانات')
+                    ->label(__('general.labels.data_status'))
                     ->toggleable(isToggledHiddenByDefault: true)
                     ->boolean()
                     ->trueIcon('heroicon-o-check-circle')
@@ -110,22 +119,22 @@ class EntryResource extends Resource
                     ->falseColor('danger')
                     ->sortable()
                     ->tooltip(fn ($record) => $record->student->completed_data
-                        ? 'البيانات مكتملة'
-                        : 'البيانات غير مكتملة'),
+                        ? __('general.messages.completed_data_tooltip')
+                        : __('general.messages.incomplete_data_tooltip')),
 
                 TextColumn::make('student.national_number')
-                    ->label('الرقم الوطني / الإقامة')
+                    ->label(__('general.labels.national_number_or_residency'))
                     ->sortable()
                     ->toggleable(),
 
                 TextColumn::make('student.phone')
-                    ->label('الموبايل')
+                    ->label(__('general.labels.mobile'))
                     ->searchable()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('student.gender')
-                    ->label('الجنس')
+                    ->label(__('general.labels.gender'))
                     ->sortable()
                     ->badge()
                     ->formatStateUsing(fn (string $state) => __("general.genders.{$state}"))
@@ -137,7 +146,7 @@ class EntryResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('student.religion')
-                    ->label('الديانة')
+                    ->label(__('general.labels.religion'))
                     ->sortable()
                     ->badge()
                     ->formatStateUsing(fn (string $state) => __("general.religions.{$state}"))
@@ -149,18 +158,18 @@ class EntryResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('student.whatsapp')
-                    ->label('واتساب')
+                    ->label(__('general.labels.whatsapp'))
                     ->searchable()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('entry_type')
-                    ->label('نوع الدخول')
+                    ->label(__('general.labels.entry_type'))
                     ->sortable()
                     ->formatStateUsing(fn ($state) => __('general.entry-types.'.$state)),
 
                 TextColumn::make('student.studentEducations.level')
-                    ->label('مستوى التعليم')
+                    ->label(__('general.labels.education_level'))
                     ->formatStateUsing(function (Model $record) {
                         // Uses the already eager-loaded relation — no extra query
                         $lastEdu = $record->student
@@ -190,7 +199,7 @@ class EntryResource extends Resource
                     ),
 
                 TextColumn::make('student.education')
-                    ->label('المؤهل العلمي')
+                    ->label(__('general.labels.education'))
                     ->sortable(
                         query: fn (Builder $query, string $direction): Builder => $query->orderBy(
                             StudentEducation::select('education_id')
@@ -203,34 +212,34 @@ class EntryResource extends Resource
                     ->toggleable(),
 
                 TextColumn::make('services_list')
-                    ->label('الخدمات المقدمة')
+                    ->label(__('general.labels.provided_services'))
                     ->formatStateUsing(fn ($record) => $record->services_list ?? '-')
                     ->toggleable(),
 
                 TextColumn::make('total_amount')
-                    ->label('الإجمالي')
+                    ->label(__('general.labels.total'))
                     ->formatStateUsing(fn ($record) => $record->total_amount.' SYP')
                     ->color('success')
                     ->toggleable(),
                 TextColumn::make('created_at')
-                    ->label('الإجمالي (قديم)')
+                    ->label(__('general.labels.old_total'))
                     ->formatStateUsing(fn ($record) => $record->total_amount * 100 .' SYP')
                     ->color('info')
                     ->toggleable(),
 
                 TextColumn::make('entry_time')
-                    ->label('تاريخ الدخول')
+                    ->label(__('general.labels.entry_date'))
                     ->sortable()
                     ->dateTime('Y-m-d H:i'),
 
                 TextColumn::make('center.city.name')
-                    ->label('المدينة')
+                    ->label(__('general.labels.city'))
                     ->sortable()
                     ->visible($user->role === Roles::GeneralAdmin())
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('center.name')
-                    ->label('المركز')
+                    ->label(__('general.labels.center'))
                     ->sortable()
                     ->hidden($user->role === Roles::CenterAdmin())
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -239,14 +248,14 @@ class EntryResource extends Resource
             ->filtersFormColumns(4)
             ->filters([
                 Filter::make('entry_time')
-                    ->label('التاريخ')
+                    ->label(__('general.labels.date'))
                     ->form([
                         DateTimePicker::make('from')
-                            ->label('من')
+                            ->label(__('general.labels.from'))
                             ->default(today()->startOfDay())
                             ->columnSpan(1),
                         DateTimePicker::make('to')
-                            ->label('إلى')
+                            ->label(__('general.labels.to'))
                             ->default(today()->endOfDay())
                             ->columnSpan(1),
                     ])
@@ -258,7 +267,7 @@ class EntryResource extends Resource
                     ),
 
                 SelectFilter::make('entry_type')
-                    ->label('نوع الدخولية')
+                    ->label(__('general.labels.entry_type'))
                     ->options(__('general.entry-types'))
                     ->searchable()
                     ->multiple()
@@ -266,10 +275,10 @@ class EntryResource extends Resource
                     ->columnSpan(1),
 
                 TernaryFilter::make('student.completed_data')
-                    ->label('حالة بيانات الطالب')
-                    ->placeholder('الكل')
-                    ->trueLabel('نعم - البيانات مكتملة')
-                    ->falseLabel('لا - البيانات غير مكتملة')
+                    ->label(__('general.labels.student_data_status'))
+                    ->placeholder(__('general.labels.all'))
+                    ->trueLabel(__('general.labels.yes').' - '.__('general.labels.completed_data'))
+                    ->falseLabel(__('general.labels.no').' - '.__('general.labels.incomplete_data'))
                     ->queries(
                         true: fn (Builder $query) => $query->whereHas('student', fn ($q) => $q->where('completed_data', true)),
                         false: fn (Builder $query) => $query->whereHas('student', fn ($q) => $q->where('completed_data', false)),
@@ -278,7 +287,7 @@ class EntryResource extends Resource
                     ->columnSpan(1),
 
                 SelectFilter::make('center.city.name')
-                    ->label('المدينة')
+                    ->label(__('general.labels.city'))
                     ->relationship('center.city', 'name')
                     ->searchable()
                     ->columnSpan(1)
@@ -287,7 +296,7 @@ class EntryResource extends Resource
                     ->preload(),
 
                 SelectFilter::make('center_id')
-                    ->label('المركز')
+                    ->label(__('general.labels.center'))
                     ->relationship('center', 'name')
                     ->searchable()
                     ->columnSpan($user->role === Roles::GeneralAdmin() ? 1 : 4)
@@ -296,7 +305,7 @@ class EntryResource extends Resource
                     ->preload(),
 
                 SelectFilter::make('student.education')
-                    ->label('المؤهل العلمي')
+                    ->label(__('general.labels.education'))
                     ->options(Education::pluck('name', 'id'))
                     ->searchable()
                     ->multiple()
@@ -351,10 +360,10 @@ class EntryResource extends Resource
                     ->preload(),
 
                 TernaryFilter::make('student.national_number')
-                    ->label('الرقم الوطني / الإقامة')
-                    ->placeholder('الكل')
-                    ->trueLabel('يوجد')
-                    ->falseLabel('لا يوجد')
+                    ->label(__('general.labels.national_number_or_residency'))
+                    ->placeholder(__('general.labels.all'))
+                    ->trueLabel(__('general.labels.exists'))
+                    ->falseLabel(__('general.labels.not_exists'))
                     ->queries(
                         true: fn (Builder $query) => $query->whereHas('student', fn ($q) => $q->whereNotNull('national_number')),
                         false: fn (Builder $query) => $query->whereHas('student', fn ($q) => $q->whereNull('national_number')),
@@ -363,7 +372,7 @@ class EntryResource extends Resource
                     ->columnSpan(1),
 
                 SelectFilter::make('student.gender')
-                    ->label('الجنس')
+                    ->label(__('general.labels.gender'))
                     ->options(__('general.genders'))
                     ->preload()
                     ->query(function (Builder $query, array $data): Builder {
@@ -378,7 +387,7 @@ class EntryResource extends Resource
                     }),
 
                 SelectFilter::make('student.religion')
-                    ->label('الديانة')
+                    ->label(__('general.labels.religion'))
                     ->options(__('general.religions'))
                     ->preload()
                     ->query(function (Builder $query, array $data): Builder {
@@ -392,13 +401,13 @@ class EntryResource extends Resource
                         return $query;
                     }),
 
-                TernaryFilter::make('use_printer')->label(__('general.labels.print-service'))->placeholder('الكل')->trueLabel('مفعّل')->falseLabel('غير مفعّل')->queries(true: fn (Builder $query) => $query->where('use_printer', true), false: fn (Builder $query) => $query->where('use_printer', false), blank: fn (Builder $query) => $query)->columnSpan(1),
-                TernaryFilter::make('use_mecrator')->label(__('general.labels.mecrator-service'))->placeholder('الكل')->trueLabel('مفعّل')->falseLabel('غير مفعّل')->queries(true: fn (Builder $query) => $query->where('use_mecrator', true), false: fn (Builder $query) => $query->where('use_mecrator', false), blank: fn (Builder $query) => $query)->columnSpan(1),
-                TernaryFilter::make('use_drawer')->label(__('general.labels.drawer-service'))->placeholder('الكل')->trueLabel('مفعّل')->falseLabel('غير مفعّل')->queries(true: fn (Builder $query) => $query->where('use_drawer', true), false: fn (Builder $query) => $query->where('use_drawer', false), blank: fn (Builder $query) => $query)->columnSpan(1),
-                TernaryFilter::make('use_plotter')->label(__('general.labels.plotter-service'))->placeholder('الكل')->trueLabel('مفعّل')->falseLabel('غير مفعّل')->queries(true: fn (Builder $query) => $query->where('use_plotter', true), false: fn (Builder $query) => $query->where('use_plotter', false), blank: fn (Builder $query) => $query)->columnSpan(1),
-                TernaryFilter::make('use_internet')->label(__('general.labels.internet-service'))->placeholder('الكل')->trueLabel('مفعّل')->falseLabel('غير مفعّل')->queries(true: fn (Builder $query) => $query->where('use_internet', true), false: fn (Builder $query) => $query->where('use_internet', false), blank: fn (Builder $query) => $query)->columnSpan(1),
-                TernaryFilter::make('reservation')->label(__('general.labels.reservation'))->placeholder('الكل')->trueLabel('مفعّل')->falseLabel('غير مفعّل')->queries(true: fn (Builder $query) => $query->where('reservation', true), false: fn (Builder $query) => $query->where('reservation', false), blank: fn (Builder $query) => $query)->columnSpan(1),
-                TernaryFilter::make('stationary')->label(__('general.labels.stationary'))->placeholder('الكل')->trueLabel('مفعّل')->falseLabel('غير مفعّل')->queries(true: fn (Builder $query) => $query->where('stationary', true), false: fn (Builder $query) => $query->where('stationary', false), blank: fn (Builder $query) => $query)->columnSpan(1),
+                TernaryFilter::make('use_printer')->label(__('general.labels.print-service'))->placeholder(__('general.labels.all'))->trueLabel(__('general.labels.enabled'))->falseLabel(__('general.labels.disabled'))->queries(true: fn (Builder $query) => $query->where('use_printer', true), false: fn (Builder $query) => $query->where('use_printer', false), blank: fn (Builder $query) => $query)->columnSpan(1),
+                TernaryFilter::make('use_mecrator')->label(__('general.labels.mecrator-service'))->placeholder(__('general.labels.all'))->trueLabel(__('general.labels.enabled'))->falseLabel(__('general.labels.disabled'))->queries(true: fn (Builder $query) => $query->where('use_mecrator', true), false: fn (Builder $query) => $query->where('use_mecrator', false), blank: fn (Builder $query) => $query)->columnSpan(1),
+                TernaryFilter::make('use_drawer')->label(__('general.labels.drawer-service'))->placeholder(__('general.labels.all'))->trueLabel(__('general.labels.enabled'))->falseLabel(__('general.labels.disabled'))->queries(true: fn (Builder $query) => $query->where('use_drawer', true), false: fn (Builder $query) => $query->where('use_drawer', false), blank: fn (Builder $query) => $query)->columnSpan(1),
+                TernaryFilter::make('use_plotter')->label(__('general.labels.plotter-service'))->placeholder(__('general.labels.all'))->trueLabel(__('general.labels.enabled'))->falseLabel(__('general.labels.disabled'))->queries(true: fn (Builder $query) => $query->where('use_plotter', true), false: fn (Builder $query) => $query->where('use_plotter', false), blank: fn (Builder $query) => $query)->columnSpan(1),
+                TernaryFilter::make('use_internet')->label(__('general.labels.internet-service'))->placeholder(__('general.labels.all'))->trueLabel(__('general.labels.enabled'))->falseLabel(__('general.labels.disabled'))->queries(true: fn (Builder $query) => $query->where('use_internet', true), false: fn (Builder $query) => $query->where('use_internet', false), blank: fn (Builder $query) => $query)->columnSpan(1),
+                TernaryFilter::make('reservation')->label(__('general.labels.reservation'))->placeholder(__('general.labels.all'))->trueLabel(__('general.labels.enabled'))->falseLabel(__('general.labels.disabled'))->queries(true: fn (Builder $query) => $query->where('reservation', true), false: fn (Builder $query) => $query->where('reservation', false), blank: fn (Builder $query) => $query)->columnSpan(1),
+                TernaryFilter::make('stationary')->label(__('general.labels.stationary'))->placeholder(__('general.labels.all'))->trueLabel(__('general.labels.enabled'))->falseLabel(__('general.labels.disabled'))->queries(true: fn (Builder $query) => $query->where('stationary', true), false: fn (Builder $query) => $query->where('stationary', false), blank: fn (Builder $query) => $query)->columnSpan(1),
 
             ])
             ->filtersTriggerAction(fn (Action $action) => $action->button()->label(''))
@@ -419,7 +428,7 @@ class EntryResource extends Resource
                     ->hidden(fn () => $isObserver)
                     ->disabled(fn ($record) => ! $record->student->completed_data)
                     ->tooltip(fn ($record) => ! $record->student->completed_data
-                        ? '❌ لا يمكن التعديل: بيانات الطالب غير مكتملة'
+                        ? __('general.labels.create_entry_disabled_tooltip')
                         : null),
 
                 Tables\Actions\DeleteAction::make()

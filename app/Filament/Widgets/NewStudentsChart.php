@@ -11,9 +11,14 @@ class NewStudentsChart extends ChartWidget
 {
     use InteractsWithPageFilters;
 
-    protected static ?string $heading = 'New Students';
+    protected static ?string $heading = null;
 
     protected static ?int $sort = 2;
+
+    public function getHeading(): string
+    {
+        return __('general.labels.new_students');
+    }
 
     protected function getType(): string
     {
@@ -97,7 +102,7 @@ class NewStudentsChart extends ChartWidget
             'labels' => $labels,
             'datasets' => [
                 [
-                    'label' => 'New Students',
+                    'label' => __('general.labels.new_students'),
                     'data' => $data,
                     'fill' => 'start',
                 ],

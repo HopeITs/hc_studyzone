@@ -11,9 +11,14 @@ class EntryToolsChart extends ChartWidget
 {
     use InteractsWithPageFilters;
 
-    protected static ?string $heading = 'Entry Tool Usage Overview';
+    protected static ?string $heading = null;
 
     protected static ?int $sort = 5;
+
+    public function getHeading(): string
+    {
+        return __('general.labels.entry_tool_usage_overview');
+    }
 
     protected function getType(): string
     {
@@ -49,7 +54,7 @@ class EntryToolsChart extends ChartWidget
         return [
             'datasets' => [
                 [
-                    'label' => 'Count',
+                    'label' => __('general.labels.count'),
                     'data' => [$mecrator, $printer, $drawer, $plotter, $internet , $reservation , $stationary],
                     'backgroundColor' => [
                         'rgba(54, 162, 235, 0.2)',

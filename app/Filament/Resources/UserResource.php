@@ -31,14 +31,22 @@ class UserResource extends Resource
     protected static ?string $model = User::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-user';
-    protected static ?string $label = 'مستخدم';
-
-    protected static ?string $modelLabel = 'مستخدم';
-
-    protected static ?string $navigationLabel = 'المستخدمون';
-
-    protected static ?string $pluralModelLabel = 'المستخدمون';
     protected static ?int $navigationSort = 7;
+
+    public static function getNavigationLabel(): string
+    {
+        return __('general.labels.users');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('general.labels.user');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('general.labels.users');
+    }
     public static function query(Builder $query): Builder
     {
         $user = auth()->user();
@@ -59,30 +67,30 @@ class UserResource extends Resource
     {
         return $form->schema([
             TextInput::make('name')
-                ->label('Name')
+                ->label(__('general.labels.name'))
                 ->required(),
 
             Select::make('role')
-                ->label('User Role')
+                ->label(__('general.labels.user_role'))
                 ->options(__('general.roles'))
                 ->disabled(fn () => !auth()->user()->role === Roles::GeneralAdmin())
 
                 ->required(),
 
             TextInput::make('email')
-                ->label('Email')
+                ->label(__('general.labels.email'))
                 ->email()
                 ->unique(ignoreRecord: true)
                 ->required(),
 
             TextInput::make('password')
-                ->label('Password')
+                ->label(__('general.labels.password'))
                 ->password()
                 ->required(),
 
             // City Selection
             Select::make('city_id')
-                ->label('City (For City Admins)')
+                ->label(__('general.labels.city_for_admins'))
                 ->relationship(name: 'city', titleAttribute: 'name')
                 ->searchable()
                 ->preload()
@@ -91,14 +99,14 @@ class UserResource extends Resource
 
             // Center Selection (Filtered by Selected City)
             Select::make('center_id')
-                ->label('Center (For Center Admins)')
+                ->label(__('general.labels.center_for_admins'))
                 ->searchable()
                 ->preload()
                 ->options(fn ($get) => Center::where('city_id', $get('city_id'))->pluck('name', 'id')) // 👈 Filters centers based on selected city
                 ->required(fn ($get) => $get('role') === 'center_admin'),
 
             Toggle::make('is_active')
-                ->label('Active User')
+                ->label(__('general.labels.active_user'))
                 ->default(true),
         ]);
     }
@@ -108,28 +116,28 @@ class UserResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('name')
-                    ->label('Full Name')
+                    ->label(__('general.labels.full_name'))
                     ->sortable()
                     ->searchable(),
 
                 TextColumn::make('email')
-                    ->label('Email')
+                    ->label(__('general.labels.email'))
                     ->sortable()
                     ->searchable(),
 
                 BadgeColumn::make('role')
                 ->formatStateUsing(fn ($state) => __('general.roles.'.$state))
-                ->label('Role')
+                ->label(__('general.labels.role'))
                   ,
 
                 TextColumn::make('city.name')
-                    ->label('City')
+                    ->label(__('general.labels.city'))
                     ->sortable()
                     ->searchable(),
 //                    ->hidden(fn ($record) => $record->role !== 'city_admin'),
 
                 TextColumn::make('center.name')
-                    ->label('Center')
+                    ->label(__('general.labels.center'))
                     ->sortable()
                     ->searchable(),
 //                    ->hidden(fn ($record) => $record->role !== 'center_admin'),
@@ -139,22 +147,22 @@ class UserResource extends Resource
             ->filters([
                 SelectFilter::make('role')
                     ->options(__('general.roles'))
-                    ->label('Filter by Role')
+                    ->label(__('general.labels.filter_by_role'))
                    ,
                 SelectFilter::make('city_id')
                     ->relationship('city', 'name')
-                    ->label('Filter by City')
+                    ->label(__('general.labels.filter_by_city'))
                 ,
                 SelectFilter::make('center_id')
                     ->relationship('center', 'name')
-                    ->label('Filter by Center')
+                    ->label(__('general.labels.filter_by_center'))
                 ,
 
                 SelectFilter::make('is_active')
-                    ->label('Filter by Status')
+                    ->label(__('general.labels.filter_by_status'))
                     ->options([
-                        true => 'Active',
-                        false => 'Inactive',
+                        true => __('general.labels.active'),
+                        false => __('general.labels.inactive'),
                     ]),
             ])
             ->actions([

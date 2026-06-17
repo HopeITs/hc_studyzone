@@ -154,8 +154,8 @@ class CreateStudentEntry extends Page
                 Fieldset::make('الخدمات المطلوبة')
                     ->schema([
 
-                        CheckboxList::make('day_services')
-                            ->label('خدمات يومية (تُطلب لمرة واحدة)')
+                            CheckboxList::make('day_services')
+                            ->label(__('general.labels.one_time_daily_services'))
                             ->options(function (callable $get) {
                                 $centerId = $get('center_id')
                                     ?? $get('_center_id_for_calc')
@@ -216,9 +216,9 @@ class CreateStudentEntry extends Page
                             ->schema([
                                 Grid::make()
                                     ->schema([
-                                        Select::make('category_id')
-                                            ->label('التصنيف')
-                                            ->placeholder('اختر التصنيف أولاً')
+                                            Select::make('category_id')
+                                            ->label(__('general.labels.category'))
+                                            ->placeholder(__('general.labels.select_category_first'))
                                             ->options(function (callable $get) {
                                                 $centerId = $get('../../center_id')
                                                     ?? $get('../../_center_id_for_calc')
@@ -267,9 +267,9 @@ class CreateStudentEntry extends Page
                                                 $set('subtotal', 0);
                                             }),
 
-                                        Select::make('service_id')
-                                            ->label('الخدمة')
-                                            ->placeholder('اختر التصنيف أولاً')
+                                            Select::make('service_id')
+                                            ->label(__('general.labels.service'))
+                                            ->placeholder(__('general.labels.select_category_first'))
                                             ->options(function (callable $get) {
                                                 $centerId = $get('../../center_id')
                                                     ?? $get('../../_center_id_for_calc')
@@ -326,8 +326,8 @@ class CreateStudentEntry extends Page
                                                 }
                                             }),
 
-                                        TextInput::make('amount')
-                                            ->label('الكمية')
+                                            TextInput::make('amount')
+                                            ->label(__('general.labels.quantity'))
                                             ->placeholder('1')
                                             ->numeric()
                                             ->default(1)
@@ -363,8 +363,8 @@ class CreateStudentEntry extends Page
                             ->deleteAction(
                                 fn (Action $action) => $action
                                     ->requiresConfirmation()
-                                    ->modalHeading('تأكيد الحذف')
-                                    ->modalDescription('هل تريد حذف هذه الخدمة؟')
+                                    ->modalHeading(__('general.labels.confirm_delete'))
+                                    ->modalDescription(__('general.labels.delete_service_question'))
                                     ->modalCancelActionLabel('إلغاء')
                                     ->modalSubmitActionLabel('حذف')
                             ),

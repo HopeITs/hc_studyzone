@@ -26,15 +26,21 @@ class Reports extends Page
 
     protected static ?string $navigationIcon = 'heroicon-o-chart-bar';
 
-    protected static ?string $navigationLabel = 'التقارير';
-
-    protected static ?string $title = 'التقارير';
-
     protected static ?string $slug = 'reports';
 
     protected static ?int $navigationSort = 50;
 
     protected static string $view = 'filament.pages.reports';
+
+    public static function getNavigationLabel(): string
+    {
+        return __('general.navigation.reports');
+    }
+
+    public function getTitle(): string
+    {
+        return __('general.navigation.reports');
+    }
 
     public ?array $data = [
         'city_id' => null,
@@ -71,7 +77,7 @@ class Reports extends Page
                 Section::make()
                     ->schema([
                         Select::make('city_id')
-                            ->label('المدينة')
+                            ->label(__('general.labels.city'))
                             ->options(City::pluck('name', 'id'))
                             ->live()
                             ->visible(auth()->user()->role === Roles::GeneralAdmin() || auth()->user()->role === Roles::Observer())
@@ -79,7 +85,7 @@ class Reports extends Page
                             ->columnSpanFull(),
 
                         Select::make('center_id')
-                            ->label('المراكز')
+                            ->label(__('general.labels.centers'))
                             ->options(function (callable $get) {
                                 $user = auth()->user();
                                 $cityId = $get('city_id');
@@ -123,13 +129,13 @@ class Reports extends Page
                             }),
 
                         DatePicker::make('from')
-                            ->label('من')
+                            ->label(__('general.labels.from'))
                             ->default(now()->startOfMonth())
                             ->required()
                             ->columnSpan(1),
 
                         DatePicker::make('to')
-                            ->label('إلى')
+                            ->label(__('general.labels.to'))
                             ->default(now()->endOfMonth())
                             ->required()
                             ->columnSpan(1),
@@ -143,7 +149,7 @@ class Reports extends Page
     {
         return [
             Action::make('export_students_by_entry_period')
-                ->label('تصدير الطلاب خلال فترة')
+                ->label(__('general.labels.export_students_period'))
                 ->color('primary')
                 ->action(function (): StreamedResponse {
                     // 1. Increase execution time for this specific script only

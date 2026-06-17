@@ -12,9 +12,14 @@ class ActiveCenterEntriesChart extends ChartWidget
 {
     use InteractsWithPageFilters;
 
-    protected static ?string $heading = 'Entries Per Active Center';
+    protected static ?string $heading = null;
     protected int|string|array $columnSpan = 'full';
     protected static ?int $sort = 4;
+
+    public function getHeading(): string
+    {
+        return __('general.labels.entries_per_active_center');
+    }
 
     protected function getType(): string
     {
@@ -90,7 +95,7 @@ class ActiveCenterEntriesChart extends ChartWidget
         return [
             'datasets' => [
                 [
-                    'label' => 'Total Entries',
+                    'label' => __('general.labels.total_entries'),
                     'data' => $data,
                     'backgroundColor' => $bgColors,
                     'borderColor' => $borderColors,

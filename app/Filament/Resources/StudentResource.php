@@ -65,13 +65,20 @@ class StudentResource extends Resource
 
     protected static ?int $navigationSort = 6;
 
-    protected static ?string $label = 'طالب';
+    public static function getNavigationLabel(): string
+    {
+        return __('general.labels.students');
+    }
 
-    protected static ?string $modelLabel = 'طالب';
+    public static function getModelLabel(): string
+    {
+        return __('general.labels.student');
+    }
 
-    protected static ?string $navigationLabel = 'الطلاب';
-
-    protected static ?string $pluralModelLabel = 'الطلاب';
+    public static function getPluralModelLabel(): string
+    {
+        return __('general.labels.students');
+    }
 
     public static function getEloquentQuery(): Builder
     {
@@ -89,7 +96,7 @@ class StudentResource extends Resource
             ->schema(
                 fn (?Student $record) => [
                     Placeholder::make('data_status_notice')
-                        ->label('ملاحظة')
+                        ->label(__('general.labels.notice'))
                         ->content(function (?Student $record) {
                             if (! $record) {
                                 return '';
@@ -97,7 +104,7 @@ class StudentResource extends Resource
 
                             if (! $record->completed_data) {
                                 $errors = $record->getEntryValidationErrors();
-                                $message = "⚠️ **استكمل البيانات الخاصة للطالب قبل تسجيل الدخولية.**\n\n**الحقول الناقصة:**";
+                                $message = '⚠️ **'.__('general.messages.complete_student_before_entry')."**\n\n**".__('general.messages.missing_fields').'**';
 
                                 if (! empty($errors)) {
                                     $message .= "\n";
@@ -109,7 +116,7 @@ class StudentResource extends Resource
                                 return $message;
                             }
 
-                            return '✅ **جميع البيانات مكتملة - يمكن تسجيل الدخوليات**';
+                            return '✅ **'.__('general.messages.all_data_completed').'**';
                         })
                         ->hidden(fn (?Student $record): bool => $record === null)
                         ->columnSpanFull()
@@ -136,7 +143,7 @@ class StudentResource extends Resource
                             ->columnSpan(2)
                             ->schema([
                                 Checkbox::make('is_child')
-                                    ->label('قاصر')
+                                    ->label(__('general.labels.is_child'))
                                     ->default(false)
                                     ->live()
                                     ->afterStateHydrated(function ($set, $get, $state, $livewire) {
@@ -147,8 +154,8 @@ class StudentResource extends Resource
                                     }),
 
                                 Checkbox::make('skip_national_number')
-                                    ->label('تخطي الرقم الوطني')
-                                    ->helperText('الموافقة على إضافة طالب بدون رقم وطني')
+                                    ->label(__('general.labels.skip_national_number'))
+                                    ->helperText(__('general.labels.skip_national_number_help'))
                                     ->visible(fn () => in_array(auth()->user()->role, [Roles::GeneralAdmin(), Roles::CityAdmin()]))
                                     ->live()
                                     ->afterStateUpdated(function (Set $set, $state) {
@@ -161,7 +168,7 @@ class StudentResource extends Resource
                             ]),
                     ]),
 
-                    Textarea::make('skip_national_number_reason')->label('سبب تخطي الرقم الوطني')->placeholder('يرجى كتابة سبب عدم إدخال الرقم الوطني...')->required(fn (Get $get) => $get('skip_national_number') === true)->visible(fn (Get $get) => in_array(auth()->user()->role, [Roles::GeneralAdmin(), Roles::CityAdmin()]) && $get('skip_national_number') === true)->columnSpan(3)->maxLength(500),
+                    Textarea::make('skip_national_number_reason')->label(__('general.labels.skip_national_number_reason'))->placeholder(__('general.labels.skip_national_number_placeholder'))->required(fn (Get $get) => $get('skip_national_number') === true)->visible(fn (Get $get) => in_array(auth()->user()->role, [Roles::GeneralAdmin(), Roles::CityAdmin()]) && $get('skip_national_number') === true)->columnSpan(3)->maxLength(500),
 
                     TextInput::make('national_number')
                         ->label(fn (Get $get) => $get('nationality') === 'syrian' ? __('general.labels.national_number') : __('general.labels.foreign_id_number'))
@@ -180,18 +187,18 @@ class StudentResource extends Resource
 
                                 if ($student && (! $record || $student->id !== $record->id)) {
                                     Notification::make()
-                                        ->title("الطالب {$student->firstname} موجود في محافظة {$student->street->city->name}")
+                                        ->title(__('general.messages.student_exists_in_city', ['name' => $student->firstname, 'city' => $student->street->city->name]))
                                         ->danger()
                                         ->persistent()
-                                        ->actions([NotificationAction::make('view')->button()->label('عرض الطالب')->url(route('filament.admin.resources.students.view', $student), shouldOpenInNewTab: true)])
+                                        ->actions([NotificationAction::make('view')->button()->label(__('general.messages.view_student'))->url(route('filament.admin.resources.students.view', $student), shouldOpenInNewTab: true)])
                                         ->send();
 
-                                    $fail("الطالب {$student->firstname} موجود مسبقاً.");
+                                    $fail(__('general.messages.student_exists_in_city', ['name' => $student->firstname, 'city' => $student->street->city->name]));
                                 }
                             },
                         ])
                         ->validationMessages([
-                            'digits' => 'يجب إدخال 11 خانة بالضبط للرقم الوطني.',
+                            'digits' => __('general.messages.national_number_digits'),
                         ])
                         ->columnSpan(2),
 
@@ -215,7 +222,7 @@ class StudentResource extends Resource
                         ->searchable()
                         ->preload()
                         ->label(__('general.labels.street'))
-                        ->placeholder(fn (Get $get): string => empty($get('city_id')) ? 'First select City' : 'Select an option')
+                        ->placeholder(fn (Get $get): string => empty($get('city_id')) ? __('general.labels.first_select_city') : __('general.labels.select_option'))
                         ->options(function (?Student $record, Get $get, Set $set) {
                             $cityId = $get('city_id');
                             if (! empty($record) && empty($cityId)) {
@@ -232,19 +239,19 @@ class StudentResource extends Resource
                         ->rules([
                             fn (Get $get) => function (string $attribute, $value, Closure $fail) use ($get) {
                                 if ($get('nationality') === 'syrian' && ! preg_match('/^09\d{8}$/', $value)) {
-                                    $fail('رقم الهاتف السوري يجب أن يبدأ بالرقم 09 ويحتوي على 10 أرقام.');
+                                    $fail(__('general.messages.syrian_phone'));
                                 }
                             },
                         ])
                         ->validationMessages([
-                            'required' => 'رقم الهاتف مطلوب.',
+                            'required' => __('general.messages.phone_required'),
                         ]),
                     TextInput::make('whatsapp')
                         ->label(__('general.labels.whatsapp'))
                         ->rules([
                             fn (Get $get) => function (string $attribute, $value, Closure $fail) use ($get) {
                                 if ($value && $get('nationality') === 'syrian' && ! preg_match('/^09\d{8}$/', $value)) {
-                                    $fail('رقم الواتساب السوري يجب أن يبدأ بالرقم 09 ويحتوي على 10 أرقام.');
+                                    $fail(__('general.messages.syrian_whatsapp'));
                                 }
                             },
                         ]),
@@ -264,7 +271,7 @@ class StudentResource extends Resource
                     ->label(__('general.labels.educations'))
                     ->schema([
                         Select::make('degree')
-                            ->label('الدرجة')
+                            ->label(__('general.labels.degree'))
                             ->options(__('general.edu-degrees'))
                             ->reactive()
                             ->afterStateUpdated(fn (callable $set) => $set('education_id', null))
@@ -298,16 +305,16 @@ class StudentResource extends Resource
                             ->required(),
 
                         \Filament\Forms\Components\DatePicker::make('start_date')
-                            ->label('تاريخ البداية')
+                            ->label(__('general.labels.start_date'))
                             ->default(now())
                             ->required()
                             ->displayFormat('Y-m-d'),
 
                         \Filament\Forms\Components\DatePicker::make('end_date')
-                            ->label('تاريخ النهاية')
+                            ->label(__('general.labels.end_date'))
                             ->nullable()
                             ->after('start_date')
-                            ->helperText('اتركه فارغاً إذا كانت الدراسة مستمرة')
+                            ->helperText(__('general.messages.ongoing_study_help'))
                             ->maxDate(now())
                             ->displayFormat('Y-m-d'),
                     ])
@@ -331,8 +338,8 @@ class StudentResource extends Resource
                                     }
 
                                     if (isset($item['end_date']) && Carbon::parse($item['end_date'])->isFuture()) {
-                                        Notification::make()->danger()->title('خطأ')->body('تاريخ النهاية لا يمكن أن يكون في المستقبل.')->send();
-                                        $fail('تاريخ النهاية لا يمكن أن يكون في المستقبل.');
+                                        Notification::make()->danger()->title(__('general.messages.error'))->body(__('general.messages.end_date_future'))->send();
+                                        $fail(__('general.messages.end_date_future'));
 
                                         return;
                                     }
@@ -345,8 +352,8 @@ class StudentResource extends Resource
 
                                     $degreeLevelKey = (string) $degreeValue.'_'.$item['level'].'_'.$item['education_id'];
                                     if (in_array($degreeLevelKey, $seenCombinations)) {
-                                        Notification::make()->danger()->title('خطأ')->body('لا يمكن إضافة سجلين بنفس الدرجة والمستوى.')->send();
-                                        $fail('لا يمكن إضافة سجلين بنفس الدرجة والمستوى.');
+                                        Notification::make()->danger()->title(__('general.messages.error'))->body(__('general.messages.duplicate_degree_level'))->send();
+                                        $fail(__('general.messages.duplicate_degree_level'));
 
                                         return;
                                     }
@@ -367,8 +374,8 @@ class StudentResource extends Resource
                                         $checkEnd = $currentEnd ?? now()->addYears(100);
 
                                         if ($currentStart->lt($existEnd) && $existStart->lt($checkEnd)) {
-                                            Notification::make()->danger()->title('خطأ')->body('يوجد تعارض في التواريخ لنفس التعليم.')->send();
-                                            $fail('يوجد تعارض في التواريخ: لا يمكن تسجيل نفس التعليم مرتين في نفس الفترة.');
+                                            Notification::make()->danger()->title(__('general.messages.error'))->body(__('general.messages.date_overlap'))->send();
+                                            $fail(__('general.messages.date_overlap'));
 
                                             return;
                                         }
@@ -487,7 +494,7 @@ class StudentResource extends Resource
     {
         return [
             TextColumn::make('firstname')
-                ->label('Full name')
+                ->label(__('general.labels.full_name'))
                 ->formatStateUsing(fn (Model $record) => $record->firstname.' '.$record->father_name.' '.$record->lastname)
                 ->sortable(['firstname', 'lastname'])
                 ->searchable(
@@ -498,23 +505,23 @@ class StudentResource extends Resource
                             ->orWhere('father_name', 'like', "%{$search}%");
                     },
                 ),
-            IconColumn::make('completed_data')->label('حالة البيانات')->boolean()->trueIcon('heroicon-o-check-circle')->falseIcon('heroicon-o-x-circle')->trueColor('success')->falseColor('danger')->sortable()->tooltip(fn ($record) => $record->completed_data ? 'البيانات مكتملة' : 'البيانات غير مكتملة'),
-            TextColumn::make('year_of_birth')->label('Date of Birth')->sortable()->toggleable(),
-            TextColumn::make('nationality')->label('Nationality')->label('الجنسية')->sortable()->searchable()->toggleable(),
-            TextColumn::make('national_number')->label('الرقم الوطني / الإقامة')->sortable()->searchable()->toggleable(),
-            TextColumn::make('skip_national_number')->label('تم التخطي')->badge()->formatStateUsing(fn ($state) => $state ? 'نعم' : 'لا')->color(fn ($state) => $state ? 'warning' : 'gray')->toggleable(isToggledHiddenByDefault: true),
-            TextColumn::make('skip_national_number_reason')->label('سبب التخطي')->limit(30)->toggleable(isToggledHiddenByDefault: true),
-            TextColumn::make('phone')->label('Phone')->sortable()->searchable()->toggleable(),
-            TextColumn::make('email')->label('Email')->sortable()->searchable()->toggleable(isToggledHiddenByDefault: true),
-            TextColumn::make('entries_count')->counts('entries')->label('Entries')->sortable()->toggleable(),
-            TextColumn::make('whatsapp')->label('Whatsapp')->sortable()->searchable()->toggleable(isToggledHiddenByDefault: true),
-            TextColumn::make('street.name')->label('Street')->toggleable()->sortable()->searchable(),
+            IconColumn::make('completed_data')->label(__('general.labels.data_status'))->boolean()->trueIcon('heroicon-o-check-circle')->falseIcon('heroicon-o-x-circle')->trueColor('success')->falseColor('danger')->sortable()->tooltip(fn ($record) => $record->completed_data ? __('general.messages.completed_data_tooltip') : __('general.messages.incomplete_data_tooltip')),
+            TextColumn::make('year_of_birth')->label(__('general.labels.date_of_birth'))->sortable()->toggleable(),
+            TextColumn::make('nationality')->label(__('general.labels.nationality'))->sortable()->searchable()->toggleable(),
+            TextColumn::make('national_number')->label(__('general.labels.national_number_or_residency'))->sortable()->searchable()->toggleable(),
+            TextColumn::make('skip_national_number')->label(__('general.labels.skipped'))->badge()->formatStateUsing(fn ($state) => $state ? __('general.labels.yes') : __('general.labels.no'))->color(fn ($state) => $state ? 'warning' : 'gray')->toggleable(isToggledHiddenByDefault: true),
+            TextColumn::make('skip_national_number_reason')->label(__('general.labels.skip_national_number_reason'))->limit(30)->toggleable(isToggledHiddenByDefault: true),
+            TextColumn::make('phone')->label(__('general.labels.phone'))->sortable()->searchable()->toggleable(),
+            TextColumn::make('email')->label(__('general.labels.email'))->sortable()->searchable()->toggleable(isToggledHiddenByDefault: true),
+            TextColumn::make('entries_count')->counts('entries')->label(__('general.labels.entries'))->sortable()->toggleable(),
+            TextColumn::make('whatsapp')->label(__('general.labels.whatsapp'))->sortable()->searchable()->toggleable(isToggledHiddenByDefault: true),
+            TextColumn::make('street.name')->label(__('general.labels.street'))->toggleable()->sortable()->searchable(),
             TextColumn::make('center')
-                ->label('Center')
+                ->label(__('general.labels.center'))
                 ->toggleable()
             ,
             TextColumn::make('educations')
-                ->label('Education')
+                ->label(__('general.labels.education'))
                 ->formatStateUsing(function (Model $record) {
                     $lastEducation = $record->studentEducations()
                         ->with('education')
@@ -569,9 +576,9 @@ class StudentResource extends Resource
                     });
                 })
                 ->toggleable(),
-            TextColumn::make('street.city.name')->label('City')->sortable()->searchable()->toggleable(isToggledHiddenByDefault: true),
+            TextColumn::make('street.city.name')->label(__('general.labels.city'))->sortable()->searchable()->toggleable(isToggledHiddenByDefault: true),
             TextColumn::make('gender')
-                ->label('Gender')
+                ->label(__('general.labels.gender'))
                 ->badge()
                 ->sortable()
                 ->formatStateUsing(function ($state) {
@@ -602,7 +609,7 @@ class StudentResource extends Resource
                 ->toggleable(isToggledHiddenByDefault: true),
 
             TextColumn::make('religion')
-                ->label('Religion')
+                ->label(__('general.labels.religion'))
                 ->badge()
                 ->sortable()
                 ->formatStateUsing(function ($state) {
@@ -633,7 +640,7 @@ class StudentResource extends Resource
                 ->toggleable(isToggledHiddenByDefault: true),
             CheckboxColumn::make('is_student')->toggleable(isToggledHiddenByDefault: true),
             CheckboxColumn::make('is_employed')->toggleable(isToggledHiddenByDefault: true),
-            TextColumn::make('created_at')->label('Created at')->formatStateUsing(fn (Model $record) => $record->created_at->format('Y-m-d'))->sortable()->searchable()->toggleable(isToggledHiddenByDefault: true),
+            TextColumn::make('created_at')->label(__('general.labels.created_at'))->formatStateUsing(fn (Model $record) => $record->created_at->format('Y-m-d'))->sortable()->searchable()->toggleable(isToggledHiddenByDefault: true),
         ];
     }
 
@@ -689,28 +696,28 @@ class StudentResource extends Resource
         }
 
         return [
-            TernaryFilter::make('completed_data')->label('حالة البيانات')->placeholder('الكل')->trueLabel('نعم - البيانات مكتملة')->falseLabel('لا - البيانات غير مكتملة')->queries(true: fn (Builder $query) => $query->where('completed_data', true), false: fn (Builder $query) => $query->where('completed_data', false), blank: fn (Builder $query) => $query),
+            TernaryFilter::make('completed_data')->label(__('general.labels.data_status'))->placeholder(__('general.labels.all'))->trueLabel(__('general.labels.yes').' - '.__('general.labels.completed_data'))->falseLabel(__('general.labels.no').' - '.__('general.labels.incomplete_data'))->queries(true: fn (Builder $query) => $query->where('completed_data', true), false: fn (Builder $query) => $query->where('completed_data', false), blank: fn (Builder $query) => $query),
             SelectFilter::make('city')
                 ->relationship('street.city', 'name')
-                ->label('المدينة')
+                ->label(__('general.labels.city'))
                 ->preload()
                 ->multiple()
                 ->options(City::all()->pluck('name', 'id'))
                 ->searchable(),
-            SelectFilter::make('street_id')->label('الشارع')->preload()->options($streets)->searchable(),
+            SelectFilter::make('street_id')->label(__('general.labels.street'))->preload()->options($streets)->searchable(),
             SelectFilter::make('center')
              ->relationship('firstEntry.center', 'name')
-                ->label('المركز')
+                ->label(__('general.labels.center'))
                 ->preload()
 
                 ->searchable(),
             Filter::make('created_at')
                 ->columns(2)
-                ->form([DatePicker::make('created_from')->label('تاريخ الإضافة من'), DatePicker::make('created_until')->label('تاريخ الإضافة حتى')])
+                ->form([DatePicker::make('created_from')->label(__('general.labels.created_from')), DatePicker::make('created_until')->label(__('general.labels.created_until'))])
                 ->query(function (Builder $query, array $data): Builder {
                     return $query->when($data['created_from'], fn (Builder $query, $date): Builder => $query->whereDate('created_at', '>=', $date))->when($data['created_until'], fn (Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date));
                 }),
-            SelectFilter::make('educations')->label('المؤهلات العلمية')->relationship('educations', 'name')->searchable()->multiple()->preload(),
+            SelectFilter::make('educations')->label(__('general.labels.education_plural'))->relationship('educations', 'name')->searchable()->multiple()->preload(),
             SelectFilter::make('education_level')
                 ->label(__('general.labels.education_level'))
                 ->options(__('general.edu-levels'))
@@ -725,10 +732,10 @@ class StudentResource extends Resource
                     return $query;
                 })
                 ->preload(),
-            SelectFilter::make('gender')->label('الجنس')->options(__('general.genders')),
-            SelectFilter::make('religion')->label('الديانة')->options(__('general.religions')),
-            TernaryFilter::make('national_number')->label('الرقم الوطني / الإقامة')->placeholder('الكل')->trueLabel('يوجد')->falseLabel('لا يوجد')->queries(true: fn (Builder $query) => $query->whereNotNull('national_number'), false: fn (Builder $query) => $query->whereNull('national_number'), blank: fn (Builder $query) => $query),
-            TernaryFilter::make('skip_national_number')->label('تم تخطي الرقم الوطني')->placeholder('الكل')->trueLabel('نعم')->falseLabel('لا'),
+            SelectFilter::make('gender')->label(__('general.labels.gender'))->options(__('general.genders')),
+            SelectFilter::make('religion')->label(__('general.labels.religion'))->options(__('general.religions')),
+            TernaryFilter::make('national_number')->label(__('general.labels.national_number_or_residency'))->placeholder(__('general.labels.all'))->trueLabel(__('general.labels.exists'))->falseLabel(__('general.labels.not_exists'))->queries(true: fn (Builder $query) => $query->whereNotNull('national_number'), false: fn (Builder $query) => $query->whereNull('national_number'), blank: fn (Builder $query) => $query),
+            TernaryFilter::make('skip_national_number')->label(__('general.labels.skip_national_number'))->placeholder(__('general.labels.all'))->trueLabel(__('general.labels.yes'))->falseLabel(__('general.labels.no')),
         ];
     }
 

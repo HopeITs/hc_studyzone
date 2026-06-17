@@ -1,16 +1,16 @@
 <x-filament-widgets::widget>
     <x-filament::card>
         <div class="flex justify-between mb-4">
-            <h1 class="font-bold">Active Days per center</h1>
+            <h1 class="font-bold">{{ __('general.labels.active_days_per_center') }}</h1>
 
             <a class="p-2 bg-primary-500 rounded-md dark:text-white font-bold  text-xs"
-               href="{{route('active-days-export',['from' => $from, 'to'=> $to])}}">Export to Excel</a>
+               href="{{route('active-days-export',['from' => $from, 'to'=> $to])}}">{{ __('general.labels.export_to_excel') }}</a>
         </div>
 
         <table class="table-auto w-full text-sm">
             <thead>
             <tr>
-                <th class="px-2 py-1 text-right">Month</th>
+                <th class="px-2 py-1 text-right">{{ __('general.labels.month') }}</th>
                 @foreach($centers as $center)
 
                     <th class="px-2 py-1 text-xs text-center ">{{ $center }}</th>

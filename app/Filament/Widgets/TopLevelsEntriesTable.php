@@ -21,7 +21,12 @@ class TopLevelsEntriesTable extends TableWidget
     use InteractsWithPageFilters;
 
     protected static ?int $sort = 8;
-    protected static ?string $heading = 'Top Levels by Entries';
+    protected static ?string $heading = null;
+
+    public function getTableHeading(): string
+    {
+        return __('general.labels.top_levels_by_entries');
+    }
 
     public function getTableRecordKey(Model $record): string
     {
@@ -40,16 +45,16 @@ class TopLevelsEntriesTable extends TableWidget
             ->columns([
                 TextColumn::make('level')
                     ->formatStateUsing(fn($state) => __("general.edu-levels.{$state}"))
-                    ->label('Level'),
-                TextColumn::make('total')->label('Total Entries'),
-                TextColumn::make('males')->label('Males'),
-                TextColumn::make('females')->label('Females'),
-                TextColumn::make('unknown')->label('Unknown'),
+                    ->label(__('general.labels.level')),
+                TextColumn::make('total')->label(__('general.labels.total_entries')),
+                TextColumn::make('males')->label(__('general.labels.males')),
+                TextColumn::make('females')->label(__('general.labels.females')),
+                TextColumn::make('unknown')->label(__('general.labels.unknown')),
             ])
             ->paginated(false)
             ->headerActions([
                 Action::make('export')
-                    ->label('Export to Excel')
+                    ->label(__('general.labels.export_to_excel'))
                     ->color('success')
                     ->icon('heroicon-o-document-arrow-down')
                     ->action(function () {

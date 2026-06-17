@@ -7,7 +7,12 @@ use Filament\Widgets\ChartWidget;
 
 class StudentCountOverTime extends ChartWidget
 {
-    protected static ?string $heading = 'Student Count Over Time';
+    protected static ?string $heading = null;
+
+    public function getHeading(): string
+    {
+        return __('general.labels.student_count_over_time');
+    }
 
     protected function getData(): array
     {
@@ -32,11 +37,16 @@ class StudentCountOverTime extends ChartWidget
         return [
             'datasets' => [
                 [
-                    'label' => 'Student Count',
+                    'label' => __('general.labels.student_count'),
                     'data' => array_values($data),
                 ],
             ],
-            'labels' => ['Daily', 'Weekly', 'Monthly', 'Yearly'],
+            'labels' => [
+                __('general.labels.daily'),
+                __('general.labels.weekly'),
+                __('general.labels.monthly'),
+                __('general.labels.yearly'),
+            ],
         ];
     }
 

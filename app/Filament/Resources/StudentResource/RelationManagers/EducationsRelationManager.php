@@ -19,15 +19,15 @@ class EducationsRelationManager extends RelationManager
     {
         return $form->schema([
             Select::make('education_id')
-                ->label('Educations')
+                ->label(__('general.labels.educations'))
                 ->options(Education::all()->pluck('name', 'id'))
                 ->preload()
                 ->searchable()
                 ->required(),
 
-            Select::make('level')->label('Education Level')->options(__('general.edu-levels'))->required(),
+            Select::make('level')->label(__('general.labels.education_level'))->options(__('general.edu-levels'))->required(),
 
-            Select::make('type')->label('Education Type')->options(__('general.edu-types'))->required(),
+            Select::make('type')->label(__('general.labels.education_type'))->options(__('general.edu-types'))->required(),
         ]);
     }
 
@@ -35,10 +35,10 @@ class EducationsRelationManager extends RelationManager
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('education.name')->label('Education')->sortable(),
+                Tables\Columns\TextColumn::make('education.name')->label(__('general.labels.education'))->sortable(),
 
                 Tables\Columns\TextColumn::make('education.degree')
-                    ->label('Degree')
+                    ->label(__('general.labels.degree'))
                     ->formatStateUsing(function ($state, $record) {
                         $degree = $record->education->degree ?? null;
 
@@ -46,9 +46,9 @@ class EducationsRelationManager extends RelationManager
                     })
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('level')->label('Level')->formatStateUsing(fn(string $state): string => __("general.edu-levels.{$state}"))->sortable(),
+                Tables\Columns\TextColumn::make('level')->label(__('general.labels.level'))->formatStateUsing(fn(string $state): string => __("general.edu-levels.{$state}"))->sortable(),
 
-                Tables\Columns\TextColumn::make('type')->label('Type')->formatStateUsing(fn(string $state): string => __("general.edu-types.{$state}"))->sortable(),
+                Tables\Columns\TextColumn::make('type')->label(__('general.labels.type'))->formatStateUsing(fn(string $state): string => __("general.edu-types.{$state}"))->sortable(),
             ])
             ->headerActions([Tables\Actions\CreateAction::make()])
             ->actions([EditAction::make(), DeleteAction::make()]);

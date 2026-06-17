@@ -106,12 +106,12 @@ class ServiceResource extends Resource
                             ->visible($isGeneralAdmin),
 
                         Forms\Components\TextInput::make('initial_price')
-                            ->label(__('general.services_module.initial_price').' (عملة جديدة) ')
+                            ->label(__('general.services_module.initial_price').' - '.__('general.labels.new_currency_price'))
                             ->numeric()
                             ->prefix('SYP')
                             ->required($isGeneralAdmin && ! $form->getRecord())
                             ->visible($isGeneralAdmin)
-                            ->helperText('سيتم تعيين هذا السعر لجميع المراكز بشكل افتراضي - يرجى إدخال السعر بالعملة الجديدة'),
+                            ->helperText(__('general.messages.initial_price_help')),
                     ])->columns(2),
             ]);
     }

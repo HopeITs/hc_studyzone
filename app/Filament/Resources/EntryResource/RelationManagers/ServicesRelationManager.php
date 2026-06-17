@@ -81,30 +81,30 @@ class ServicesRelationManager extends RelationManager
             ->recordTitleAttribute('service.name')
             ->columns([
                 Tables\Columns\TextColumn::make('service.name')
-                    ->label('الخدمة')
+                    ->label(__('general.labels.service'))
                     ->searchable(),
                 Tables\Columns\TextColumn::make('service.category.name')
-                    ->label('نوع الخدمة')
+                    ->label(__('general.labels.category'))
                     ->searchable(),
                 Tables\Columns\TextColumn::make('amount')
                     ->formatStateUsing(fn (Model $record) => $record->amount.' '.__('general.services_module.units.'.$record->service->category->unit))
-                    ->label('الكمية')
+                    ->label(__('general.labels.quantity'))
                     ->sortable(),
                 Tables\Columns\TextColumn::make('price_at_time')
-                    ->label('سعر القطعة')
+                    ->label(__('general.labels.unit_price'))
                     ->money('SYP')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('total')
-                    ->label('السعر الاجمالي')
+                    ->label(__('general.labels.total_price'))
                     ->money('SYP')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('updated_at')
                     ->formatStateUsing(fn (Model $record) => $record->total * 100)
-                    ->label('السعر الاجمالي')
+                    ->label(__('general.labels.old_currency_price'))
                     ->money('SYP')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
-                    ->label('تاريخ الإضافة')
+                    ->label(__('general.labels.created_at'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -112,10 +112,10 @@ class ServicesRelationManager extends RelationManager
             ->filters([])
             ->headerActions([
                 Action::make('addServices')
-                    ->label('إضافة خدمات')
+                    ->label(__('general.labels.add_services'))
                     ->icon('heroicon-o-plus')
-                    ->modalHeading('شراء خدمات إضافية')
-                    ->modalSubmitActionLabel('إضافة وتحديث الإجمالي')
+                    ->modalHeading(__('general.labels.buy_additional_services'))
+                    ->modalSubmitActionLabel(__('general.labels.add_update_total'))
                     ->form(function () {
                         $record = $this->getOwnerRecord();
                         $centerId = $record->center_id;
@@ -128,7 +128,7 @@ class ServicesRelationManager extends RelationManager
 
                         return [
                             CheckboxList::make('day_services')
-                                ->label('خدمات يومية (تُطلب لمرة واحدة)')
+                                ->label(__('general.labels.one_time_daily_services'))
                                 ->options(function () use ($centerId, $existingDailyServiceIds) {
                                     if (! $centerId) {
                                         return [];
@@ -154,12 +154,12 @@ class ServicesRelationManager extends RelationManager
                                 ->columnSpanFull(),
 
                             Repeater::make('services')
-                                ->label('خدمات أخرى')
+                                ->label(__('general.labels.other_services'))
                                 ->schema([
                                     Grid::make()
                                         ->schema([
                                             Select::make('category_id')
-                                                ->label('التصنيف')
+                                                ->label(__('general.labels.category'))
                                                 ->options(function () use ($centerId) {
                                                     if (! $centerId) {
                                                         return [];
@@ -180,7 +180,7 @@ class ServicesRelationManager extends RelationManager
                                                 ->afterStateUpdated(fn (callable $set) => $set('service_id', null)),
 
                                             Select::make('service_id')
-                                                ->label('الخدمة')
+                                                ->label(__('general.labels.service'))
                                                 ->options(function (callable $get) use ($centerId) {
                                                     $categoryId = $get('category_id');
                                                     if (! $categoryId || ! $centerId) {
@@ -218,7 +218,7 @@ class ServicesRelationManager extends RelationManager
                                                 }),
 
                                             TextInput::make('amount')
-                                                ->label('الكمية')
+                                                ->label(__('general.labels.quantity'))
                                                 ->numeric()
                                                 ->default(1)
                                                 ->minValue(1)
@@ -325,7 +325,7 @@ class ServicesRelationManager extends RelationManager
                         $this->dispatch('entry-services-updated');
 
                         Notification::make()
-                            ->title('تمت الإضافة بنجاح')
+                            ->title(__('general.labels.added_successfully'))
                             ->body('تم إضافة الخدمات الجديدة وتحديث الإجمالي.')
                             ->success()
                             ->send();

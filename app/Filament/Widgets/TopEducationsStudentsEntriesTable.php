@@ -19,8 +19,13 @@ class TopEducationsStudentsEntriesTable extends TableWidget
 {
     use InteractsWithPageFilters;
 
-    protected static ?string $heading = 'Top 10 Educations by Students';
+    protected static ?string $heading = null;
     protected static ?int $sort = 7;
+
+    public function getTableHeading(): string
+    {
+        return __('general.labels.top_educations_by_students');
+    }
 
     public function getTable(): Table
     {
@@ -33,18 +38,18 @@ class TopEducationsStudentsEntriesTable extends TableWidget
             ->query($this->getQuery())
             ->columns([
                 Tables\Columns\TextColumn::make('name')
-                    ->label('Education')
+                    ->label(__('general.labels.education'))
                     ->formatStateUsing(fn($state) => is_string($state) ? 
                         (json_decode($state, true)['ar'] ?? $state) : $state),
-                Tables\Columns\TextColumn::make('total')->label('Total'),
-                Tables\Columns\TextColumn::make('males')->label('Males'),
-                Tables\Columns\TextColumn::make('females')->label('Females'),
-                Tables\Columns\TextColumn::make('unknown')->label('Unknown'),
+                Tables\Columns\TextColumn::make('total')->label(__('general.labels.total')),
+                Tables\Columns\TextColumn::make('males')->label(__('general.labels.males')),
+                Tables\Columns\TextColumn::make('females')->label(__('general.labels.females')),
+                Tables\Columns\TextColumn::make('unknown')->label(__('general.labels.unknown')),
             ])
             ->paginated(false)
             ->headerActions([
                 Action::make('export')
-                    ->label('Export to Excel')
+                    ->label(__('general.labels.export_to_excel'))
                     ->color('success')
                     ->icon('heroicon-o-document-arrow-down')
                     ->action(function () {

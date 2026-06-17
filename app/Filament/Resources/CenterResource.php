@@ -31,14 +31,22 @@ class CenterResource extends Resource
 
     protected static ?string $model = Center::class;
     protected static ?string $navigationIcon = 'heroicon-o-building-office-2';
-    protected static ?string $label = 'مركز';
-
-    protected static ?string $modelLabel = 'مركز';
-
-    protected static ?string $navigationLabel = 'المراكز';
-
-    protected static ?string $pluralModelLabel = 'المراكز';
     protected static ?int $navigationSort = 4;
+
+    public static function getNavigationLabel(): string
+    {
+        return __('general.labels.centers');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('general.labels.center');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('general.labels.centers');
+    }
 
     public static function canCreate(): bool
     {
@@ -75,12 +83,12 @@ class CenterResource extends Resource
                 TextColumn::make('city.name')->sortable()->searchable(),
                 TextColumn::make('order')->sortable(),
                 TextColumn::make('phone'),
-                TextColumn::make('entries_count')->counts('entries')->label('Total Entries Count')->sortable()->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('users_count')->counts('users')->label('Employees Count')->sortable()->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('entries_count')->counts('entries')->label(__('general.labels.total_entries_count'))->sortable()->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('users_count')->counts('users')->label(__('general.labels.employees_count'))->sortable()->toggleable(isToggledHiddenByDefault: true),
                 CheckboxColumn::make('is_active')->disabled(fn() => auth()->user()->role === Roles::Observer()), TextColumn::make('address')->sortable()->searchable()->toggleable(isToggledHiddenByDefault: true)])
             ->filters([
                 SelectFilter::make('city_id')
-                    ->label('Filter by City')
+                    ->label(__('general.labels.filter_by_city'))
                     ->options(City::all()->pluck('name', 'id'))
                     ->searchable(),
             ])

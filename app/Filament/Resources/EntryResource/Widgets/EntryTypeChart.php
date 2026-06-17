@@ -11,8 +11,13 @@ class EntryTypeChart extends ChartWidget
 {
     use InteractsWithPageTable;
 
-    protected static ?string $heading = 'توزيع أنواع الدخوليات';
+    protected static ?string $heading = null;
     protected static ?string $maxHeight = '280px';
+
+    public function getHeading(): string
+    {
+        return __('general.labels.entry_types_distribution');
+    }
 
     protected function getTablePage(): string
     {

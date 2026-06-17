@@ -27,14 +27,22 @@ class EducationResource extends Resource
     protected static ?string $model = Education::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-academic-cap';
-    protected static ?string $label = 'مؤهل علمي';
-
-    protected static ?string $modelLabel = 'مؤهل علمي';
-
-    protected static ?string $navigationLabel = 'المؤهلات العلمية';
-
-    protected static ?string $pluralModelLabel = 'المؤهلات العلمية';
     protected static ?int $navigationSort = 5;
+
+    public static function getNavigationLabel(): string
+    {
+        return __('general.labels.education_plural');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('general.labels.education_singular');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('general.labels.education_plural');
+    }
 
     public static function canCreate(): bool
     {
@@ -55,7 +63,7 @@ class EducationResource extends Resource
     {
         return $table
             ->columns([Tables\Columns\TextColumn::make('name')->sortable()->searchable(), Tables\Columns\TextColumn::make('degree')->formatStateUsing(fn($state): string => __('general.edu-degrees.' . (is_string($state) ? $state : $state->value)))->sortable()])
-            ->filters([SelectFilter::make('degree')->label('Filter by Degree')->options(__('general.edu-degrees'))->searchable()])
+            ->filters([SelectFilter::make('degree')->label(__('general.labels.filter_by_degree'))->options(__('general.edu-degrees'))->searchable()])
             ->actions([ViewAction::make(), EditAction::make()->hidden(fn() => auth()->user()->role === Roles::Observer()), DeleteAction::make()->hidden(fn() => auth()->user()->role === Roles::Observer())])
             ->bulkActions([Tables\Actions\BulkActionGroup::make([Tables\Actions\DeleteBulkAction::make()->hidden(fn() => auth()->user()->role === Roles::Observer())])->hidden(fn() => auth()->user()->role === Roles::Observer())]);
     }

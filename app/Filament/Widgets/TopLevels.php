@@ -20,7 +20,12 @@ class TopLevels extends BaseTableWidget
     use InteractsWithPageFilters;
 
     protected static ?int $sort = 7;
-    protected static ?string $heading = 'Top Levels by Students';
+    protected static ?string $heading = null;
+
+    public function getTableHeading(): string
+    {
+        return __('general.labels.top_levels_by_students');
+    }
 
     public function table(Table $table): Table
     {
@@ -29,16 +34,16 @@ class TopLevels extends BaseTableWidget
             ->columns([
                 TextColumn::make('level')
                     ->formatStateUsing(fn($state) => __('general.edu-levels.' . $state))
-                    ->label('Level'),
-                TextColumn::make('total')->label('Total'),
-                TextColumn::make('males')->label('Males'),
-                TextColumn::make('females')->label('Females'),
-                TextColumn::make('unknown')->label('Unknown'),
+                    ->label(__('general.labels.level')),
+                TextColumn::make('total')->label(__('general.labels.total')),
+                TextColumn::make('males')->label(__('general.labels.males')),
+                TextColumn::make('females')->label(__('general.labels.females')),
+                TextColumn::make('unknown')->label(__('general.labels.unknown')),
             ])
             ->paginated(false)
             ->headerActions([
                 Action::make('export')
-                    ->label('Export to Excel')
+                    ->label(__('general.labels.export_to_excel'))
                     ->color('success')
                     ->icon('heroicon-o-document-arrow-down')
                     ->action(function () {

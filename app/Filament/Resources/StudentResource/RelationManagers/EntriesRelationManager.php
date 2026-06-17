@@ -15,13 +15,19 @@ use Filament\Tables\Actions;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 
 class EntriesRelationManager extends RelationManager
 {
     protected static string $relationship = 'entries';
 
-    protected static ?string $title = 'الدخوليات';
+    protected static ?string $title = null;
+
+    public static function getTitle(Model $ownerRecord, string $pageClass): string
+    {
+        return __('general.labels.entries');
+    }
 
     public function form(Form $form): Form
     {
@@ -49,11 +55,11 @@ class EntriesRelationManager extends RelationManager
                 ->default(now())
                 ->required(),
 
-            Forms\Components\Fieldset::make('الخدمات المطلوبة')
-                ->label('الخدمات المطلوبة')
+            Forms\Components\Fieldset::make('requested_services')
+                ->label(__('general.labels.requested_services'))
                 ->schema([
                     Forms\Components\Select::make('selected_services')
-                        ->label('اختر الخدمات')
+                        ->label(__('general.labels.select_services'))
                         ->multiple()
                         ->options(function () {
                             $services = \App\Helpers\ServiceHelper::getServicesWithPrices();
@@ -94,7 +100,7 @@ class EntriesRelationManager extends RelationManager
                         ->columnSpanFull(),
 
                     \Filament\Forms\Components\ViewField::make('services_list')
-                        ->label('الخدمات المختارة')
+                        ->label(__('general.labels.selected_services'))
                         ->view('filament.forms.components.services-list')
                         ->afterStateHydrated(function ($component, $get) {
                             $component->state($get('selected_services_details'));
@@ -103,7 +109,7 @@ class EntriesRelationManager extends RelationManager
                         ->columnSpanFull(),
 
                     \Filament\Forms\Components\Checkbox::make('calculate_total')
-                        ->label('إغلاق الفاتورة وعرض الإجمالي')
+                        ->label(__('general.labels.close_invoice_show_total'))
                         ->live()
                         ->afterStateUpdated(function ($state, callable $get, callable $set) {
                             if ($state) {
@@ -116,7 +122,7 @@ class EntriesRelationManager extends RelationManager
                         ->columnSpanFull(),
 
                     \Filament\Forms\Components\ViewField::make('total_display')
-                        ->label('الإجمالي')
+                        ->label(__('general.labels.total'))
                         ->view('filament.forms.components.total-display')
                         ->afterStateHydrated(function ($component, $get) {
                             $component->state($get('total_display'));
@@ -135,17 +141,17 @@ class EntriesRelationManager extends RelationManager
             ->defaultSort('entry_time','desc')
             ->columns([
                 TextColumn::make('entry_type')
-                    ->label('النوع')
+                    ->label(__('general.labels.type'))
                     ->formatStateUsing(fn ($state) => __('general.entry-types.'.$state))
                     ->sortable(),
-                TextColumn::make('center.name')->label('المركز')->sortable(),
-                TextColumn::make('entry_time')->label('التاريخ')->dateTime('Y-m-d H:i')->sortable(),
+                TextColumn::make('center.name')->label(__('general.labels.center'))->sortable(),
+                TextColumn::make('entry_time')->label(__('general.labels.date'))->dateTime('Y-m-d H:i')->sortable(),
                 TextColumn::make('services_list')
-                    ->label('الخدمات المقدمة')
+                    ->label(__('general.labels.provided_services'))
                     ->formatStateUsing(fn ($record) => $record->services_list ?: '-')
                     ->toggleable(),
                 TextColumn::make('total_amount')
-                    ->label('الإجمالي')
+                    ->label(__('general.labels.total'))
                     ->formatStateUsing(fn ($record) => number_format($record->total_amount, 2).' SYP')
                     ->sortable()
                     ->color('success'),
@@ -153,7 +159,7 @@ class EntriesRelationManager extends RelationManager
       // Ensure this is imported at the top
             ->headerActions([
                 Action::make('create_entry_page')
-                    ->label('إضافة دخولية جديدة')
+                    ->label(__('general.labels.add_entry'))
                     ->icon('heroicon-o-plus-circle')
                     // ✅ Use Filament's getUrl() instead of route()
                     ->url(fn () => StudentResource::getUrl('create-entry', [
@@ -161,8 +167,8 @@ class EntriesRelationManager extends RelationManager
                     ]))
                     ->disabled(fn () => ! $this->ownerRecord->completed_data)
                     ->tooltip(fn () => ! $this->ownerRecord->completed_data
-                        ? '❌ لا يمكن إضافة دخولية: بيانات الطالب غير مكتملة'
-                        : 'إضافة دخولية جديدة')
+                        ? '❌ '.__('general.labels.create_entry_disabled_tooltip')
+                        : __('general.labels.add_entry'))
                     ->action(function (array $data, $livewire) {
                         if (!$livewire->ownerRecord->completed_data) {
                             Notification::make()
@@ -204,7 +210,7 @@ class EntriesRelationManager extends RelationManager
             ])
             ->actions([
                 Action::make('view_bill')
-                    ->label('عرض الفاتورة')
+                    ->label(__('general.labels.view_invoice'))
                     ->icon('heroicon-o-document-text')
                     ->color('info')
                     ->url(fn ($record) => EntryResource::getUrl('view', [
@@ -215,7 +221,7 @@ class EntriesRelationManager extends RelationManager
 
                 // NEW: Edit Action pointing to the custom page
                 Action::make('edit_entry')
-                    ->label('تعديل')
+                    ->label(__('general.labels.edit'))
                     ->icon('heroicon-o-pencil')
                     ->color('warning')
                     ->url(fn ($record) => EntryResource::getUrl('edit', [

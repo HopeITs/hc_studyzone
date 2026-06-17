@@ -11,11 +11,11 @@ class UserStats extends BaseWidget
     protected function getStats(): array
     {
         return [
-            Stat::make('Total Users', User::count()),
-            Stat::make('Active Users', User::where('is_active', true)->count()),
-            Stat::make('General Admins', User::where('role', 'general_admin')->count()),
-            Stat::make('City Admins', User::where('role', 'city_admin')->count()),
-            Stat::make('Center Admins', User::where('role', 'center_admin')->count()),
+            Stat::make(__('general.labels.total_users'), User::count()),
+            Stat::make(__('general.labels.active_users'), User::where('is_active', true)->count()),
+            Stat::make(__('general.roles.general_admin'), User::where('role', 'general_admin')->count()),
+            Stat::make(__('general.roles.city_admin'), User::where('role', 'city_admin')->count()),
+            Stat::make(__('general.roles.center_admin'), User::where('role', 'center_admin')->count()),
         ];
     }
 }

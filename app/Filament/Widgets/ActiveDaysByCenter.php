@@ -18,9 +18,14 @@ class ActiveDaysByCenter extends Widget
 
     protected static string $view = 'filament.widgets.active-days-by-center';
 
-    protected static ?string $heading = 'Active Days by Center';
+    protected static ?string $heading = null;
     protected int|string|array $columnSpan = 'full';
     protected static ?int $sort = 3;
+
+    public function getHeading(): string
+    {
+        return __('general.labels.active_days_by_center');
+    }
 
 
 

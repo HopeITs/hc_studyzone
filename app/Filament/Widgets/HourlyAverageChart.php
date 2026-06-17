@@ -12,8 +12,13 @@ class HourlyAverageChart extends ChartWidget
 {
     use InteractsWithPageFilters;
 
-    protected static ?string $heading = 'Percentage of Entries per Hour (Only Active Days)';
+    protected static ?string $heading = null;
     protected static ?int $sort = 4;
+
+    public function getHeading(): string
+    {
+        return __('general.labels.hourly_entries_percentage');
+    }
 
     protected function getType(): string
     {
@@ -72,7 +77,7 @@ class HourlyAverageChart extends ChartWidget
         return [
             'datasets' => [
                 [
-                    'label' => 'Avg Entries per Active Day',
+                    'label' => __('general.labels.avg_entries_per_active_day'),
                     'data' => $data,
                     'fill' => 'start',
                     'backgroundColor' => [

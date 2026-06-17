@@ -45,18 +45,18 @@ class PricesRelationManager extends RelationManager
                     ->dehydrated(), // Ensure disabled value is still saved
 
                 Forms\Components\TextInput::make('price')
-                    ->label('السعر (عملة جديدة)')
+                    ->label(__('general.labels.new_currency_price'))
                     ->numeric()
                     ->suffix('SYP')
                     ->required(),
 
                 Forms\Components\DatePicker::make('start_date')
-                    ->label('تاريخ البداية')
+                    ->label(__('general.labels.start_date'))
                     ->required()
                     ->default(now()),
 
                 Forms\Components\DatePicker::make('end_date')
-                    ->label('تاريخ النهاية')
+                    ->label(__('general.labels.end_date'))
                     ->disabled(fn (Forms\Get $get) => $get('is_active'))
                     ->dehydrated(),
             ]);
@@ -82,33 +82,33 @@ class PricesRelationManager extends RelationManager
                     ->visible($user->role !== Roles::CenterAdmin()), // Hide column if it's always the same center
 
                 Tables\Columns\TextColumn::make('price')
-                    ->label('السعر')
+                    ->label(__('general.services_module.price'))
                     ->suffix(' SYP'),
                 Tables\Columns\TextColumn::make('created_at') //old price
                     ->formatStateUsing(fn (Model $record) => $record->price*100)
-                    ->label('السعر (عملة قديمة)')
+                    ->label(__('general.labels.old_currency_price'))
                     ->suffix(' SYP'),
 
                 Tables\Columns\IconColumn::make('is_active')
-                    ->label('الحالة')
+                    ->label(__('general.labels.status'))
                     ->boolean()
                     ->trueIcon('heroicon-o-check-circle')
                     ->falseIcon('heroicon-o-x-circle')
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('start_date')
-                    ->label('تاريخ البداية')
+                    ->label(__('general.labels.start_date'))
                     ->dateTime('Y-m-d')
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('end_date')
-                    ->label('تاريخ النهاية')
+                    ->label(__('general.labels.end_date'))
                     ->dateTime('Y-m-d')
                     ->placeholder('-'),
             ])
             ->filters([
                 SelectFilter::make('center.city.name')
-                    ->label('المدينة')
+                    ->label(__('general.labels.city'))
                     ->relationship('center.city', 'name')
                     ->searchable()
                     ->columnSpan(1)
@@ -117,7 +117,7 @@ class PricesRelationManager extends RelationManager
                     ->preload(),
 
                 SelectFilter::make('center_id')
-                    ->label('المركز')
+                    ->label(__('general.labels.center'))
                     ->relationship('center', 'name', fn ($query) => $user->role === Roles::CityAdmin() ? $query->where('city_id', $user->city_id) : $query)
                     ->searchable()
                     ->columnSpan($user->role === Roles::GeneralAdmin() ? 1 : 4)
@@ -126,10 +126,10 @@ class PricesRelationManager extends RelationManager
                     ->preload(),
 
                 TernaryFilter::make('is_active')
-                ->label('الحالة')
-                    ->placeholder('الكل')
-                    ->trueLabel('فعالة')
-                    ->falseLabel('غير فعال')
+                ->label(__('general.labels.status'))
+                    ->placeholder(__('general.labels.all'))
+                    ->trueLabel(__('general.labels.active'))
+                    ->falseLabel(__('general.labels.inactive'))
                   ,
             ])
             ->headerActions([

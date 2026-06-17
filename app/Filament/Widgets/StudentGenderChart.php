@@ -11,9 +11,14 @@ class StudentGenderChart extends ChartWidget
 {
     use InteractsWithPageFilters;
 
-    protected static ?string $heading = 'Gender Distribution (New Students)';
+    protected static ?string $heading = null;
     protected static ?int $sort = 5;
     protected static string $color = 'primary';
+
+    public function getHeading(): string
+    {
+        return __('general.labels.new_students_gender_distribution');
+    }
 
     protected function getType(): string
     {
@@ -45,10 +50,10 @@ class StudentGenderChart extends ChartWidget
 
         $query[3] = collect($query)->sum();
         $genderLabels = [
-            3 => 'Total',
-            1 => 'Male',
-            2 => 'Female',
-            0 => 'Unknown',
+            3 => __('general.labels.total'),
+            1 => __('general.labels.males'),
+            2 => __('general.labels.females'),
+            0 => __('general.labels.unknown'),
 
         ];
 
@@ -63,7 +68,7 @@ class StudentGenderChart extends ChartWidget
         return [
             'datasets' => [
                 [
-                    'label' => 'New Students',
+                    'label' => __('general.labels.new_students'),
                     'data' => $data,
                     'backgroundColor' => [
                         'rgba(255, 159, 64, 0.2)',

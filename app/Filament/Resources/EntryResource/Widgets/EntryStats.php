@@ -73,25 +73,29 @@ class EntryStats extends BaseWidget
             $quantity = (int) ($serviceStats[$col]->total_quantity ?? 0);
             $amount = (int) ($serviceStats[$col]->total_amount ?? 0);
 
-            // Map column names to readable Arabic labels
             $label = match($col) {
-                'use_drawer' => 'المرسم',
-                'use_mecrator' => 'الميكراتور',
-                'use_pinter' => 'الطباعة',
-                'use_plotter' => 'البلوتر',
-                'stationary' => 'القرطاسية',
-                'use_internet' => 'الانترنت',
-                'reservation' => 'الحجز',
+                'use_drawer' => __('general.labels.drawer'),
+                'use_mecrator' => __('general.labels.mecrator'),
+                'use_printer', 'use_pinter' => __('general.labels.printer'),
+                'use_plotter' => __('general.labels.plotter'),
+                'stationary' => __('general.labels.stationery'),
+                'use_internet' => __('general.labels.internet'),
+                'reservation' => __('general.labels.reservation_short'),
                 default => ucfirst(str_replace(['use_', '_'], ['', ' '], $col)),
             };
 
             $referenceStatArray[] = Stat::make($label, $entriesCount)
-                ->description("الكمية: {$quantity} - الإجمالي: " . number_format($amount) . " ل.س");
+                ->description(__('general.labels.quantity_total_description', [
+                    'quantity' => $quantity,
+                    'total' => number_format($amount),
+                ]));
         }
 
         return [
-            Stat::make('إجمالي الدخوليات', $this->getPageTableQuery()->count())
-                 ->description('إجمالي الطلاب '.$this->getPageTableQuery()->distinct('student_id')->count('student_id') ),
+            Stat::make(__('general.labels.total_entries'), $this->getPageTableQuery()->count())
+                 ->description(__('general.labels.total_students_description', [
+                     'count' => $this->getPageTableQuery()->distinct('student_id')->count('student_id'),
+                 ])),
 
             Stat::make(__('general.entry-types.' . EntryType::Free()), $this->getPageTableQuery()->where('entry_type', EntryType::Free())->count()),
             Stat::make(__('general.entry-types.' . EntryType::Daily()), $this->getPageTableQuery()->where('entry_type', EntryType::Daily())->count()),
@@ -101,7 +105,7 @@ class EntryStats extends BaseWidget
             Stat::make(__('general.entry-types.' . EntryType::Event()), $this->getPageTableQuery()->where('entry_type', EntryType::Event())->count()),
             Stat::make(__('general.entry-types.' . EntryType::FGD()), $this->getPageTableQuery()->where('entry_type', EntryType::FGD())->count()),
 
-            Stat::make(' دخوليات طلاب العمارة',
+            Stat::make(__('general.labels.architecture_student_entries'),
                 $this->getPageTableQuery()
                     ->whereHas('student.studentEducations', function ($q) {
                         $q->whereIn('education_id', [65, 176, 242])
@@ -116,7 +120,7 @@ class EntryStats extends BaseWidget
                     ->count()
             ),
 
-            Stat::make('دخوليات طلاب الاسنان',
+            Stat::make(__('general.labels.dentistry_student_entries'),
                 $this->getPageTableQuery()
                     ->whereHas('student.studentEducations', function ($q) {
                         $q->whereIn('education_id', [25, 77, 136, 221, 223, 224, 225, 226, 227, 228])

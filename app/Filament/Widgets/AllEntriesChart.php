@@ -13,8 +13,13 @@ class AllEntriesChart extends ChartWidget
 {
     use InteractsWithPageFilters;
 
-    protected static ?string $heading = 'Entries per month';
+    protected static ?string $heading = null;
     protected static ?int $sort = 1;
+
+    public function getHeading(): string
+    {
+        return __('general.labels.entries_per_month');
+    }
 
     protected function getType(): string
     {
@@ -97,7 +102,7 @@ class AllEntriesChart extends ChartWidget
             'labels' => $labels,
             'datasets' => [
                 [
-                    'label' => 'Entries',
+                    'label' => __('general.labels.entries'),
                     'data' => $data,
                     'fill' => 'start',
                 ],

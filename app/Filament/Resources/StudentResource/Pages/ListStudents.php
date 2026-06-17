@@ -15,12 +15,12 @@ class ListStudents extends ListRecords
     {
         return array_merge(parent::getHeaderActions(), [Actions\CreateAction::make(),
             Actions\Action::make('scan_qr_code')
-                ->label('QR Scan')
+                ->label(__('general.labels.qr_scan'))
                 ->icon('heroicon-o-qr-code')
-                ->modalHeading('Scan QR Code')
+                ->modalHeading(__('general.labels.scan_qr_code'))
                 ->modalContent(fn() => view('filament.qr-code-scanner'))
                 ->modalSubmitAction(false)
-                ->modalCancelActionLabel('Close')]);
+                ->modalCancelActionLabel(__('general.labels.close'))]);
     }
 
     protected function getTableQuery(): ?\Illuminate\Database\Eloquent\Builder
