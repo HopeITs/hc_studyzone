@@ -40,6 +40,11 @@ class CreateStudentEntry extends Page
     // This will hold the entry instance if we are editing
     public ?StudentEntry $entryInstance = null;
 
+    // Guards against a second click firing after the button is re-enabled
+    // by the Livewire re-render that follows a successful save, but before
+    // the browser has actually navigated away.
+    public bool $saved = false;
+
     public function getHeading(): string
     {
         return $this->entryInstance ? 'تعديل الدخولية' : 'إضافة دخولية جديدة';
@@ -422,6 +427,10 @@ class CreateStudentEntry extends Page
 
     public function save(): void
     {
+        if ($this->saved) {
+            return;
+        }
+
         $lockKey = 'student-entry-save-'.$this->record->id.($this->entryInstance?->id ? '-'.$this->entryInstance->id : '');
         $lock = Cache::lock($lockKey, 10);
 
@@ -552,6 +561,8 @@ class CreateStudentEntry extends Page
         }
 
         // ─── END NEW ───
+
+        $this->saved = true;
 
         Notification::make()
             ->title($this->entryInstance ? 'تم تحديث الدخولية بنجاح' : __('general.labels.entry_recorded_successfully'))

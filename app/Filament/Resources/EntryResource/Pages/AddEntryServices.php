@@ -36,6 +36,11 @@ class AddEntryServices extends Page implements HasForms
     public ?StudentEntry $record = null;
     public array $formData = [];
 
+    // Guards against a second click firing after the button is re-enabled
+    // by the Livewire re-render that follows a successful save, but before
+    // the browser has actually navigated away.
+    public bool $saved = false;
+
     public function mount(StudentEntry $record): void
     {
         $this->record = $record;
@@ -272,6 +277,10 @@ class AddEntryServices extends Page implements HasForms
 
   public function saveServices(): void
 {
+    if ($this->saved) {
+        return;
+    }
+
     $lock = Cache::lock('entry-services-save-'.$this->record->id, 10);
 
     if (! $lock->get()) {
@@ -367,6 +376,8 @@ protected function persistServices(): void
     }
 
     // ── END NEW ──────────────────────────────────────────────────────────
+
+    $this->saved = true;
 
     Notification::make()->title(__('general.labels.saved_successfully'))->success()->send();
     $this->redirect(EntryResource::getUrl('index'));
