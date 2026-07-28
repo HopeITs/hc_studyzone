@@ -18,7 +18,13 @@
 
     <div class="flex gap-2">
         <!-- The x-filament::button components already handle dark mode automatically! -->
-        <x-filament::button wire:click="save" icon="heroicon-o-check">
+        <x-filament::button
+            wire:click="save"
+            wire:target="save"
+            x-data="{}"
+            x-on:click="$el.disabled = true"
+            icon="heroicon-o-check"
+        >
             {{ $entryInstance ? 'حفظ التعديلات' : 'تسجيل الدخولية' }}
         </x-filament::button>
 

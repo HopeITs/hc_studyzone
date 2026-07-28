@@ -25,6 +25,7 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Concerns\InteractsWithRecord;
 use Filament\Resources\Pages\Page;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 
 class CreateStudentEntry extends Page
 {
@@ -420,6 +421,22 @@ class CreateStudentEntry extends Page
     }
 
     public function save(): void
+    {
+        $lockKey = 'student-entry-save-'.$this->record->id.($this->entryInstance?->id ? '-'.$this->entryInstance->id : '');
+        $lock = Cache::lock($lockKey, 10);
+
+        if (! $lock->get()) {
+            return;
+        }
+
+        try {
+            $this->persist();
+        } finally {
+            $lock->release();
+        }
+    }
+
+    protected function persist(): void
     {
         $data = $this->form->getState();
 

@@ -23,6 +23,7 @@ use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Page;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class AddEntryServices extends Page implements HasForms
@@ -270,6 +271,21 @@ class AddEntryServices extends Page implements HasForms
 
 
   public function saveServices(): void
+{
+    $lock = Cache::lock('entry-services-save-'.$this->record->id, 10);
+
+    if (! $lock->get()) {
+        return;
+    }
+
+    try {
+        $this->persistServices();
+    } finally {
+        $lock->release();
+    }
+}
+
+protected function persistServices(): void
 {
     $data        = $this->form->getState();
     $record      = $this->record;

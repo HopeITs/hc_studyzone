@@ -20,7 +20,13 @@
 
         <div class="flex gap-2">
         <!-- Find your submit button and change it to: -->
-        <x-filament::button wire:click="saveServices" icon="heroicon-o-check">
+        <x-filament::button
+            wire:click="saveServices"
+            wire:target="saveServices"
+            x-data="{}"
+            x-on:click="$el.disabled = true"
+            icon="heroicon-o-check"
+        >
             {{  'حفظ التعديلات'  }}
         </x-filament::button>
 
