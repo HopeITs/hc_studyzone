@@ -87,6 +87,8 @@ class AddEntryServices extends Page implements HasForms
                                 ->where('center_id', $centerId)
                                 ->where('is_active', 1),
                         ])
+                        ->withCount('entryServices as usage_count')
+                        ->orderByDesc('usage_count')
                         ->orderBy('name')
                         ->get()
                         ->mapWithKeys(function ($service) {
@@ -177,6 +179,8 @@ class AddEntryServices extends Page implements HasForms
                                         ->where('center_id', $centerId)
                                         ->where('is_active', 1)
                                     ])
+                                    ->withCount('entryServices as usage_count')
+                                    ->orderByDesc('usage_count')
                                     ->orderBy('name')
                                     ->get()
                                     ->mapWithKeys(function ($service) {

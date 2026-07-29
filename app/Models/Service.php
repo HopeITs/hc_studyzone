@@ -26,6 +26,11 @@ class Service extends Model
         return $this->hasMany(ServicePrice::class);
     }
 
+    public function entryServices(): HasMany
+    {
+        return $this->hasMany(EntryService::class);
+    }
+
     public function getPriceForCenter(?int $centerId): ?float
     {
         if (! $centerId) {

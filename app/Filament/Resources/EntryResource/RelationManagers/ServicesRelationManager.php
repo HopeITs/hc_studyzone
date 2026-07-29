@@ -139,6 +139,8 @@ class ServicesRelationManager extends RelationManager
                                         ->whereHas('centerPrices', fn ($q) => $q->where('center_id', $centerId)->where('is_active', 1))
                                         ->whereNotIn('id', $existingDailyServiceIds)
                                         ->with(['category', 'centerPrices' => fn ($q) => $q->where('center_id', $centerId)->where('is_active', 1)])
+                                        ->withCount('entryServices as usage_count')
+                                        ->orderByDesc('usage_count')
                                         ->orderBy('name')
                                         ->get()
                                         ->mapWithKeys(function ($service) {
@@ -191,6 +193,8 @@ class ServicesRelationManager extends RelationManager
                                                         ->where('is_active', 1)
                                                         ->whereHas('centerPrices', fn ($q) => $q->where('center_id', $centerId)->where('is_active', 1))
                                                         ->with(['centerPrices' => fn ($q) => $q->where('center_id', $centerId)->where('is_active', 1)])
+                                                        ->withCount('entryServices as usage_count')
+                                                        ->orderByDesc('usage_count')
                                                         ->orderBy('name')
                                                         ->get()
                                                         ->mapWithKeys(function ($service) {
