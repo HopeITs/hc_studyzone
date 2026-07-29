@@ -21,6 +21,7 @@ use Filament\Tables;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Actions\ExportBulkAction;
 use Filament\Tables\Actions\ViewAction;
+use Filament\Tables\Columns\CheckboxColumn;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Enums\FiltersLayout;
@@ -167,6 +168,12 @@ class EntryResource extends Resource
                     ->label(__('general.labels.entry_type'))
                     ->sortable()
                     ->formatStateUsing(fn ($state) => __('general.entry-types.'.$state)),
+
+                CheckboxColumn::make('use_internet')
+                    ->label(__('general.labels.internet-service'))
+                    ->disabled(fn ($record) => ! \App\Helpers\ServiceHelper::centerHasInternetService($record->center_id))
+                    ->extraAttributes(fn ($record) => \App\Helpers\ServiceHelper::centerHasInternetService($record->center_id) ? [] : ['class' => 'hidden'])
+                    ->updateStateUsing(fn ($record, $state) => \App\Helpers\ServiceHelper::toggleInternetService($record, (bool) $state)),
 
                 TextColumn::make('student.studentEducations.level')
                     ->label(__('general.labels.education_level'))

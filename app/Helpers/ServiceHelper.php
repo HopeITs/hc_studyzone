@@ -2,12 +2,84 @@
 
 namespace App\Helpers;
 
+use App\Models\EntryService;
 use App\Models\Service;
 use App\Models\ServiceCategory;
+use App\Models\StudentEntry;
+use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Auth;
 
 class ServiceHelper
 {
+    /**
+     * Add or remove the internet service on an entry, keeping the
+     * use_internet flag and the entry_services row in sync.
+     * Returns the resulting use_internet state.
+     */
+    public static function toggleInternetService(StudentEntry $entry, bool $enable): bool
+    {
+        $service = Service::where('reference_column_name', 'use_internet')
+            ->where('is_active', true)
+            ->first();
+
+        if (! $service) {
+            Notification::make()->title('خدمة الإنترنت غير معرفة')->danger()->send();
+
+            return $entry->use_internet;
+        }
+
+        if ($enable) {
+            $price = $service->getPriceForCenter($entry->center_id);
+
+            if ($price === null) {
+                Notification::make()->title('لا يوجد سعر لخدمة الإنترنت في هذا المركز')->danger()->send();
+
+                return $entry->use_internet;
+            }
+
+            if (! $entry->services()->where('service_id', $service->id)->exists()) {
+                EntryService::create([
+                    'entry_id' => $entry->id,
+                    'service_id' => $service->id,
+                    'amount' => 1,
+                    'price_at_time' => $price,
+                    'total' => $price,
+                ]);
+            }
+        } else {
+            $entry->services()->where('service_id', $service->id)->delete();
+        }
+
+        $entry->update(['use_internet' => $enable]);
+
+        return $enable;
+    }
+
+    /**
+     * Whether the internet service has an active price configured for the given center.
+     * Memoized per request to avoid re-querying for every row in a table.
+     */
+    public static function centerHasInternetService(?int $centerId): bool
+    {
+        static $centerIds = null;
+
+        if ($centerId === null) {
+            return false;
+        }
+
+        if ($centerIds === null) {
+            $service = Service::where('reference_column_name', 'use_internet')
+                ->where('is_active', true)
+                ->first();
+
+            $centerIds = $service
+                ? $service->centerPrices()->where('is_active', true)->pluck('center_id')->toArray()
+                : [];
+        }
+
+        return in_array($centerId, $centerIds, true);
+    }
+
     /**
      * Get all services with their minimum prices for the current user's city
      */

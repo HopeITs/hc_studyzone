@@ -13,6 +13,7 @@ use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Actions;
 use Filament\Tables\Actions\Action;
+use Filament\Tables\Columns\CheckboxColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
@@ -146,6 +147,11 @@ class EntriesRelationManager extends RelationManager
                     ->sortable(),
                 TextColumn::make('center.name')->label(__('general.labels.center'))->sortable(),
                 TextColumn::make('entry_time')->label(__('general.labels.date'))->dateTime('Y-m-d H:i')->sortable(),
+                CheckboxColumn::make('use_internet')
+                    ->label(__('general.labels.internet-service'))
+                    ->disabled(fn ($record) => ! \App\Helpers\ServiceHelper::centerHasInternetService($record->center_id))
+                    ->extraAttributes(fn ($record) => \App\Helpers\ServiceHelper::centerHasInternetService($record->center_id) ? [] : ['class' => 'hidden'])
+                    ->updateStateUsing(fn ($record, $state) => \App\Helpers\ServiceHelper::toggleInternetService($record, (bool) $state)),
                 TextColumn::make('services_list')
                     ->label(__('general.labels.provided_services'))
                     ->formatStateUsing(fn ($record) => $record->services_list ?: '-')
