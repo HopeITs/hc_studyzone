@@ -23,6 +23,7 @@ use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use Illuminate\Support\HtmlString;
 use Rmsramos\Activitylog\ActivitylogPlugin;
 
 // ... your other imports
@@ -39,7 +40,9 @@ class AdminPanelProvider extends PanelProvider
             ->login()
             ->unsavedChangesAlerts()
             ->databaseTransactions()
-            ->brandLogo(asset('images/logo.png'))
+            ->brandLogo(new HtmlString(
+                '<img src="' . asset('images/logo.png') . '" alt="Study Zone" width="37" height="40" style="height: 100%; width: auto;" />'
+            ))
             ->brandLogoHeight('2.5rem')
             ->favicon(asset('images/logo.png'))
             ->brandName('Study Zone')
