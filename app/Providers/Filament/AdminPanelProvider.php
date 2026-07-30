@@ -4,7 +4,9 @@ namespace App\Providers\Filament;
 
 use App\Filament\Pages;
 use App\Filament\Resources\CustomActivitylogResource;
+use App\Filament\Resources\StudentResource\Pages\ListStudents;
 use App\Http\Middleware\EnsureUserIsActive;
+use App\Http\Middleware\NoIndexAdminPanel;
 use App\Http\Middleware\SetLocale;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -68,6 +70,7 @@ class AdminPanelProvider extends PanelProvider
                 DispatchServingFilamentEvent::class,
                 'active' => EnsureUserIsActive::class,
                 SetLocale::class,
+                NoIndexAdminPanel::class,
             ])
             ->authMiddleware([
                 Authenticate::class,
@@ -85,7 +88,11 @@ class AdminPanelProvider extends PanelProvider
 
                 SpatieLaravelTranslatablePlugin::make()->defaultLocales(['en', 'ar']),
             ])
-            ->renderHook('panels::body.start', fn () => view('filament.hooks.qr-code-script'))
+            ->renderHook(
+                'panels::body.start',
+                fn () => view('filament.hooks.qr-code-script'),
+                scopes: [ListStudents::class],
+            )
             // ->renderHook(
             //     'panels::user-menu.before',
             //     fn () => view('filament.components.language-switcher')
@@ -99,6 +106,11 @@ class AdminPanelProvider extends PanelProvider
             ->renderHook(
                 'panels::head.start',
                 fn () => view('filament.components.rtl-styles')
+            )
+
+            ->renderHook(
+                'panels::head.end',
+                fn () => view('filament.hooks.seo-meta')
             );
 
     }
