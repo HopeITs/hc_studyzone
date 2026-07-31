@@ -292,6 +292,11 @@ return [
         'stationery' => 'Stationery',
         'internet' => 'Internet',
         'reservation_short' => 'Reservation',
+        'reset_filters' => 'Reset Filters',
+        'search_name_or_phone' => 'Search by Student Name or Phone Number',
+        'columns_to_export' => 'Columns to Export',
+        'export_columns_modal_heading' => 'Select Columns to Export',
+        'confirm_export' => 'Confirm Export',
     ],
     'navigation' => [
         'admin_management' => 'Admin Management',

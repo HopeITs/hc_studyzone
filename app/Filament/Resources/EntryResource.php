@@ -353,17 +353,18 @@ class EntryResource extends Resource
                 SelectFilter::make('student.studentEducations.level')
                     ->label(__('general.labels.education_level'))
                     ->options(__('general.edu-levels'))
+                    ->multiple()
                     ->searchable()
                     ->columnSpan(1)
                     ->query(function (Builder $query, array $data): Builder {
-                        if (isset($data['value']) && $data['value'] !== null && $data['value'] !== '') {
-                            return $query->whereHas(
-                                'student.studentEducations',
-                                fn (Builder $q) => $q->where('level', (int) $data['value'])
-                            );
+                        if (empty($data['values'])) {
+                            return $query;
                         }
 
-                        return $query;
+                        return $query->whereHas(
+                            'student.studentEducations',
+                            fn (Builder $q) => $q->whereIn('level', $data['values'])
+                        );
                     })
                     ->preload(),
 

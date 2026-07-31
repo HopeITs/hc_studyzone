@@ -718,18 +718,33 @@ class StudentResource extends Resource
                     return $query->when($data['created_from'], fn (Builder $query, $date): Builder => $query->whereDate('created_at', '>=', $date))->when($data['created_until'], fn (Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date));
                 }),
             SelectFilter::make('educations')->label(__('general.labels.education_plural'))->relationship('educations', 'name')->searchable()->multiple()->preload(),
+            SelectFilter::make('degree')
+                ->label(__('general.labels.degree'))
+                ->options(__('general.edu-degrees'))
+                ->multiple()
+                ->searchable()
+                ->query(function (Builder $query, array $data): Builder {
+                    if (empty($data['values'])) {
+                        return $query;
+                    }
+
+                    return $query->whereHas('educations', function (Builder $q) use ($data) {
+                        $q->whereIn('degree', $data['values']);
+                    });
+                }),
             SelectFilter::make('education_level')
                 ->label(__('general.labels.education_level'))
                 ->options(__('general.edu-levels'))
+                ->multiple()
                 ->searchable()
                 ->query(function (Builder $query, array $data): Builder {
-                    if (array_key_exists('value', $data) && $data['value'] !== null && $data['value'] !== '') {
-                        return $query->whereHas('studentEducations', function (Builder $studentQuery) use ($data) {
-                            $studentQuery->where('level', (int) $data['value']);
-                        });
+                    if (empty($data['values'])) {
+                        return $query;
                     }
 
-                    return $query;
+                    return $query->whereHas('studentEducations', function (Builder $studentQuery) use ($data) {
+                        $studentQuery->whereIn('level', $data['values']);
+                    });
                 })
                 ->preload(),
             SelectFilter::make('gender')->label(__('general.labels.gender'))->options(__('general.genders')),

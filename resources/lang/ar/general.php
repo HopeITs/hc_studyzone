@@ -295,6 +295,11 @@ return [
         'stationery' => 'القرطاسية',
         'internet' => 'الإنترنت',
         'reservation_short' => 'الحجز',
+        'reset_filters' => 'إعادة تعيين الفلاتر',
+        'search_name_or_phone' => 'بحث باسم الطالب أو رقم الهاتف',
+        'columns_to_export' => 'الأعمدة المراد تصديرها',
+        'export_columns_modal_heading' => 'اختر الأعمدة المراد تصديرها',
+        'confirm_export' => 'تأكيد التصدير',
     ],
     'navigation' => [
         'admin_management' => 'إدارة النظام',
