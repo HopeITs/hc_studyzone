@@ -253,6 +253,7 @@ class EntryResource extends Resource
             ])
             ->filtersLayout(FiltersLayout::Modal)
             ->filtersFormColumns(4)
+            ->deferFilters()
             ->filters([
                 Filter::make('entry_time')
                     ->label(__('general.labels.date'))
