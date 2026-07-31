@@ -98,7 +98,7 @@ class Reports extends Page
                         TextInput::make('search')
                             ->label(__('general.labels.search_name_or_phone'))
                             ->placeholder(__('general.labels.search_name_or_phone'))
-                            ->columnSpanFull(),
+                            ->columnSpan(1),
 
                         Select::make('city_id')
                             ->label(__('general.labels.city'))
@@ -109,7 +109,7 @@ class Reports extends Page
                                 $set('center_id', []);
                                 $set('street_id', []);
                             })
-                            ->columnSpanFull(),
+                            ->columnSpan(1),
 
                         Select::make('street_id')
                             ->label(__('general.labels.street'))
@@ -134,7 +134,7 @@ class Reports extends Page
                             ->multiple()
                             ->searchable()
                             ->default([])
-                            ->columnSpanFull(),
+                             ->columnSpan(1),
 
                         Select::make('center_id')
                             ->label(__('general.labels.centers'))
@@ -172,7 +172,7 @@ class Reports extends Page
                             })
                             ->multiple()
                             ->searchable()
-                            ->columnSpanFull()
+                           ->columnSpan(1)
                             ->hidden(auth()->user()->role === Roles::CenterAdmin())
                             ->default(function () {
                                 $user = auth()->user();
