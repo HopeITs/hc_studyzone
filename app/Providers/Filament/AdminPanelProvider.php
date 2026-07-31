@@ -8,6 +8,7 @@ use App\Filament\Resources\StudentResource\Pages\ListStudents;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\NoIndexAdminPanel;
 use App\Http\Middleware\SetLocale;
+use Filament\FontProviders\LocalFontProvider;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -46,6 +47,10 @@ class AdminPanelProvider extends PanelProvider
             ->brandLogoHeight('2.5rem')
             ->favicon(asset('images/logo.png'))
             ->brandName('Study Zone')
+            // Self-hosted Inter (see public/css/fonts/inter.css) instead of the
+            // fonts.bunny.net CDN: removes the third-party stylesheet that had no
+            // Subresource Integrity hash and lets the CSP drop that origin entirely.
+            ->font('Inter', asset('css/fonts/inter.css') . '?v=1', LocalFontProvider::class)
             ->databaseNotifications()
             ->colors([
                 'primary' => Color::Amber,

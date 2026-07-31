@@ -17,13 +17,15 @@ class SecurityHeaders
         // x-data/x-on expressions via `new Function(...)`; 'unsafe-inline' covers
         // Filament's own inline theme/dark-mode <style>/<script> blocks, which ship
         // without nonce support. Removing either breaks the panel.
+        // Inter is self-hosted (see AdminPanelProvider::font()), so fonts.bunny.net
+        // is no longer a required origin anywhere in this policy.
         $csp = implode('; ', [
             "default-src 'self'",
             "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-            "style-src 'self' 'unsafe-inline' https://fonts.bunny.net",
-            "font-src 'self' https://fonts.bunny.net data:",
+            "style-src 'self' 'unsafe-inline'",
+            "font-src 'self' data:",
             "img-src 'self' data:",
-            "connect-src 'self' https://fonts.bunny.net",
+            "connect-src 'self'",
             "object-src 'none'",
             "base-uri 'self'",
             "form-action 'self'",
@@ -36,6 +38,8 @@ class SecurityHeaders
         $response->headers->set('X-Content-Type-Options', 'nosniff');
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
         $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+        $response->headers->set('Cross-Origin-Opener-Policy', 'same-origin');
+        $response->headers->set('Cross-Origin-Resource-Policy', 'same-origin');
 
         if ($request->isSecure()) {
             $response->headers->set('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
