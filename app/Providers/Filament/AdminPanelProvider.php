@@ -110,6 +110,11 @@ class AdminPanelProvider extends PanelProvider
                 fn () => view('filament.components.language-dropdown')
             )
 
+            ->renderHook(
+                'panels::head.start',
+                fn () => view('filament.components.resource-hints')
+            )
+
             // RTL Support
             ->renderHook(
                 'panels::head.start',
