@@ -26,7 +26,7 @@ Route::post('/csp-reports', [CspReportController::class, 'store'])
 Route::get('/clear-cache', function () {
     Artisan::call('optimize:clear'); // instead of cache:clear
     session()->flash('success', 'Cache');
-    return redirect()->route('filament.pages.dashboard')->withSuccess('Cache has been cleared');
+    // return redirect()->route('filament.pages.dashboard')->withSuccess('Cache has been cleared');
 });
 
 Route::group(['middleware' => ['auth']], function () {
