@@ -10,12 +10,6 @@ class SecurityHeaders
 {
     public function handle(Request $request, Closure $next): Response
     {
-        // Bound before the request is handled so Blade views rendered further
-        // down the pipeline (e.g. rtl-styles.blade.php) can pull the same nonce
-        // via app('csp.nonce') and attach it to the inline tags they own.
-        $nonce = base64_encode(random_bytes(16));
-        app()->instance('csp.nonce', $nonce);
-
         /** @var Response $response */
         $response = $next($request);
 
@@ -40,27 +34,6 @@ class SecurityHeaders
         ]);
 
         $response->headers->set('Content-Security-Policy', $csp);
-
-        // Stricter nonce-based policy shipped Report-Only: it does not block or
-        // alter anything, it just tells us (via /csp-reports) which inline
-        // assets are ours (nonced, would pass) vs vendor/Filament-owned (would
-        // still fail on 'unsafe-eval') before we ever consider enforcing it.
-        $reportOnlyCsp = implode('; ', [
-            "default-src 'self'",
-            "script-src 'self' 'nonce-{$nonce}' 'unsafe-eval'",
-            "style-src 'self' 'nonce-{$nonce}'",
-            "font-src 'self' data:",
-            "img-src 'self' data:",
-            "connect-src 'self'",
-            "object-src 'none'",
-            "base-uri 'self'",
-            "form-action 'self'",
-            "frame-ancestors 'none'",
-            "upgrade-insecure-requests",
-            'report-uri '.url('/csp-reports'),
-        ]);
-
-        $response->headers->set('Content-Security-Policy-Report-Only', $reportOnlyCsp);
         $response->headers->set('X-Frame-Options', 'DENY');
         $response->headers->set('X-Content-Type-Options', 'nosniff');
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
