@@ -15,19 +15,15 @@ use App\Filament\Widgets\StudentGenderChart;
 use App\Filament\Widgets\FrequentStudentsChart;
 use App\Filament\Resources\StudentResource;
 use App\Http\Controllers\SocialLinkController;
-use App\Http\Controllers\CspReportController;
 use App\Exports\EntriesByCenterExport;
 use Maatwebsite\Excel\Facades\Excel;
-
-Route::post('/csp-reports', [CspReportController::class, 'store'])
-    ->middleware('throttle:30,1')
-    ->name('csp-reports.store');
 
 Route::get('/clear-cache', function () {
     Artisan::call('optimize:clear'); // instead of cache:clear
     session()->flash('success', 'Cache');
-    // return redirect()->route('filament.pages.dashboard')->withSuccess('Cache has been cleared');
-});
+
+})->middleware(['auth', 'admin.access']);
+
 
 Route::group(['middleware' => ['auth']], function () {
     Route::get('/download-qr-code/{uuid}', function ($uuid) {

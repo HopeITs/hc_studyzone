@@ -17,12 +17,6 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->append(SecurityHeaders::class);
-
-        // Browsers POST these with no session/token context, so they can't
-        // carry a CSRF token; the route is rate-limited instead (routes/web.php).
-        $middleware->validateCsrfTokens(except: [
-            'csp-reports',
-        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
