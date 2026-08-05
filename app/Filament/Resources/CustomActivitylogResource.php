@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Models\StudentEducation;
 use App\Models\StudentEntry;
 use Carbon\Carbon;
+use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -32,6 +33,7 @@ class CustomActivitylogResource extends ActivitylogResource
             static::getRegistrationMismatchFilterComponent(),
             static::getCenterFilterComponent(),
             static::getEntryTimeEditFilterComponent(),
+            static::getDeletionGapFilterComponent(),
         ]);
 
         // 1c. Show the registration-gap (entry_time vs. when the log row was actually
@@ -40,6 +42,7 @@ class CustomActivitylogResource extends ActivitylogResource
         $table->pushColumns([
             static::getRegistrationGapColumnComponent(),
             static::getEntryTimeEditColumnComponent(),
+            static::getDeletionGapColumnComponent(),
         ]);
 
         // 2. Grab all the columns
@@ -226,9 +229,9 @@ class CustomActivitylogResource extends ActivitylogResource
             ->form([
                 TextInput::make('min_gap_days')
                     ->label('أقل فارق (بالأيام)')
+                    ->helperText('اتركه فارغاً لتعطيل هذا الفلتر')
                     ->numeric()
-                    ->minValue(0)
-                    ->default(1),
+                    ->minValue(0),
                 Select::make('direction')
                     ->label('الاتجاه')
                     ->native(false)
@@ -374,11 +377,13 @@ class CustomActivitylogResource extends ActivitylogResource
         return Filter::make('entry_time_edited')
             ->label('تعديل على تاريخ الدخولية')
             ->form([
+                Checkbox::make('enabled')
+                    ->label('عرض فقط التعديلات التي غيّرت تاريخ الدخولية')
+                    ->default(false),
                 TextInput::make('min_shift_days')
                     ->label('أقل إزاحة في التاريخ (أيام)')
                     ->numeric()
-                    ->minValue(0)
-                    ->default(1),
+                    ->minValue(0),
                 TextInput::make('min_delay_days')
                     ->label('أقل مدة بين تاريخ الدخولية القديم ولحظة التعديل (أيام)')
                     ->helperText('اتركه فارغاً لعدم اشتراط ذلك — مفيد لمعرفة هل التعديل جاء بعد مضي فترة على التاريخ القديم')
@@ -386,10 +391,14 @@ class CustomActivitylogResource extends ActivitylogResource
                     ->minValue(0),
             ])
             ->indicateUsing(function (array $data): array {
-                $indicators = [];
+                if (! ($data['enabled'] ?? false)) {
+                    return [];
+                }
+
+                $indicators = ['entry_time_edited' => 'تعديل على تاريخ الدخولية فقط'];
 
                 if (($data['min_shift_days'] ?? null) !== null && $data['min_shift_days'] !== '') {
-                    $indicators['min_shift_days'] = "تعديل على entry_time \u{2265} {$data['min_shift_days']} يوم";
+                    $indicators['min_shift_days'] = "الإزاحة \u{2265} {$data['min_shift_days']} يوم";
                 }
 
                 if (($data['min_delay_days'] ?? null) !== null && $data['min_delay_days'] !== '') {
@@ -399,6 +408,13 @@ class CustomActivitylogResource extends ActivitylogResource
                 return $indicators;
             })
             ->query(function (Builder $query, array $data): Builder {
+                // Must be explicitly enabled — this filter forces event='updated', which
+                // would otherwise silently contradict any other event the user picks
+                // (this is exactly what broke the "created"/"deleted" event filter before).
+                if (! ($data['enabled'] ?? false)) {
+                    return $query;
+                }
+
                 static::useSubjectEventIndexHint($query);
 
                 $query = $query
@@ -422,6 +438,112 @@ class CustomActivitylogResource extends ActivitylogResource
 
                 return $query;
             });
+    }
+
+    /**
+     * "فارق اليوم بين حدث الحذف وتاريخ الدخولية" — signed gap between when an entry
+     * was actually deleted (activity_log.created_at for the "deleted" event) and the
+     * entry_time it claimed. A large positive gap means an old entry was removed long
+     * after the fact — e.g. deleting a March entry today quietly changes a report that
+     * was already submitted for March.
+     */
+    public static function getDeletionGapFilterComponent(): Filter
+    {
+        return Filter::make('deletion_gap')
+            ->label('فارق بين تاريخ الحذف وتاريخ الدخولية')
+            ->form([
+                TextInput::make('min_gap_days')
+                    ->label('أقل فارق (بالأيام)')
+                    ->helperText('اتركه فارغاً لتعطيل هذا الفلتر')
+                    ->numeric()
+                    ->minValue(0),
+                Select::make('direction')
+                    ->label('الاتجاه')
+                    ->native(false)
+                    ->options([
+                        'after_entry'  => 'حُذفت بعد تاريخ الدخولية بفترة (الأكثر أهمية)',
+                        'before_entry' => 'حُذفت قبل تاريخ الدخولية (نادر)',
+                        'any'          => 'أي فارق (بالاتجاهين)',
+                    ])
+                    ->default('after_entry'),
+            ])
+            ->indicateUsing(function (array $data): array {
+                $minDays = $data['min_gap_days'] ?? null;
+
+                if ($minDays === null || $minDays === '') {
+                    return [];
+                }
+
+                $directionLabel = match ($data['direction'] ?? 'after_entry') {
+                    'before_entry' => 'قبل تاريخ الدخولية',
+                    'any'          => 'بالاتجاهين',
+                    default        => 'بعد تاريخ الدخولية',
+                };
+
+                return ['deletion_gap' => "فارق الحذف ({$directionLabel}) \u{2265} {$minDays} يوم"];
+            })
+            ->query(function (Builder $query, array $data): Builder {
+                $minDays = $data['min_gap_days'] ?? null;
+
+                if ($minDays === null || $minDays === '') {
+                    return $query;
+                }
+
+                $minDays   = (int) $minDays;
+                $direction = $data['direction'] ?? 'after_entry';
+
+                static::useSubjectEventIndexHint($query);
+
+                $query = $query
+                    ->where('subject_type', StudentEntry::class)
+                    ->where('event', 'deleted')
+                    ->whereNotNull('entry_time_old');
+
+                return match ($direction) {
+                    'before_entry' => $query->whereRaw('DATEDIFF(entry_time_old, created_at) >= ?', [$minDays]),
+                    'any'          => $query->whereRaw('ABS(DATEDIFF(created_at, entry_time_old)) >= ?', [$minDays]),
+                    default        => $query->whereRaw('DATEDIFF(created_at, entry_time_old) >= ?', [$minDays]),
+                };
+            });
+    }
+
+    /**
+     * "فارق الحذف (أيام)" — signed day gap between a deleted entry's claimed entry_time
+     * and the moment it was actually deleted. Positive = the entry_time was in the past
+     * relative to the deletion (deleted long after the fact). '-' for non-deleted rows.
+     */
+    public static function getDeletionGapColumnComponent(): TextColumn
+    {
+        return TextColumn::make('deletion_gap_days')
+            ->label('فارق الحذف (أيام)')
+            ->state(function ($record) {
+                if ($record->subject_type !== StudentEntry::class
+                    || $record->event !== 'deleted'
+                    || ! $record->entry_time_old
+                    || ! $record->created_at) {
+                    return null;
+                }
+
+                $entryTime = Carbon::parse($record->entry_time_old)->startOfDay();
+                $deletedAt = $record->created_at->copy()->startOfDay();
+
+                return $deletedAt->diffInDays($entryTime, absolute: false) * -1;
+            })
+            ->formatStateUsing(fn (?int $state) => $state === null ? '-' : ($state > 0 ? "+{$state}" : (string) $state))
+            ->color(fn (?int $state) => match (true) {
+                $state === null => 'gray',
+                $state >= 30    => 'danger',
+                $state >= 1     => 'warning',
+                $state <= -1    => 'info',
+                default         => 'success',
+            })
+            ->badge()
+            ->sortable(query: function (Builder $query, string $direction): Builder {
+                return $query->orderByRaw(
+                    "(CASE WHEN event = 'deleted' THEN DATEDIFF(created_at, entry_time_old) ELSE NULL END) {$direction}"
+                );
+            })
+            ->toggleable();
     }
 
     private static function whereColumnBetween(Builder $query, string $column, ?Carbon $from, ?Carbon $to): void
