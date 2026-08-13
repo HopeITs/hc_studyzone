@@ -4,8 +4,10 @@ namespace App\Observers;
 
 use App\Models\LockedMonth;
 use App\Models\StudentEntry;
+use Carbon\Carbon;
 use Filament\Notifications\Notification;
 use Filament\Support\Exceptions\Halt;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Str;
 
 class StudentEntryObserver
@@ -30,6 +32,18 @@ class StudentEntryObserver
      */
     public function saving(StudentEntry $entry): void
     {
+        if ($entry->entry_time && Carbon::parse($entry->entry_time)->isAfter(today()->endOfDay())) {
+            Notification::make()
+                ->title(__('general.messages.future_entry_date_title'))
+                ->body(__('general.messages.future_entry_date_body'))
+                ->danger()
+                ->send();
+
+            throw ValidationException::withMessages([
+                'entry_time' => __('general.messages.future_entry_date_body'),
+            ]);
+        }
+
         $datesToCheck = array_filter([
             $entry->entry_time,
             $entry->exists ? $entry->getOriginal('entry_time') : null,

@@ -332,6 +332,10 @@ return [
         'reports' => 'Reports',
     ],
     'messages' => [
+        'future_entry_date_title' => 'Entry date is not allowed',
+        'future_entry_date_body' => 'An entry cannot be recorded with a future date.',
+        'non_today_entry_date_title' => 'Notice: Entry date is not today',
+        'non_today_entry_date_body' => 'The selected entry date does not match today\'s date.',
         'month_locked_title' => 'Month Locked',
         'month_locked_body' => 'The General Admin has locked this month, so entries within it cannot be added, edited, or deleted.',
         'complete_student_before_entry' => 'Complete the student personal data before recording an entry.',

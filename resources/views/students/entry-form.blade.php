@@ -131,7 +131,11 @@
                             <label for="entry_time" class="mb-1 fi-label">وقت الدخول</label>
                             <input type="datetime-local" name="entry_time" id="entry_time"
                                    value="{{ now()->format('Y-m-d\TH:i') }}"
+                                   max="{{ now()->endOfDay()->format('Y-m-d\TH:i') }}"
                                    class="fi-input" required>
+                            @error('entry_time')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
                         </div>
                     </div>
                 </fieldset>
@@ -277,6 +281,17 @@
 </div>
 
 <script>
+    document.getElementById('entry_time')?.addEventListener('change', function () {
+        if (!this.value) return;
+
+        const selectedDate = this.value.slice(0, 10);
+        const today = '{{ now()->toDateString() }}';
+
+        if (selectedDate !== today) {
+            alert(@json(__('general.messages.non_today_entry_date_body')));
+        }
+    });
+
     document.addEventListener('alpine:init', () => {
         Alpine.data('entryForm', (defaultCenterId) => ({
             centerId: defaultCenterId,

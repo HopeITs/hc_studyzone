@@ -10,6 +10,7 @@ use App\Models\Student;
 use App\Models\StudentEntry;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 
 class StudentEntryController extends Controller
 {
@@ -39,6 +40,12 @@ class StudentEntryController extends Controller
             'services.*.quantity' => 'nullable|integer|min:1',
             'services.*.subtotal' => 'nullable|numeric',
         ]);
+
+        if (\Carbon\Carbon::parse($data['entry_time'])->isAfter(today()->endOfDay())) {
+            throw ValidationException::withMessages([
+                'entry_time' => __('general.messages.future_entry_date_body'),
+            ]);
+        }
 
         $student = Student::findOrFail($studentId);
 

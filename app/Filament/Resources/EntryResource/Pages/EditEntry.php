@@ -22,6 +22,7 @@ use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\On;
 
@@ -91,6 +92,19 @@ class EditEntry extends EditRecord
                         DateTimePicker::make('entry_time')
                             ->label(__('general.labels.entry_time'))
                             ->default(now())
+                            ->maxDate(now()->endOfDay())
+                            ->live()
+                            ->afterStateUpdated(function ($state) {
+                                if (! $state || \Carbon\Carbon::parse($state)->isToday()) {
+                                    return;
+                                }
+
+                                Notification::make()
+                                    ->title(__('general.messages.non_today_entry_date_title'))
+                                    ->body(__('general.messages.non_today_entry_date_body'))
+                                    ->warning()
+                                    ->send();
+                            })
                             ->required()
                             ->columnSpan(1),
                     ])

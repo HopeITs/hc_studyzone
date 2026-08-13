@@ -150,6 +150,19 @@ class CreateStudentEntry extends Page
                         DateTimePicker::make('entry_time')
                             ->label(__('general.labels.entry_time'))
                             ->default(now())
+                            ->maxDate(now()->endOfDay())
+                            ->live()
+                            ->afterStateUpdated(function ($state) {
+                                if (! $state || \Carbon\Carbon::parse($state)->isToday()) {
+                                    return;
+                                }
+
+                                Notification::make()
+                                    ->title(__('general.messages.non_today_entry_date_title'))
+                                    ->body(__('general.messages.non_today_entry_date_body'))
+                                    ->warning()
+                                    ->send();
+                            })
                             ->required()
                             ->columnSpan(1),
                     ])

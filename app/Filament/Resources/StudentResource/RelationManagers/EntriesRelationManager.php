@@ -17,6 +17,7 @@ use Filament\Tables\Actions\Action;
 use Filament\Tables\Columns\CheckboxColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 
@@ -55,6 +56,19 @@ class EntriesRelationManager extends RelationManager
             Forms\Components\DateTimePicker::make('entry_time')
                 ->label(__('general.labels.entry_time'))
                 ->default(now())
+                ->maxDate(now()->endOfDay())
+                ->live()
+                ->afterStateUpdated(function ($state) {
+                    if (! $state || \Carbon\Carbon::parse($state)->isToday()) {
+                        return;
+                    }
+
+                    Notification::make()
+                        ->title(__('general.messages.non_today_entry_date_title'))
+                        ->body(__('general.messages.non_today_entry_date_body'))
+                        ->warning()
+                        ->send();
+                })
                 ->required(),
 
             Forms\Components\Fieldset::make('requested_services')

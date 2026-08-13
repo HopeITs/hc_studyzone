@@ -335,6 +335,10 @@ return [
         'reports' => 'التقارير',
     ],
     'messages' => [
+        'future_entry_date_title' => 'تاريخ الدخولية غير مسموح',
+        'future_entry_date_body' => 'لا يمكن تسجيل دخولية بتاريخ في المستقبل.',
+        'non_today_entry_date_title' => 'تنبيه: تاريخ الدخولية ليس اليوم',
+        'non_today_entry_date_body' => 'تاريخ الدخولية المحدد لا يطابق تاريخ اليوم الحالي.',
         'month_locked_title' => 'الشهر مقفل',
         'month_locked_body' => 'قام المدير العام بقفل هذا الشهر، لذلك لا يمكن إضافة أو تعديل أو حذف أي دخولية ضمنه.',
         'complete_student_before_entry' => 'استكمل البيانات الخاصة للطالب قبل تسجيل الدخولية.',
