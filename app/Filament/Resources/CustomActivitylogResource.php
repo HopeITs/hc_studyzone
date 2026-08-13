@@ -8,8 +8,11 @@ use App\Models\StudentEntry;
 use Carbon\Carbon;
 use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Fieldset;
+use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Support\Enums\MaxWidth;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
@@ -55,6 +58,51 @@ class CustomActivitylogResource extends ActivitylogResource
             static::getEntryTimeEditFilterComponent(),
             static::getDeletionGapFilterComponent(),
         ]);
+
+        // Keep related fields together so the wide filter panel remains easy to scan.
+        $table
+            ->filtersFormColumns(1)
+            ->filtersFormWidth(MaxWidth::SevenExtraLarge)
+            ->filtersFormSchema(fn (array $filters): array => [
+                Section::make('الفلاتر الأساسية')
+                    ->compact()
+                    ->columns(4)
+                    ->schema([
+                        $filters['created_at']->columnSpan(2)->columns(2),
+                        $filters['event'],
+                        $filters['subject_type'],
+                    ]),
+
+                Section::make('فترة البيانات والمركز')
+                    ->compact()
+                    ->columns(3)
+                    ->schema([
+                        $filters['data_period']->columnSpan(2)->columns(2),
+                        $filters['center_id'],
+                    ]),
+
+                Section::make('فلاتر التدقيق المتقدمة')
+                    ->compact()
+                    ->collapsed()
+                    ->columns(2)
+                    ->schema([
+                        Fieldset::make('حدث الإنشاء')
+                            ->schema([
+                                $filters['registration_mismatch']->columnSpanFull()->columns(2),
+                            ]),
+
+                        Fieldset::make('حدث الحذف')
+                            ->schema([
+                                $filters['deletion_gap']->columnSpanFull()->columns(2),
+                            ]),
+
+                        Fieldset::make('حدث التعديل')
+                            ->columnSpanFull()
+                            ->schema([
+                                $filters['entry_time_edited']->columnSpanFull()->columns(3),
+                            ]),
+                    ]),
+            ]);
 
         // 1c. Show the registration-gap (entry_time vs. when the log row was actually
         // written) as a sortable column, so it's visible at a glance without opening
@@ -248,12 +296,12 @@ class CustomActivitylogResource extends ActivitylogResource
             ->label('عدم تطابق تاريخ الدخولية مع تاريخ إدخالها الفعلي')
             ->form([
                 TextInput::make('min_gap_days')
-                    ->label('أقل فارق (بالأيام)')
-                    ->helperText('اتركه فارغاً لتعطيل هذا الفلتر')
+                    ->label('أقل فارق بين تاريخ الدخولية ووقت إنشائها (بالأيام)')
+                    ->helperText('اتركه فارغًا لعدم تطبيق تدقيق الإنشاء')
                     ->numeric()
                     ->minValue(0),
                 Select::make('direction')
-                    ->label('الاتجاه')
+                    ->label('اتجاه فارق الإنشاء')
                     ->native(false)
                     ->options([
                         'backdated' => 'تسجيل بأثر رجعي (تاريخ الدخولية أقدم من تاريخ الإدخال الفعلي)',
@@ -398,15 +446,15 @@ class CustomActivitylogResource extends ActivitylogResource
             ->label('تعديل على تاريخ الدخولية')
             ->form([
                 Checkbox::make('enabled')
-                    ->label('عرض فقط التعديلات التي غيّرت تاريخ الدخولية')
+                    ->label('عرض أحداث التعديل التي غيّرت تاريخ الدخولية فقط')
                     ->default(false),
                 TextInput::make('min_shift_days')
-                    ->label('أقل إزاحة في التاريخ (أيام)')
+                    ->label('أقل تغيير في تاريخ الدخولية (بالأيام)')
                     ->numeric()
                     ->minValue(0),
                 TextInput::make('min_delay_days')
-                    ->label('أقل مدة بين تاريخ الدخولية القديم ولحظة التعديل (أيام)')
-                    ->helperText('اتركه فارغاً لعدم اشتراط ذلك — مفيد لمعرفة هل التعديل جاء بعد مضي فترة على التاريخ القديم')
+                    ->label('أقل مدة بين التاريخ القديم ووقت التعديل (بالأيام)')
+                    ->helperText('اتركه فارغًا لعدم اشتراط مدة قبل التعديل')
                     ->numeric()
                     ->minValue(0),
             ])
@@ -473,12 +521,12 @@ class CustomActivitylogResource extends ActivitylogResource
             ->label('فارق بين تاريخ الحذف وتاريخ الدخولية')
             ->form([
                 TextInput::make('min_gap_days')
-                    ->label('أقل فارق (بالأيام)')
-                    ->helperText('اتركه فارغاً لتعطيل هذا الفلتر')
+                    ->label('أقل فارق بين تاريخ الدخولية ووقت حذفها (بالأيام)')
+                    ->helperText('اتركه فارغًا لعدم تطبيق تدقيق الحذف')
                     ->numeric()
                     ->minValue(0),
                 Select::make('direction')
-                    ->label('الاتجاه')
+                    ->label('اتجاه فارق الحذف')
                     ->native(false)
                     ->options([
                         'after_entry'  => 'حُذفت بعد تاريخ الدخولية بفترة (الأكثر أهمية)',
