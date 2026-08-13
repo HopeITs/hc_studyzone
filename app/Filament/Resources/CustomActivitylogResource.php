@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Enums\Roles;
 use App\Models\StudentEducation;
 use App\Models\StudentEntry;
 use Carbon\Carbon;
@@ -19,6 +20,25 @@ use Rmsramos\Activitylog\Resources\ActivitylogResource;
 
 class CustomActivitylogResource extends ActivitylogResource
 {
+    /**
+     * Grouped under "إدارة النظام" alongside EntryAuditResource/StudentAuditResource
+     * instead of the vendor plugin's own placement.
+     */
+    public static function getNavigationGroup(): ?string
+    {
+        return 'إدارة النظام';
+    }
+
+    /**
+     * The base ActivitylogResource::canAccess() falls back to the plugin's blanket
+     * ->isAuthorized() flag when no Policy exists for the Activity model (this app has
+     * none), which doesn't distinguish between roles. Restrict to General Admin only.
+     */
+    public static function canAccess(): bool
+    {
+        return auth()->user()->role === Roles::GeneralAdmin();
+    }
+
     public static function table(Table $table): Table
     {
         // 1. Get the pre-built table from the Rmsramos plugin
