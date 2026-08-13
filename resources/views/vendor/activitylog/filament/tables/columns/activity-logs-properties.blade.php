@@ -49,6 +49,52 @@
         return $education ? $education->name : 'Unknown Education';
     };
 
+    // All of the student's education/specialization records, with a flag on the
+    // one whose [start_date, end_date] range actually covers this entry's entry_time
+    // (this is exactly the range EntryStats.php uses to decide "is this a dentistry entry").
+    $getStudentEducations = function ($studentId, $entryTime = null) {
+        if (!$studentId) {
+            return collect();
+        }
+
+        $entry = $entryTime ? \Illuminate\Support\Carbon::parse($entryTime) : null;
+
+        return \App\Models\StudentEducation::where('student_id', $studentId)
+            ->with('education')
+            ->get()
+            ->map(function ($studentEducation) use ($entry) {
+                $covers = $entry
+                    && $studentEducation->start_date
+                    && $entry->gte($studentEducation->start_date)
+                    && (is_null($studentEducation->end_date) || $entry->lte($studentEducation->end_date));
+
+                return [
+                    'name' => $studentEducation->education->name ?? 'Unknown',
+                    'start' => $studentEducation->start_date?->format('Y-m-d') ?? '؟',
+                    'end' => $studentEducation->end_date?->format('Y-m-d') ?? 'مستمر',
+                    'covers' => $covers,
+                ];
+            });
+    };
+
+    $getEntryTypeLabel = function ($value) {
+        if ($value === null || $value === '') {
+            return 'N/A';
+        }
+        $label = __('general.entry-types.' . (int) $value);
+        return $label === 'general.entry-types.' . (int) $value ? $value : $label;
+    };
+
+    // On "updated" events, flag fields that actually changed between old and new so
+    // we can show "old -> new" instead of just the current value — most important for
+    // entry_time/center_id/entry_type since those silently change what a past report counted.
+    $isChanged = function ($key) use ($event, $attributes, $old) {
+        return $event === 'updated'
+            && array_key_exists($key, $attributes)
+            && array_key_exists($key, $old)
+            && $attributes[$key] !== $old[$key];
+    };
+
     // Helper to resolve IDs in the fallback loop
     $resolveValue = function ($key, $value) use ($getStudent, $getCenter, $getCity, $getEducation) {
         if (!$value) {
@@ -112,18 +158,70 @@
             <div class="flex-col items-start justify-start">
                 <div>
                     <span class="text-gray-500 dark:text-gray-400">Date:</span>
-                    <strong
-                        class="text-gray-900 dark:text-gray-100">{{ isset($data['entry_time']) ? date('Y-m-d H:i', strtotime($data['entry_time'])) : 'N/A' }}</strong>
+                    @if ($isChanged('entry_time'))
+                        <strong class="text-amber-700 dark:text-amber-400">
+                            {{ date('Y-m-d H:i', strtotime($old['entry_time'])) }}
+                            <span class="mx-1">→</span>
+                            {{ date('Y-m-d H:i', strtotime($attributes['entry_time'])) }}
+                        </strong>
+                    @else
+                        <strong
+                            class="text-gray-900 dark:text-gray-100">{{ isset($data['entry_time']) ? date('Y-m-d H:i', strtotime($data['entry_time'])) : 'N/A' }}</strong>
+                    @endif
                 </div>
                 <div>
                     <span class="text-gray-500 dark:text-gray-400">Center:</span>
-                    <strong
-                        class="text-gray-900 dark:text-gray-100">{{ isset($data['center_id']) ? $getCenter($data['center_id']) : 'N/A' }}</strong>
+                    @if ($isChanged('center_id'))
+                        <strong class="text-amber-700 dark:text-amber-400">
+                            {{ $getCenter($old['center_id']) }}
+                            <span class="mx-1">→</span>
+                            {{ $getCenter($attributes['center_id']) }}
+                        </strong>
+                    @else
+                        <strong
+                            class="text-gray-900 dark:text-gray-100">{{ isset($data['center_id']) ? $getCenter($data['center_id']) : 'N/A' }}</strong>
+                    @endif
+                </div>
+                <div>
+                    <span class="text-gray-500 dark:text-gray-400">نوع الدخولية:</span>
+                    @if ($isChanged('entry_type'))
+                        <strong class="text-amber-700 dark:text-amber-400">
+                            {{ $getEntryTypeLabel($old['entry_type'] ?? null) }}
+                            <span class="mx-1">→</span>
+                            {{ $getEntryTypeLabel($attributes['entry_type'] ?? null) }}
+                        </strong>
+                    @else
+                        <strong
+                            class="text-gray-900 dark:text-gray-100">{{ $getEntryTypeLabel($data['entry_type'] ?? null) }}</strong>
+                    @endif
                 </div>
                 <div>
                     <span class="text-gray-500 dark:text-gray-400">Student:</span>
                     <strong
                         class="text-gray-900 dark:text-gray-100">{{ isset($data['student_id']) ? $getStudent($data['student_id']) : 'N/A' }}</strong>
+                </div>
+                <div>
+                    <span class="text-gray-500 dark:text-gray-400">دراسة الطالب:</span>
+                    @php
+                        $studentEducations = isset($data['student_id'])
+                            ? $getStudentEducations($data['student_id'], $data['entry_time'] ?? null)
+                            : collect();
+                    @endphp
+                    @if ($studentEducations->isEmpty())
+                        <strong class="text-gray-900 dark:text-gray-100">لا يوجد</strong>
+                    @else
+                        <div class="mt-0.5 space-y-0.5">
+                            @foreach ($studentEducations as $edu)
+                                <div
+                                    class="{{ $edu['covers'] ? 'font-semibold text-green-700 dark:text-green-400' : 'text-gray-700 dark:text-gray-300' }}">
+                                    {{ $edu['name'] }} ({{ $edu['start'] }} → {{ $edu['end'] }})
+                                    @if ($edu['covers'])
+                                        <span class="text-xs">✓ يشمل تاريخ الدخولية</span>
+                                    @endif
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
                 </div>
             </div>
         @elseif($subjectType === 'StudentEducation' && !empty($data))
