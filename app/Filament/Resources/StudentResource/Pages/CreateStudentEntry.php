@@ -6,6 +6,7 @@ use App\Enums\Roles;
 use App\Filament\Resources\StudentResource;
 use App\Models\Center;
 use App\Models\EntryService;
+use App\Models\LockedMonth;
 use App\Models\Service;
 use App\Models\ServiceCategory;
 use App\Models\ServicePrice;
@@ -448,6 +449,21 @@ class CreateStudentEntry extends Page
     protected function persist(): void
     {
         $data = $this->form->getState();
+
+        $lockedDate = collect([
+            $data['entry_time'] ?? null,
+            $this->entryInstance?->entry_time,
+        ])->filter(fn ($date) => $date && LockedMonth::isLocked($date))->first();
+
+        if ($lockedDate) {
+            Notification::make()
+                ->title(__('general.messages.month_locked_title'))
+                ->body(__('general.messages.month_locked_body'))
+                ->danger()
+                ->send();
+
+            return;
+        }
 
         $centerId = $data['center_id'] ?? auth()->user()->center_id;
 

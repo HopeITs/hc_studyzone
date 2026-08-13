@@ -6,6 +6,7 @@ use App\Enums\Roles;
 use App\Filament\Resources\StudentResource;
 use App\Filament\Resources\EntryResource;
 use App\Models\Center;
+use App\Models\LockedMonth;
 use Filament\Forms;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Form;
@@ -149,7 +150,7 @@ class EntriesRelationManager extends RelationManager
                 TextColumn::make('entry_time')->label(__('general.labels.date'))->dateTime('Y-m-d H:i')->sortable(),
                 CheckboxColumn::make('use_internet')
                     ->label(__('general.labels.internet-service'))
-                    ->disabled(fn ($record) => ! \App\Helpers\ServiceHelper::centerHasInternetService($record->center_id))
+                    ->disabled(fn ($record) => ! \App\Helpers\ServiceHelper::centerHasInternetService($record->center_id) || LockedMonth::isLocked($record->entry_time))
                     ->extraAttributes(fn ($record) => \App\Helpers\ServiceHelper::centerHasInternetService($record->center_id) ? [] : ['class' => 'hidden'])
                     ->updateStateUsing(fn ($record, $state) => \App\Helpers\ServiceHelper::toggleInternetService($record, (bool) $state)),
                 TextColumn::make('services_list')
@@ -234,15 +235,17 @@ class EntriesRelationManager extends RelationManager
                         'record' => $record->id, // Entry ID
 
                     ]))
-                    ->disabled(fn ($record) => ! $record->student->completed_data),
+                    ->disabled(fn ($record) => ! $record->student->completed_data || LockedMonth::isLocked($record->entry_time)),
 
-                Actions\DeleteAction::make(),
+                Actions\DeleteAction::make()
+                    ->disabled(fn ($record) => LockedMonth::isLocked($record->entry_time)),
             ])
 
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
-            ]);
+            ])
+            ->checkIfRecordIsSelectableUsing(fn ($record) => ! LockedMonth::isLocked($record->entry_time));
     }
 }

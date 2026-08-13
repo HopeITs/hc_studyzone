@@ -3,6 +3,7 @@
 namespace App\Helpers;
 
 use App\Models\EntryService;
+use App\Models\LockedMonth;
 use App\Models\Service;
 use App\Models\ServiceCategory;
 use App\Models\StudentEntry;
@@ -18,6 +19,16 @@ class ServiceHelper
      */
     public static function toggleInternetService(StudentEntry $entry, bool $enable): bool
     {
+        if (LockedMonth::isLocked($entry->entry_time)) {
+            Notification::make()
+                ->title(__('general.messages.month_locked_title'))
+                ->body(__('general.messages.month_locked_body'))
+                ->danger()
+                ->send();
+
+            return $entry->use_internet;
+        }
+
         $service = Service::where('reference_column_name', 'use_internet')
             ->where('is_active', true)
             ->first();

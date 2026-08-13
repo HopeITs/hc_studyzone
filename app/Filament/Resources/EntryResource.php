@@ -11,6 +11,7 @@ use App\Filament\Resources\EntryResource\RelationManagers\ServicesRelationManage
 use App\Filament\Resources\EntryResource\Widgets\EntryStats;
 use App\Filament\Resources\EntryResource\Widgets\EntryTypeChart;
 use App\Models\Education;
+use App\Models\LockedMonth;
 use App\Models\StudentEducation;
 use App\Models\StudentEntry;
 use Carbon\Carbon;
@@ -171,7 +172,7 @@ class EntryResource extends Resource
 
                 CheckboxColumn::make('use_internet')
                     ->label(__('general.labels.internet-service'))
-                    ->disabled(fn ($record) => ! \App\Helpers\ServiceHelper::centerHasInternetService($record->center_id))
+                    ->disabled(fn ($record) => ! \App\Helpers\ServiceHelper::centerHasInternetService($record->center_id) || LockedMonth::isLocked($record->entry_time))
                     ->extraAttributes(fn ($record) => \App\Helpers\ServiceHelper::centerHasInternetService($record->center_id) ? [] : ['class' => 'hidden'])
                     ->updateStateUsing(fn ($record, $state) => \App\Helpers\ServiceHelper::toggleInternetService($record, (bool) $state)),
 
@@ -429,8 +430,8 @@ class EntryResource extends Resource
                 Action::make('addServices')
                     ->label('')
                     ->icon('heroicon-o-shopping-cart')
-                    ->url(fn ($record) => EntryResource::getUrl('add-services', ['record' => $record])
-                    ),
+                    ->url(fn ($record) => EntryResource::getUrl('add-services', ['record' => $record]))
+                    ->disabled(fn ($record) => LockedMonth::isLocked($record->entry_time)),
 
                 Tables\Actions\EditAction::make()
                     ->label('')
@@ -486,13 +487,21 @@ class EntryResource extends Resource
     {
         $role = auth()->user()->role;
 
-        return $role !== Roles::MealAdmin() && $role !== Roles::Observer();
+        if ($role === Roles::MealAdmin() || $role === Roles::Observer()) {
+            return false;
+        }
+
+        return ! LockedMonth::isLocked($record->entry_time);
     }
 
     public static function canDelete(Model $record): bool
     {
         $role = auth()->user()->role;
 
-        return $role !== Roles::MealAdmin() && $role !== Roles::Observer();
+        if ($role === Roles::MealAdmin() || $role === Roles::Observer()) {
+            return false;
+        }
+
+        return ! LockedMonth::isLocked($record->entry_time);
     }
 }
