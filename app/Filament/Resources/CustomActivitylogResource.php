@@ -63,6 +63,7 @@ class CustomActivitylogResource extends ActivitylogResource
         $table
             ->filtersFormColumns(1)
             ->filtersFormWidth(MaxWidth::SevenExtraLarge)
+            ->deferFilters()
             ->filtersFormSchema(fn (array $filters): array => [
                 Section::make('الفلاتر الأساسية')
                     ->compact()
