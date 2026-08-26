@@ -123,7 +123,7 @@ class EntryStats extends BaseWidget
             Stat::make(__('general.labels.dentistry_student_entries'),
                 $this->getPageTableQuery()
                     ->whereHas('student.studentEducations', function ($q) {
-                        $q->whereIn('education_id', [25, 77, 136, 221, 223, 224, 225, 226, 227, 228])
+                        $q->whereIn('education_id', [25, 77,111, 136, 221, 223, 224, 225, 226, 227, 228])
                             ->where(function ($query) {
                                 $query->where(function ($subQ) {
                                     $subQ->whereColumn('entry_time', '>=', 'start_date')->

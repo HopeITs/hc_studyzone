@@ -82,7 +82,7 @@ class MultiToolUsage extends BaseWidget
 // Count Dentistry students (education_id = 77 or 136)
         $dentistryCount = DB::table('student_educations')
             ->whereIn('student_id', $studentIds)
-            ->whereIn('education_id', [77, 136])
+            ->whereIn('education_id', [25, 77,111, 136, 221, 223, 224, 225, 226, 227, 228])
             ->distinct('student_id')
             ->count();
 
