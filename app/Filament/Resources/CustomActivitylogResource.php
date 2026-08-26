@@ -3,8 +3,16 @@
 namespace App\Filament\Resources;
 
 use App\Enums\Roles;
+use App\Filament\Resources\CustomActivitylogResource\Pages\ListActivitylogs;
+use App\Filament\Resources\CustomActivitylogResource\Pages\ViewActivitylog;
+use App\Models\Center;
+use App\Models\City;
+use App\Models\Education;
+use App\Models\Street;
+use App\Models\Student;
 use App\Models\StudentEducation;
 use App\Models\StudentEntry;
+use App\Models\User;
 use Carbon\Carbon;
 use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\DatePicker;
@@ -125,8 +133,8 @@ class CustomActivitylogResource extends ActivitylogResource
             $columns[$subjectColumnName]->formatStateUsing(function ($record) {
 
                 // Get Arabic Event
-                $eventLabel = __('activitylog::action.event.' . $record->event);
-                if ($eventLabel === 'activitylog::action.event.' . $record->event) {
+                $eventLabel = __('activitylog::action.event.'.$record->event);
+                if ($eventLabel === 'activitylog::action.event.'.$record->event) {
                     $eventLabel = ucfirst($record->event);
                 }
 
@@ -146,8 +154,8 @@ class CustomActivitylogResource extends ActivitylogResource
     public static function getPages(): array
     {
         return [
-            'index' => \App\Filament\Resources\CustomActivitylogResource\Pages\ListActivitylogs::route('/'),
-            'view'  => \App\Filament\Resources\CustomActivitylogResource\Pages\ViewActivitylog::route('/{record}'),
+            'index' => ListActivitylogs::route('/'),
+            'view' => ViewActivitylog::route('/{record}'),
         ];
     }
 
@@ -171,26 +179,26 @@ class CustomActivitylogResource extends ActivitylogResource
                 $indicators = [];
 
                 if ($data['period_from'] ?? null) {
-                    $indicators['period_from'] = 'بيانات من: ' . $data['period_from'];
+                    $indicators['period_from'] = 'بيانات من: '.$data['period_from'];
                 }
 
                 if ($data['period_to'] ?? null) {
-                    $indicators['period_to'] = 'بيانات إلى: ' . $data['period_to'];
+                    $indicators['period_to'] = 'بيانات إلى: '.$data['period_to'];
                 }
 
                 return $indicators;
             })
             ->query(function (Builder $query, array $data): Builder {
                 $from = $data['period_from'] ?? null;
-                $to   = $data['period_to'] ?? null;
+                $to = $data['period_to'] ?? null;
 
                 if (! $from && ! $to) {
                     return $query;
                 }
 
                 $timezone = config('app.timezone');
-                $fromUtc  = $from ? Carbon::parse($from, $timezone)->startOfDay()->utc() : null;
-                $toUtc    = $to ? Carbon::parse($to, $timezone)->endOfDay()->utc() : null;
+                $fromUtc = $from ? Carbon::parse($from, $timezone)->startOfDay()->utc() : null;
+                $toUtc = $to ? Carbon::parse($to, $timezone)->endOfDay()->utc() : null;
 
                 // entry_time_attr/entry_time_old/education_*_attr/education_*_old are
                 // generated, indexed columns (see migration 2026_07_31_120000) that
@@ -232,13 +240,13 @@ class CustomActivitylogResource extends ActivitylogResource
     {
         return match ($subjectType) {
             StudentEntry::class => 'Entry | دخولية',
-            \App\Models\Student::class => 'Student | طالب',
+            Student::class => 'Student | طالب',
             StudentEducation::class => 'Education | تعليم الطالب',
-            \App\Models\Education::class => 'Education Type | نوع التعليم',
-            \App\Models\Center::class => 'Center | مركز',
-            \App\Models\City::class => 'City | مدينة',
-            \App\Models\Street::class => 'Street | شارع',
-            \App\Models\User::class => 'User | مستخدم',
+            Education::class => 'Education Type | نوع التعليم',
+            Center::class => 'Center | مركز',
+            City::class => 'City | مدينة',
+            Street::class => 'Street | شارع',
+            User::class => 'User | مستخدم',
             default => $subjectType ? class_basename($subjectType) : '-',
         };
     }
@@ -268,7 +276,7 @@ class CustomActivitylogResource extends ActivitylogResource
     {
         return SelectFilter::make('center_id')
             ->label('المركز')
-            ->options(fn () => \App\Models\Center::query()->pluck('name', 'id'))
+            ->options(fn () => Center::query()->pluck('name', 'id'))
             ->query(function (Builder $query, array $data): Builder {
                 $centerId = $data['value'] ?? null;
 
@@ -307,7 +315,7 @@ class CustomActivitylogResource extends ActivitylogResource
                     ->options([
                         'backdated' => 'تسجيل بأثر رجعي (تاريخ الدخولية أقدم من تاريخ الإدخال الفعلي)',
                         'postdated' => 'تسجيل مسبق (تاريخ الدخولية أحدث من تاريخ الإدخال الفعلي)',
-                        'any'       => 'أي فارق (بالاتجاهين)',
+                        'any' => 'أي فارق (بالاتجاهين)',
                     ])
                     ->default('backdated'),
             ])
@@ -320,11 +328,11 @@ class CustomActivitylogResource extends ActivitylogResource
 
                 $directionLabel = match ($data['direction'] ?? 'backdated') {
                     'postdated' => 'مسبق',
-                    'any'       => 'بالاتجاهين',
-                    default     => 'رجعي',
+                    'any' => 'بالاتجاهين',
+                    default => 'رجعي',
                 };
 
-                return ["registration_mismatch" => "فارق تسجيل ({$directionLabel}) \u{2265} {$minDays} يوم"];
+                return ['registration_mismatch' => "فارق تسجيل ({$directionLabel}) \u{2265} {$minDays} يوم"];
             })
             ->query(function (Builder $query, array $data): Builder {
                 $minDays = $data['min_gap_days'] ?? null;
@@ -333,7 +341,7 @@ class CustomActivitylogResource extends ActivitylogResource
                     return $query;
                 }
 
-                $minDays   = (int) $minDays;
+                $minDays = (int) $minDays;
                 $direction = $data['direction'] ?? 'backdated';
 
                 static::useSubjectEventIndexHint($query);
@@ -349,8 +357,8 @@ class CustomActivitylogResource extends ActivitylogResource
 
                 return match ($direction) {
                     'postdated' => $query->whereRaw('DATEDIFF(entry_time_attr, created_at) >= ?', [$minDays]),
-                    'any'       => $query->whereRaw('ABS(DATEDIFF(created_at, entry_time_attr)) >= ?', [$minDays]),
-                    default     => $query->whereRaw('DATEDIFF(created_at, entry_time_attr) >= ?', [$minDays]),
+                    'any' => $query->whereRaw('ABS(DATEDIFF(created_at, entry_time_attr)) >= ?', [$minDays]),
+                    default => $query->whereRaw('DATEDIFF(created_at, entry_time_attr) >= ?', [$minDays]),
                 };
             });
     }
@@ -378,17 +386,17 @@ class CustomActivitylogResource extends ActivitylogResource
                 }
 
                 $entryTime = Carbon::parse($record->entry_time_attr)->startOfDay();
-                $loggedAt  = $record->created_at->copy()->startOfDay();
+                $loggedAt = $record->created_at->copy()->startOfDay();
 
                 return $loggedAt->diffInDays($entryTime, absolute: false) * -1;
             })
             ->formatStateUsing(fn (?int $state) => $state === null ? '-' : ($state > 0 ? "+{$state}" : (string) $state))
             ->color(fn (?int $state) => match (true) {
                 $state === null => 'gray',
-                $state >= 7     => 'danger',
-                $state >= 1     => 'warning',
-                $state <= -1    => 'info',
-                default         => 'success',
+                $state >= 7 => 'danger',
+                $state >= 1 => 'warning',
+                $state <= -1 => 'info',
+                default => 'success',
             })
             ->badge()
             ->sortable(query: function (Builder $query, string $direction): Builder {
@@ -530,9 +538,9 @@ class CustomActivitylogResource extends ActivitylogResource
                     ->label('اتجاه فارق الحذف')
                     ->native(false)
                     ->options([
-                        'after_entry'  => 'حُذفت بعد تاريخ الدخولية بفترة (الأكثر أهمية)',
+                        'after_entry' => 'حُذفت بعد تاريخ الدخولية بفترة (الأكثر أهمية)',
                         'before_entry' => 'حُذفت قبل تاريخ الدخولية (نادر)',
-                        'any'          => 'أي فارق (بالاتجاهين)',
+                        'any' => 'أي فارق (بالاتجاهين)',
                     ])
                     ->default('after_entry'),
             ])
@@ -545,8 +553,8 @@ class CustomActivitylogResource extends ActivitylogResource
 
                 $directionLabel = match ($data['direction'] ?? 'after_entry') {
                     'before_entry' => 'قبل تاريخ الدخولية',
-                    'any'          => 'بالاتجاهين',
-                    default        => 'بعد تاريخ الدخولية',
+                    'any' => 'بالاتجاهين',
+                    default => 'بعد تاريخ الدخولية',
                 };
 
                 return ['deletion_gap' => "فارق الحذف ({$directionLabel}) \u{2265} {$minDays} يوم"];
@@ -558,7 +566,7 @@ class CustomActivitylogResource extends ActivitylogResource
                     return $query;
                 }
 
-                $minDays   = (int) $minDays;
+                $minDays = (int) $minDays;
                 $direction = $data['direction'] ?? 'after_entry';
 
                 static::useSubjectEventIndexHint($query);
@@ -570,8 +578,8 @@ class CustomActivitylogResource extends ActivitylogResource
 
                 return match ($direction) {
                     'before_entry' => $query->whereRaw('DATEDIFF(entry_time_old, created_at) >= ?', [$minDays]),
-                    'any'          => $query->whereRaw('ABS(DATEDIFF(created_at, entry_time_old)) >= ?', [$minDays]),
-                    default        => $query->whereRaw('DATEDIFF(created_at, entry_time_old) >= ?', [$minDays]),
+                    'any' => $query->whereRaw('ABS(DATEDIFF(created_at, entry_time_old)) >= ?', [$minDays]),
+                    default => $query->whereRaw('DATEDIFF(created_at, entry_time_old) >= ?', [$minDays]),
                 };
             });
     }
@@ -601,10 +609,10 @@ class CustomActivitylogResource extends ActivitylogResource
             ->formatStateUsing(fn (?int $state) => $state === null ? '-' : ($state > 0 ? "+{$state}" : (string) $state))
             ->color(fn (?int $state) => match (true) {
                 $state === null => 'gray',
-                $state >= 30    => 'danger',
-                $state >= 1     => 'warning',
-                $state <= -1    => 'info',
-                default         => 'success',
+                $state >= 30 => 'danger',
+                $state >= 1 => 'warning',
+                $state <= -1 => 'info',
+                default => 'success',
             })
             ->badge()
             ->sortable(query: function (Builder $query, string $direction): Builder {
@@ -658,7 +666,7 @@ class CustomActivitylogResource extends ActivitylogResource
     private static function useSubjectEventIndexHint(Builder $query): void
     {
         $model = $query->getModel();
-        $table = DB::connection($model->getConnectionName())->getTablePrefix() . $model->getTable();
+        $table = DB::connection($model->getConnectionName())->getTablePrefix().$model->getTable();
 
         $query->getQuery()->from = DB::raw("`{$table}` USE INDEX (activity_log_subject_type_event_index)");
     }
