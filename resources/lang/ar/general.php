@@ -185,6 +185,8 @@ return [
         'unit' => 'الوحدة',
         'total' => 'الإجمالي',
         'old_total' => 'الإجمالي (قديم)',
+        'donor_mode' => 'وضع المتبرع',
+        'donor_mode_on' => 'وضع المتبرع: مفعل',
         'old_currency_price' => 'السعر (عملة قديمة)',
         'new_currency_price' => 'السعر (عملة جديدة)',
         'provided_services' => 'الخدمات المقدمة',

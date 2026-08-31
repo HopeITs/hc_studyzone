@@ -111,6 +111,11 @@ class AdminPanelProvider extends PanelProvider
             )
 
             ->renderHook(
+                'panels::user-menu.profile.after',
+                fn () => view('filament.components.donor-mode-toggle')
+            )
+
+            ->renderHook(
                 'panels::head.start',
                 fn () => view('filament.components.resource-hints')
             )

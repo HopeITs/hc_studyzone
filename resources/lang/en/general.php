@@ -182,6 +182,8 @@ return [
         'unit' => 'Unit',
         'total' => 'Total',
         'old_total' => 'Old Total',
+        'donor_mode' => 'Donor Mode',
+        'donor_mode_on' => 'Donor Mode: On',
         'old_currency_price' => 'Price (Old Currency)',
         'new_currency_price' => 'Price (New Currency)',
         'provided_services' => 'Provided Services',

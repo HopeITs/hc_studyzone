@@ -1,5 +1,5 @@
 <!-- resources/views/filament/forms/components/total-display.blade.php -->
-<div class="fi-form-field-wrapper">
+<div class="fi-form-field-wrapper donor-hide">
     <div class="p-4 mt-2 bg-gray-100 rounded-lg dark:bg-gray-800">
         <div class="flex items-center justify-between">
             <span class="text-lg font-medium text-gray-700 dark:text-gray-300">

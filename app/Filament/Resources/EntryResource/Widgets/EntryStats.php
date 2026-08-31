@@ -11,6 +11,7 @@ use Filament\Widgets\Concerns\InteractsWithPageTable;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\HtmlString;
 
 class EntryStats extends BaseWidget
 {
@@ -85,10 +86,12 @@ class EntryStats extends BaseWidget
             };
 
             $referenceStatArray[] = Stat::make($label, $entriesCount)
-                ->description(__('general.labels.quantity_total_description', [
-                    'quantity' => $quantity,
-                    'total' => number_format($amount),
-                ]));
+                ->description(new HtmlString(
+                    '<span class="donor-hide">' . e(__('general.labels.quantity_total_description', [
+                        'quantity' => $quantity,
+                        'total' => number_format($amount),
+                    ])) . '</span>'
+                ));
         }
 
         return [
@@ -97,7 +100,8 @@ class EntryStats extends BaseWidget
                      'count' => $this->getPageTableQuery()->distinct('student_id')->count('student_id'),
                  ])),
 
-            Stat::make(__('general.entry-types.' . EntryType::Free()), $this->getPageTableQuery()->where('entry_type', EntryType::Free())->count()),
+            Stat::make(__('general.entry-types.' . EntryType::Free()), $this->getPageTableQuery()->where('entry_type', EntryType::Free())->count())
+                ->extraAttributes(['class' => 'donor-hide']),
             Stat::make(__('general.entry-types.' . EntryType::Daily()), $this->getPageTableQuery()->where('entry_type', EntryType::Daily())->count()),
             Stat::make(__('general.entry-types.' . EntryType::Monthly()), $this->getPageTableQuery()->where('entry_type', EntryType::Monthly())->count()),
             Stat::make(__('general.entry-types.' . EntryType::Course()), $this->getPageTableQuery()->where('entry_type', EntryType::Course())->count()),
