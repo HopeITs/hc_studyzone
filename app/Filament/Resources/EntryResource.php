@@ -228,11 +228,13 @@ class EntryResource extends Resource
                     ->label(__('general.labels.total'))
                     ->formatStateUsing(fn ($record) => $record->total_amount.' SYP')
                     ->color('success')
+                    ->extraAttributes(['class' => 'donor-hide'])
                     ->toggleable(),
                 TextColumn::make('created_at')
                     ->label(__('general.labels.old_total'))
                     ->formatStateUsing(fn ($record) => $record->total_amount * 100 .' SYP')
                     ->color('info')
+                    ->extraAttributes(['class' => 'donor-hide'])
                     ->toggleable(),
 
                 TextColumn::make('entry_time')

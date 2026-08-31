@@ -37,6 +37,9 @@
         .fi-legend {
             @apply px-2 text-sm font-medium text-gray-700;
         }
+        html.donor-mode .donor-hide {
+            display: none !important;
+        }
     </style>
 </head>
 
@@ -45,10 +48,35 @@
     <div class="w-full bg-white border border-gray-200 shadow-lg max-w-7xl rounded-xl">
 
         <!-- Header -->
-        <div class="p-6 border-b border-gray-200 ">
+        <div class="flex items-center justify-between p-6 border-b border-gray-200 ">
             <h2 class="text-xl font-bold text-gray-900 ">
                 تسجيل دخول: {{ $student->firstname }} {{ $student->lastname }}
             </h2>
+            <div
+                x-data="{
+                    donorMode: localStorage.getItem('donorMode') === 'true',
+                    toggle() {
+                        this.donorMode = !this.donorMode;
+                        localStorage.setItem('donorMode', this.donorMode);
+                        document.documentElement.classList.toggle('donor-mode', this.donorMode);
+                    }
+                }"
+                x-init="document.documentElement.classList.toggle('donor-mode', donorMode)"
+            >
+                <button
+                    @click="toggle()"
+                    type="button"
+                    :class="donorMode
+                        ? 'bg-primary-600 text-white border-primary-600 hover:bg-primary-700'
+                        : 'text-gray-700 bg-white border-gray-300 hover:bg-gray-50'"
+                    class="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium border shadow-sm transition-colors"
+                >
+                    <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.243L9.88 9.88" />
+                    </svg>
+                    <span x-text="donorMode ? '{{ __('general.labels.donor_mode_on') }}' : '{{ __('general.labels.donor_mode') }}'"></span>
+                </button>
+            </div>
         </div>
 
         <div class="p-6 space-y-6">
@@ -209,7 +237,7 @@
                                 <input type="hidden" :name="`services[${index}][subtotal]`" :value="service.subtotal">
 
                                 <!-- Subtotal Display per row -->
-                                <div x-show="service.price > 0" x-transition class="flex justify-end pt-3 mt-3 border-t border-gray-200 ">
+                                <div x-show="service.price > 0" x-transition class="flex justify-end pt-3 mt-3 border-t border-gray-200 donor-hide">
                                     <span class="text-sm font-semibold text-gray-700 ">
                                         المجموع: <span class="text-primary-600 " x-text="formatNumber(service.subtotal) + ' ل.س'"></span>
                                     </span>
@@ -225,7 +253,7 @@
 
                         <!-- Grand Total Display -->
                         <div x-show="totalAmount > 0" x-transition
-                             class="p-5 mt-2 border-2 rounded-xl"
+                             class="p-5 mt-2 border-2 rounded-xl donor-hide"
                              style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(59, 130, 246, 0.1) 100%); border-color: rgba(59, 130, 246, 0.3);">
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center gap-3">

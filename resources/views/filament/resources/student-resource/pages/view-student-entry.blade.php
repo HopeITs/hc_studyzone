@@ -34,8 +34,8 @@
                 <th class="px-4 py-3 font-semibold rounded-tr-lg">#</th>
                 <th class="px-4 py-3 font-semibold">الخدمة</th>
                 <th class="px-4 py-3 font-semibold text-center">الكمية</th>
-                <th class="px-4 py-3 font-semibold">سعر الوحدة</th>
-                <th class="px-4 py-3 font-semibold rounded-tl-lg">المجموع</th>
+                <th class="px-4 py-3 font-semibold donor-hide">سعر الوحدة</th>
+                <th class="px-4 py-3 font-semibold rounded-tl-lg donor-hide">المجموع</th>
             </tr>
         </thead>
         <tbody>
@@ -44,8 +44,8 @@
                 <td class="px-4 py-3 text-gray-600">{{ $index + 1 }}</td>
                 <td class="px-4 py-3 font-medium text-gray-900">{{ $service->service->name ?? 'خدمة محذوفة' }}</td>
                 <td class="px-4 py-3 text-center text-gray-700">{{ $service->amount }}</td>
-                <td class="px-4 py-3 text-gray-700">{{ number_format($service->price_at_time) }} ل.س</td>
-                <td class="px-4 py-3 font-semibold text-gray-900">{{ number_format($service->total) }} ل.س</td>
+                <td class="px-4 py-3 text-gray-700 donor-hide">{{ number_format($service->price_at_time) }} ل.س</td>
+                <td class="px-4 py-3 font-semibold text-gray-900 donor-hide">{{ number_format($service->total) }} ل.س</td>
             </tr>
             @endforeach
 
@@ -58,7 +58,7 @@
     </table>
 
     <!-- Grand Total -->
-    <div class="flex justify-start pt-6 border-t-4 border-gray-800 border-double">
+    <div class="flex justify-start pt-6 border-t-4 border-gray-800 border-double donor-hide">
         <div class="w-1/3 p-5 text-white bg-gray-800 rounded-lg shadow-md">
             <div class="flex items-center justify-between">
                 <span class="text-xl font-bold">الإجمالي</span>

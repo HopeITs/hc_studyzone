@@ -24,7 +24,7 @@
         </div>
 
         <!-- Total Amount -->
-        <div class="text-left ">
+        <div class="text-left donor-hide">
             <div class="text-xs text-gray-500 dark:text-gray-400">الإجمالي الكلي</div>
             <div class="flex justify-between gap-x-3">
                 <div class="text-2xl font-bold ">
