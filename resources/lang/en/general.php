@@ -209,6 +209,8 @@ return [
         'females' => 'Females',
         'unknown' => 'Unknown',
         'export_to_excel' => 'Export to Excel',
+        'export_by_month' => 'Export by Month',
+        'export_by_day' => 'Export by Day',
         'total_entries' => 'Total Entries',
         'daily_services' => 'Daily Services',
         'one_time_daily_services' => 'Daily Services (requested once)',

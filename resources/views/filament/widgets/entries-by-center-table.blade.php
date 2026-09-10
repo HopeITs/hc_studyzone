@@ -4,7 +4,10 @@
             <h1 class="font-bold">{{ __('general.labels.entries_per_center') }}</h1>
 
             @if($canExport)
-                <a class="p-2 bg-primary-500 rounded-md dark:text-white font-bold  text-xs" href="{{route('test-export',['from' => $from, 'to'=> $to])}}">{{ __('general.labels.export_to_excel') }}</a>
+                <div class="flex gap-2">
+                    <a class="p-2 bg-primary-500 rounded-md dark:text-white font-bold  text-xs" href="{{route('test-export',['from' => $from, 'to'=> $to])}}">{{ __('general.labels.export_by_month') }}</a>
+                    <a class="p-2 bg-primary-500 rounded-md dark:text-white font-bold  text-xs" href="{{route('entries-by-center-daily-export',['from' => $from, 'to'=> $to])}}">{{ __('general.labels.export_by_day') }}</a>
+                </div>
             @endif
         </div>
         <table class="table-auto w-full text-sm">

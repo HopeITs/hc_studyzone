@@ -212,6 +212,8 @@ return [
         'females' => 'إناث',
         'unknown' => 'غير معروف',
         'export_to_excel' => 'تصدير إلى إكسل',
+        'export_by_month' => 'تصدير حسب الشهر',
+        'export_by_day' => 'تصدير حسب اليوم',
         'total_entries' => 'إجمالي الدخوليات',
         'daily_services' => 'خدمات يومية',
         'one_time_daily_services' => 'خدمات يومية (تُطلب لمرة واحدة)',

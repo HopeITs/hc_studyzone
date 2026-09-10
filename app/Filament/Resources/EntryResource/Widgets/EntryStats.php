@@ -176,3 +176,4 @@ class EntryStats extends BaseWidget
         ];
     }
 }
+

@@ -46,6 +46,16 @@ Route::group(['middleware' => ['auth']], function () {
         );
     })->name('test-export');
 
+    Route::get('/entries-by-center-daily-export/{from}/{to}', function ($from, $to) {
+
+        $startDate = \Carbon\Carbon::parse($from)->startOfDay();
+        $endDate = \Carbon\Carbon::parse($to)->endOfDay();
+        return Excel::download(
+            new \App\Exports\EntriesByCenterDailyExport($startDate, $endDate),
+            'entries-per-day.xlsx'
+        );
+    })->name('entries-by-center-daily-export');
+
     Route::get('/active-days-export/{from}/{to}', function ($from, $to) {
 
         $startDate = \Carbon\Carbon::parse($from)->startOfDay();
