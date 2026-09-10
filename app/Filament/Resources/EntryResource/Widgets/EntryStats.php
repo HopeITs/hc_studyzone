@@ -94,11 +94,24 @@ class EntryStats extends BaseWidget
                 ));
         }
 
+        // Active days: distinct entry_time dates per center, and entries/day averaged across centers
+        $centerStats = $this->getPageTableQuery()
+            ->reorder()
+            ->selectRaw('center_id, COUNT(DISTINCT DATE(entry_time)) as active_days, COUNT(*) as total_entries')
+            ->groupBy('center_id')
+            ->get();
+
+        $centerCount = $centerStats->count();
+        $avgActiveDays = $centerCount > 0 ? $centerStats->avg('active_days') : 0;
+
         return [
             Stat::make(__('general.labels.total_entries'), $this->getPageTableQuery()->count())
                  ->description(__('general.labels.total_students_description', [
                      'count' => $this->getPageTableQuery()->distinct('student_id')->count('student_id'),
                  ])),
+
+            Stat::make(__('general.labels.active_days_per_center'), (int) round($avgActiveDays))
+                ->description(__('general.labels.distributed_over_centers_description', ['count' => $centerCount])),
 
             Stat::make(__('general.entry-types.' . EntryType::Free()), $this->getPageTableQuery()->where('entry_type', EntryType::Free())->count())
                 ->extraAttributes(['class' => 'donor-hide']),

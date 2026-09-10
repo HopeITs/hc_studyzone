@@ -276,6 +276,7 @@ return [
         'count' => 'العدد',
         'student_count' => 'عدد الطلاب',
         'avg_entries_per_active_day' => 'متوسط الدخوليات لكل يوم نشط',
+        'distributed_over_centers_description' => 'موزعة على :count مركز',
         'students_min_visits' => 'طلاب لديهم :count زيارات أو أكثر',
         'daily' => 'يومي',
         'weekly' => 'أسبوعي',
