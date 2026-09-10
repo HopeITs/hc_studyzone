@@ -274,6 +274,7 @@ return [
         'student_count' => 'Student Count',
         'avg_entries_per_active_day' => 'Avg Entries per Active Day',
         'distributed_over_centers_description' => 'Distributed over :count center(s)',
+        'active_days_out_of_total_description' => 'Out of :total days - distributed over :count center(s)',
         'students_min_visits' => 'Students >= :count Visits',
         'daily' => 'Daily',
         'weekly' => 'Weekly',

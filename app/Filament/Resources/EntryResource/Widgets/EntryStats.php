@@ -7,6 +7,7 @@ use App\Filament\Resources\EntryResource\Pages\ListEntries;
 use App\Models\EntryService;
 use App\Models\Service;
 use App\Models\StudentEntry;
+use Carbon\Carbon;
 use Filament\Widgets\Concerns\InteractsWithPageTable;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
@@ -94,9 +95,11 @@ class EntryStats extends BaseWidget
                 ));
         }
 
-        // Active days: distinct entry_time dates per center, and entries/day averaged across centers
+        // Active days: distinct entry_time dates per center, and entries/day averaged across centers.
+        // toBase() skips model hydration/eager loading (irrelevant for aggregate rows).
         $centerStats = $this->getPageTableQuery()
             ->reorder()
+            ->toBase()
             ->selectRaw('center_id, COUNT(DISTINCT DATE(entry_time)) as active_days, COUNT(*) as total_entries')
             ->groupBy('center_id')
             ->get();
@@ -104,52 +107,69 @@ class EntryStats extends BaseWidget
         $centerCount = $centerStats->count();
         $avgActiveDays = $centerCount > 0 ? $centerStats->avg('active_days') : 0;
 
+        $rangeFrom = $this->tableFilters['entry_time']['from'] ?? null;
+        $rangeTo = $this->tableFilters['entry_time']['to'] ?? null;
+        $totalRangeDays = ($rangeFrom && $rangeTo)
+            ? Carbon::parse($rangeFrom)->startOfDay()->diffInDays(Carbon::parse($rangeTo)->startOfDay(), true) + 1
+            : null;
+
+        $activeDaysDescription = $totalRangeDays !== null
+            ? __('general.labels.active_days_out_of_total_description', ['total' => $totalRangeDays, 'count' => $centerCount])
+            : __('general.labels.distributed_over_centers_description', ['count' => $centerCount]);
+
+        // Total + distinct students in one pass instead of two separate counts
+        $totals = $this->getPageTableQuery()
+            ->reorder()
+            ->toBase()
+            ->selectRaw('COUNT(*) as total, COUNT(DISTINCT student_id) as students')
+            ->first();
+
+        // Entry-type breakdown in one grouped query instead of 7 separate counts
+        $entryTypeCounts = $this->getPageTableQuery()
+            ->reorder()
+            ->toBase()
+            ->selectRaw('entry_type, COUNT(*) as total')
+            ->groupBy('entry_type')
+            ->pluck('total', 'entry_type');
+
+        $architectureEducationIds = [65, 176, 242];
+        $dentistryEducationIds = [25, 77, 111, 136, 221, 223, 224, 225, 226, 227, 228];
+
+        $educationCohortQuery = function (array $educationIds) {
+            return $this->getPageTableQuery()
+                ->whereHas('student.studentEducations', function ($q) use ($educationIds) {
+                    $q->whereIn('education_id', $educationIds)
+                        ->where(function ($query) {
+                            $query->where(function ($subQ) {
+                                $subQ->whereColumn('entry_time', '>=', 'start_date')
+                                    ->whereColumn('entry_time', '<=', 'end_date');
+                            })->orWhereNull('end_date');
+                        });
+                })
+                ->count();
+        };
+
         return [
-            Stat::make(__('general.labels.total_entries'), $this->getPageTableQuery()->count())
+            Stat::make(__('general.labels.total_entries'), $totals->total ?? 0)
                  ->description(__('general.labels.total_students_description', [
-                     'count' => $this->getPageTableQuery()->distinct('student_id')->count('student_id'),
+                     'count' => $totals->students ?? 0,
                  ])),
 
             Stat::make(__('general.labels.active_days_per_center'), (int) round($avgActiveDays))
-                ->description(__('general.labels.distributed_over_centers_description', ['count' => $centerCount])),
+                ->description($activeDaysDescription),
 
-            Stat::make(__('general.entry-types.' . EntryType::Free()), $this->getPageTableQuery()->where('entry_type', EntryType::Free())->count())
+            Stat::make(__('general.entry-types.' . EntryType::Free()), (int) ($entryTypeCounts[EntryType::Free()] ?? 0))
                 ->extraAttributes(['class' => 'donor-hide']),
-            Stat::make(__('general.entry-types.' . EntryType::Daily()), $this->getPageTableQuery()->where('entry_type', EntryType::Daily())->count()),
-            Stat::make(__('general.entry-types.' . EntryType::Monthly()), $this->getPageTableQuery()->where('entry_type', EntryType::Monthly())->count()),
-            Stat::make(__('general.entry-types.' . EntryType::Course()), $this->getPageTableQuery()->where('entry_type', EntryType::Course())->count()),
-            Stat::make(__('general.entry-types.' . EntryType::Hall()), $this->getPageTableQuery()->where('entry_type', EntryType::Hall())->count()),
-            Stat::make(__('general.entry-types.' . EntryType::Event()), $this->getPageTableQuery()->where('entry_type', EntryType::Event())->count()),
-            Stat::make(__('general.entry-types.' . EntryType::FGD()), $this->getPageTableQuery()->where('entry_type', EntryType::FGD())->count()),
+            Stat::make(__('general.entry-types.' . EntryType::Daily()), (int) ($entryTypeCounts[EntryType::Daily()] ?? 0)),
+            Stat::make(__('general.entry-types.' . EntryType::Monthly()), (int) ($entryTypeCounts[EntryType::Monthly()] ?? 0)),
+            Stat::make(__('general.entry-types.' . EntryType::Course()), (int) ($entryTypeCounts[EntryType::Course()] ?? 0)),
+            Stat::make(__('general.entry-types.' . EntryType::Hall()), (int) ($entryTypeCounts[EntryType::Hall()] ?? 0)),
+            Stat::make(__('general.entry-types.' . EntryType::Event()), (int) ($entryTypeCounts[EntryType::Event()] ?? 0)),
+            Stat::make(__('general.entry-types.' . EntryType::FGD()), (int) ($entryTypeCounts[EntryType::FGD()] ?? 0)),
 
-            Stat::make(__('general.labels.architecture_student_entries'),
-                $this->getPageTableQuery()
-                    ->whereHas('student.studentEducations', function ($q) {
-                        $q->whereIn('education_id', [65, 176, 242])
-                            ->where(function ($query) {
-                                $query->where(function ($subQ) {
-                                    $subQ->whereColumn('entry_time', '>=', 'start_date')->
-                                     whereColumn('entry_time', '<=', 'end_date');
-                                })->orWhereNull('end_date');
-                            });
+            Stat::make(__('general.labels.architecture_student_entries'), $educationCohortQuery($architectureEducationIds)),
 
-                    })
-                    ->count()
-            ),
-
-            Stat::make(__('general.labels.dentistry_student_entries'),
-                $this->getPageTableQuery()
-                    ->whereHas('student.studentEducations', function ($q) {
-                        $q->whereIn('education_id', [25, 77,111, 136, 221, 223, 224, 225, 226, 227, 228])
-                            ->where(function ($query) {
-                                $query->where(function ($subQ) {
-                                    $subQ->whereColumn('entry_time', '>=', 'start_date')->
-                                     whereColumn('entry_time', '<=', 'end_date');
-                                })->orWhereNull('end_date');
-                            });
-                    })
-                    ->count()
-            ),
+            Stat::make(__('general.labels.dentistry_student_entries'), $educationCohortQuery($dentistryEducationIds)),
 
             // Dynamically generated Stats for all reference columns
             ...$referenceStatArray,
