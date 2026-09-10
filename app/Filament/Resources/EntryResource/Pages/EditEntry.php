@@ -18,6 +18,7 @@ use Filament\Forms\Components\Fieldset;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -107,6 +108,17 @@ class EditEntry extends EditRecord
                             })
                             ->required()
                             ->columnSpan(1),
+
+                        Radio::make('purpose')
+                            ->label(__('general.labels.purpose'))
+                            ->options([
+                                \App\Enums\EntryPurpose::Studying() => __('general.purposes.'.\App\Enums\EntryPurpose::Studying()),
+                                \App\Enums\EntryPurpose::Working() => __('general.purposes.'.\App\Enums\EntryPurpose::Working()),
+                            ])
+                            ->default(\App\Enums\EntryPurpose::Studying())
+                            ->inline()
+                            ->required()
+                            ->columnSpanFull(),
                     ])
                     ->columns(3),
 
@@ -132,6 +144,7 @@ class EditEntry extends EditRecord
         $record->update([
             'center_id' => $centerId,
             'entry_type' => $data['entry_type'],
+            'purpose' => $data['purpose'],
             'entry_time' => $data['entry_time'],
         ]);
 

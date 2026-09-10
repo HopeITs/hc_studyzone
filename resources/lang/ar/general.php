@@ -3,6 +3,7 @@
 use App\Enums\EduDegree;
 use App\Enums\EduLevel;
 use App\Enums\EduType;
+use App\Enums\EntryPurpose;
 use App\Enums\EntryType;
 use App\Enums\Gender;
 use App\Enums\Religion;
@@ -58,6 +59,11 @@ return [
         EntryType::Event() => 'فعالية',
         EntryType::FGD() => 'جلسات نقاش مركزة - FGD',
     ],
+    'purposes' => [
+        EntryPurpose::Unknown() => 'غير معروف',
+        EntryPurpose::Studying() => 'دراسة',
+        EntryPurpose::Working() => 'عمل',
+    ],
     'genders' => [
         Gender::Unknown() => 'غير معرف',
         Gender::Male() => 'ذكر',
@@ -103,6 +109,7 @@ return [
         'qr_code_modal_heading' => 'تفاصيل رمز الاستجابة السريعة للطالب',
         'entry' => 'تسجيل الدخول',
         'entry_type' => 'نوع الدخول',
+        'purpose' => 'الغرض',
         'entry_time' => 'يوم الدخول',
         'record_student_entry' => 'تسجيل دخول الطالب',
         'save_entry' => 'حفظ الدخول',

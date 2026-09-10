@@ -3,6 +3,7 @@
 use App\Enums\EduDegree;
 use App\Enums\EduLevel;
 use App\Enums\EduType;
+use App\Enums\EntryPurpose;
 use App\Enums\EntryType;
 use App\Enums\Gender;
 use App\Enums\Religion;
@@ -58,6 +59,11 @@ return [
         EntryType::Event() => 'Event',
         EntryType::FGD() => 'Focus Group Discussion - FGD',
     ],
+    'purposes' => [
+        EntryPurpose::Unknown() => 'Unknown',
+        EntryPurpose::Studying() => 'Studying',
+        EntryPurpose::Working() => 'Working',
+    ],
     'genders' => [
         Gender::Unknown() => 'Unknown',
         Gender::Male() => 'Male',
@@ -103,6 +109,7 @@ return [
         'qr_code_modal_heading' => 'Student QR Code Details',
         'entry' => 'Entry',
         'entry_type' => 'Entry Type',
+        'purpose' => 'Purpose',
         'entry_time' => 'Entry Day',
         'record_student_entry' => 'Record Student Entry',
         'save_entry' => 'Save Entry',

@@ -18,6 +18,7 @@ use Filament\Forms\Components\Fieldset;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -68,6 +69,7 @@ class CreateStudentEntry extends Page
             $this->form->fill([
                 'center_id' => auth()->user()->center_id,
                 'entry_type' => 1,
+                'purpose' => \App\Enums\EntryPurpose::Studying(),
                 'entry_time' => now(),
                 'services' => [],
                 'day_services' => [],
@@ -100,6 +102,7 @@ class CreateStudentEntry extends Page
         $this->form->fill([
             'center_id' => $entry->center_id,
             'entry_type' => $entry->entry_type,
+            'purpose' => $entry->purpose,
             'entry_time' => $entry->entry_time,
             'services' => $regularServices,
             'day_services' => $dayServiceIds,
@@ -165,8 +168,20 @@ class CreateStudentEntry extends Page
                             })
                             ->required()
                             ->columnSpan(1),
+
+                        Radio::make('purpose')
+                            ->label(__('general.labels.purpose'))
+                            ->options([
+                                \App\Enums\EntryPurpose::Studying() => __('general.purposes.'.\App\Enums\EntryPurpose::Studying()),
+                                \App\Enums\EntryPurpose::Working() => __('general.purposes.'.\App\Enums\EntryPurpose::Working()),
+                                \App\Enums\EntryPurpose::Unknown() => __('general.purposes.'.\App\Enums\EntryPurpose::Unknown()),
+                            ])
+                            ->default(\App\Enums\EntryPurpose::Studying())
+                            ->inline()
+                            ->required()
+                            ->columnSpan(1),
                     ])
-                    ->columns(3),
+                    ->columns(4),
 
                 // ═══════════════════════════════════════════════════════
                 // Services Fieldset
@@ -511,6 +526,7 @@ class CreateStudentEntry extends Page
             $this->entryInstance->update([
                 'center_id' => $centerId,
                 'entry_type' => $data['entry_type'],
+                'purpose' => $data['purpose'],
                 'entry_time' => $data['entry_time'],
             ]);
 
@@ -524,6 +540,7 @@ class CreateStudentEntry extends Page
                 'user_id' => Auth::id(),
                 'center_id' => $centerId,
                 'entry_type' => $data['entry_type'],
+                'purpose' => $data['purpose'],
                 'entry_time' => $data['entry_time'],
             ]);
         }
