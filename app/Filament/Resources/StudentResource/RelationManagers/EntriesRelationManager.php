@@ -160,6 +160,16 @@ class EntriesRelationManager extends RelationManager
                     ->label(__('general.labels.type'))
                     ->formatStateUsing(fn ($state) => __('general.entry-types.'.$state))
                     ->sortable(),
+                TextColumn::make('purpose')
+                    ->label(__('general.labels.purpose'))
+                    ->badge()
+                    ->formatStateUsing(fn ($state) => __('general.purposes.'.$state))
+                    ->color(fn (int $state): string => match ($state) {
+                        \App\Enums\EntryPurpose::Unknown() => 'warning',
+                        \App\Enums\EntryPurpose::Studying() => 'info',
+                        \App\Enums\EntryPurpose::Working() => 'success',
+                    })
+                    ->sortable(),
                 TextColumn::make('center.name')->label(__('general.labels.center'))->sortable(),
                 TextColumn::make('entry_time')->label(__('general.labels.date'))->dateTime('Y-m-d H:i')->sortable(),
                 CheckboxColumn::make('use_internet')

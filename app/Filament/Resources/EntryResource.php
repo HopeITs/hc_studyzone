@@ -170,6 +170,18 @@ class EntryResource extends Resource
                     ->sortable()
                     ->formatStateUsing(fn ($state) => __('general.entry-types.'.$state)),
 
+                TextColumn::make('purpose')
+                    ->label(__('general.labels.purpose'))
+                    ->sortable()
+                    ->badge()
+                    ->formatStateUsing(fn ($state) => __('general.purposes.'.$state))
+                    ->color(fn (int $state): string => match ($state) {
+                        \App\Enums\EntryPurpose::Unknown() => 'warning',
+                        \App\Enums\EntryPurpose::Studying() => 'info',
+                        \App\Enums\EntryPurpose::Working() => 'success',
+                    })
+                    ->toggleable(),
+
                 CheckboxColumn::make('use_internet')
                     ->label(__('general.labels.internet-service'))
                     ->disabled(fn ($record) => ! \App\Helpers\ServiceHelper::centerHasInternetService($record->center_id) || LockedMonth::isLocked($record->entry_time))
@@ -281,6 +293,13 @@ class EntryResource extends Resource
                     ->label(__('general.labels.entry_type'))
                     ->options(__('general.entry-types'))
                     ->searchable()
+                    ->multiple()
+                    ->preload()
+                    ->columnSpan(1),
+
+                SelectFilter::make('purpose')
+                    ->label(__('general.labels.purpose'))
+                    ->options(__('general.purposes'))
                     ->multiple()
                     ->preload()
                     ->columnSpan(1),
