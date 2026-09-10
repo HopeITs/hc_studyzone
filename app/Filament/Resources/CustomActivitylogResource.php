@@ -47,7 +47,7 @@ class CustomActivitylogResource extends ActivitylogResource
      */
     public static function canAccess(): bool
     {
-        return auth()->user()->role === Roles::GeneralAdmin();
+        return in_array(auth()->user()->role, [Roles::GeneralAdmin(), Roles::Observer()], true);
     }
 
     public static function table(Table $table): Table

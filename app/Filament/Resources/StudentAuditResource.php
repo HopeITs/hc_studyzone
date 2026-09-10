@@ -49,7 +49,7 @@ class StudentAuditResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->user()->role === Roles::GeneralAdmin();
+        return in_array(auth()->user()->role, [Roles::GeneralAdmin(), Roles::Observer()], true);
     }
 
     public static function table(Table $table): Table
