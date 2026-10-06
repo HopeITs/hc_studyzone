@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Traits\ActivityLog;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -38,17 +40,17 @@ class Center extends Model
     }
 
 
-    public function city(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function city(): BelongsTo
     {
         return $this->belongsTo(City::class);
     }
 
-    public function entries(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function entries(): HasMany
     {
         return $this->hasMany(StudentEntry::class);
     }
 
-    public function users(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function users(): HasMany
     {
         return $this->hasMany(User::class);
     }

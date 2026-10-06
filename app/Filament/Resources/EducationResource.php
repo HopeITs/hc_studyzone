@@ -2,23 +2,29 @@
 
 namespace App\Filament\Resources;
 
+use LaraZeus\SpatieTranslatable\Resources\Concerns\Translatable;
+use Filament\Schemas\Schema;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Select;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Actions\ViewAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use App\Filament\Resources\EducationResource\Pages\ListEducation;
 use App\Enums\Roles;
 use App\Filament\Resources\EducationResource\Pages;
 use App\Filament\Resources\EducationResource\RelationManagers;
 use App\Models\Education;
 use Filament\Forms;
-use Filament\Forms\Form;
-use Filament\Resources\Concerns\Translatable;
 use Filament\Resources\Resource;
 use Filament\Tables;
-use Filament\Tables\Actions\DeleteAction;
-use Filament\Tables\Actions\EditAction;
-use Filament\Tables\Actions\ViewAction;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Mvenghaus\FilamentPluginTranslatableInline\Forms\Components\TranslatableContainer;
+use App\Filament\Forms\Components\TranslatableFields;
 
 class EducationResource extends Resource
 {
@@ -26,7 +32,7 @@ class EducationResource extends Resource
 
     protected static ?string $model = Education::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-academic-cap';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-academic-cap';
     protected static ?int $navigationSort = 5;
 
     public static function getNavigationLabel(): string
@@ -54,18 +60,18 @@ class EducationResource extends Resource
         return auth()->user()->role === Roles::GeneralAdmin() || auth()->user()->role === Roles::Observer();
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form->schema([TranslatableContainer::make(Forms\Components\TextInput::make('name')->required()), Forms\Components\Select::make('degree')->options(__('general.edu-degrees'))->required()]);
+        return $schema->components([TranslatableFields::make(TextInput::make('name')->required()), Select::make('degree')->options(__('general.edu-degrees'))->required()]);
     }
 
     public static function table(Table $table): Table
     {
         return $table
-            ->columns([Tables\Columns\TextColumn::make('name')->sortable()->searchable(), Tables\Columns\TextColumn::make('degree')->formatStateUsing(fn($state): string => __('general.edu-degrees.' . (is_string($state) ? $state : $state->value)))->sortable()])
+            ->columns([TextColumn::make('name')->sortable()->searchable(), TextColumn::make('degree')->formatStateUsing(fn($state): string => __('general.edu-degrees.' . (is_string($state) ? $state : $state->value)))->sortable()])
             ->filters([SelectFilter::make('degree')->label(__('general.labels.filter_by_degree'))->options(__('general.edu-degrees'))->searchable()])
-            ->actions([ViewAction::make(), EditAction::make()->hidden(fn() => auth()->user()->role === Roles::Observer()), DeleteAction::make()->hidden(fn() => auth()->user()->role === Roles::Observer())])
-            ->bulkActions([Tables\Actions\BulkActionGroup::make([Tables\Actions\DeleteBulkAction::make()->hidden(fn() => auth()->user()->role === Roles::Observer())])->hidden(fn() => auth()->user()->role === Roles::Observer())]);
+            ->recordActions([ViewAction::make(), EditAction::make()->hidden(fn() => auth()->user()->role === Roles::Observer()), DeleteAction::make()->hidden(fn() => auth()->user()->role === Roles::Observer())])
+            ->toolbarActions([BulkActionGroup::make([DeleteBulkAction::make()->hidden(fn() => auth()->user()->role === Roles::Observer())])->hidden(fn() => auth()->user()->role === Roles::Observer())]);
     }
 
     public static function getRelations(): array
@@ -76,7 +82,7 @@ class EducationResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListEducation::route('/'),
+            'index' => ListEducation::route('/'),
         ];
     }
 }

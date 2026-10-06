@@ -7,7 +7,7 @@ use Filament\Widgets\ChartWidget;
 
 class StudentCountOverTime extends ChartWidget
 {
-    protected static ?string $heading = null;
+    protected ?string $heading = null;
 
     public function getHeading(): string
     {

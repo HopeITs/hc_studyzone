@@ -2,6 +2,12 @@
 
 namespace App\Filament\Resources\StudentResource\Pages;
 
+use App\Enums\EntryPurpose;
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Fieldset;
+use Carbon\Carbon;
+use Filament\Schemas\Components\Grid;
+use Filament\Actions\Action;
 use App\Enums\Roles;
 use App\Filament\Resources\StudentResource;
 use App\Models\Center;
@@ -11,18 +17,14 @@ use App\Models\Service;
 use App\Models\ServiceCategory;
 use App\Models\ServicePrice;
 use App\Models\StudentEntry;
-use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\DateTimePicker;
-use Filament\Forms\Components\Fieldset;
-use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Concerns\InteractsWithRecord;
 use Filament\Resources\Pages\Page;
@@ -35,7 +37,7 @@ class CreateStudentEntry extends Page
 
     protected static string $resource = StudentResource::class;
 
-    protected static string $view = 'filament.resources.student-resource.pages.create-student-entry';
+    protected string $view = 'filament.resources.student-resource.pages.create-student-entry';
 
     public ?array $data = [];
 
@@ -69,7 +71,7 @@ class CreateStudentEntry extends Page
             $this->form->fill([
                 'center_id' => auth()->user()->center_id,
                 'entry_type' => 1,
-                'purpose' => \App\Enums\EntryPurpose::Studying(),
+                'purpose' => EntryPurpose::Studying(),
                 'entry_time' => now(),
                 'services' => [],
                 'day_services' => [],
@@ -109,10 +111,10 @@ class CreateStudentEntry extends Page
         ]);
     }
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 // ═══════════════════════════════════════════════════════
                 // Entry Details Fieldset
                 // ═══════════════════════════════════════════════════════
@@ -156,7 +158,7 @@ class CreateStudentEntry extends Page
                             ->maxDate(now()->endOfDay())
                             ->live()
                             ->afterStateUpdated(function ($state) {
-                                if (! $state || \Carbon\Carbon::parse($state)->isToday()) {
+                                if (! $state || Carbon::parse($state)->isToday()) {
                                     return;
                                 }
 
@@ -172,11 +174,11 @@ class CreateStudentEntry extends Page
                         Radio::make('purpose')
                             ->label(__('general.labels.purpose'))
                             ->options([
-                                \App\Enums\EntryPurpose::Studying() => __('general.purposes.'.\App\Enums\EntryPurpose::Studying()),
-                                \App\Enums\EntryPurpose::Working() => __('general.purposes.'.\App\Enums\EntryPurpose::Working()),
-                                \App\Enums\EntryPurpose::Unknown() => __('general.purposes.'.\App\Enums\EntryPurpose::Unknown()),
+                                EntryPurpose::Studying() => __('general.purposes.'.EntryPurpose::Studying()),
+                                EntryPurpose::Working() => __('general.purposes.'.EntryPurpose::Working()),
+                                EntryPurpose::Unknown() => __('general.purposes.'.EntryPurpose::Unknown()),
                             ])
-                            ->default(\App\Enums\EntryPurpose::Studying())
+                            ->default(EntryPurpose::Studying())
                             ->inline()
                             ->required()
                             ->columnSpan(1),

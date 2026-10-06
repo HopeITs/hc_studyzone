@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\UserResource\Pages;
 
+use Illuminate\Database\Eloquent\Builder;
+use Filament\Actions\CreateAction;
 use App\Filament\Resources\UserResource;
 use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
@@ -10,7 +12,7 @@ use Illuminate\Support\Facades\Auth;
 class ListUsers extends ListRecords
 {
     protected static string $resource = UserResource::class;
-    protected function getTableQuery(): ?\Illuminate\Database\Eloquent\Builder
+    protected function getTableQuery(): ?Builder
     {
         $query = parent::getTableQuery();
         $user = Auth::user();
@@ -25,7 +27,7 @@ class ListUsers extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make(),
+            CreateAction::make(),
         ];
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Carbon\Carbon;
 use App\Helpers\ServiceHelper;
 use App\Models\Center;
 use App\Models\EntryService;
@@ -41,7 +42,7 @@ class StudentEntryController extends Controller
             'services.*.subtotal' => 'nullable|numeric',
         ]);
 
-        if (\Carbon\Carbon::parse($data['entry_time'])->isAfter(today()->endOfDay())) {
+        if (Carbon::parse($data['entry_time'])->isAfter(today()->endOfDay())) {
             throw ValidationException::withMessages([
                 'entry_time' => __('general.messages.future_entry_date_body'),
             ]);

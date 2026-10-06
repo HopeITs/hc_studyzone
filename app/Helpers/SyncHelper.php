@@ -2,6 +2,7 @@
 
 namespace App\Helpers;
 
+use Throwable;
 use DateTime;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
@@ -47,7 +48,7 @@ class SyncHelper
             $syncedLocal = self::syncLocalToOnline();
             Log::info("✅ Local to online sync completed. Records synced: $syncedLocal");
 
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::error("❌ Sync error: " . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
         }
     }
@@ -108,7 +109,7 @@ class SyncHelper
                             $syncedCount++;
                             DB::commit();
 
-                        } catch (\Throwable $e) {
+                        } catch (Throwable $e) {
                             DB::rollBack();
                             Log::error("❌ Failed syncing [{$modelClass}] Activity ID {$activity->id}: {$e->getMessage()}");
 
@@ -170,7 +171,7 @@ class SyncHelper
                             $activity->update(['synced_at' => now()]);
                             DB::commit();
                             $syncedCount++;
-                        } catch (\Throwable $e) {
+                        } catch (Throwable $e) {
                             DB::rollBack();
                             $errorMessage = $e->getMessage();
                             Log::error("❌ Failed to sync local [{$modelClass}] ID {$activity->id}: " . $errorMessage);
@@ -238,7 +239,7 @@ class SyncHelper
     {
         try {
             return Http::timeout(3)->get('http://example.com')->successful();
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::warning("🌐 Internet check failed: " . $e->getMessage());
             return false;
         }

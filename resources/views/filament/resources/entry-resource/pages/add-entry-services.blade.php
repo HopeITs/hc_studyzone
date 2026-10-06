@@ -9,14 +9,9 @@
 
 
     </div>
-    <x-filament-panels::form wire:submit="saveServices">
+    <form wire:submit="saveServices">
         {{ $this->form }}
-
-        <x-filament-panels::form.actions
-            :actions="$this->getCachedHeaderActions()"
-            :full-width="false"
-        />
-    </x-filament-panels::form>
+    </form>
 
         <div class="flex gap-2">
         <!-- Find your submit button and change it to: -->

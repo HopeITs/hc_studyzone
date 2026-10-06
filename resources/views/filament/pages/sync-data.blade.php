@@ -1,7 +1,7 @@
 @php
 use App\Enums\Roles;
 @endphp
-<x-filament::page>
+<x-filament-panels::page>
     <div class="text-center p-6 pb-3">
         <x-filament::button wire:click="syncData" wire:loading.attr="disabled">
             Sync Data between local and online
@@ -21,4 +21,4 @@ use App\Enums\Roles;
         </p>
 
     </div>
-</x-filament::page>
+</x-filament-panels::page>

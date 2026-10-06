@@ -2,6 +2,10 @@
 
 namespace App\Filament\Resources\EntryResource\Pages;
 
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Fieldset;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteAction;
 use App\Enums\Roles;
 use App\Filament\Resources\EntryResource;
 use App\Models\Center;
@@ -10,27 +14,23 @@ use App\Models\ServiceCategory;
 use App\Models\ServicePrice;
 use Filament\Actions;
 use Filament\Resources\Pages\ViewRecord;
-use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\DateTimePicker;
-use Filament\Forms\Components\Fieldset;
-use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Form;
 use Illuminate\Support\Facades\Auth;
 
 class ViewEntry extends ViewRecord
 {
     protected static string $resource = EntryResource::class;
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 // ═══════════════════════════════════════════════════════
                 // Entry Details Fieldset
                 // ═══════════════════════════════════════════════════════
@@ -166,8 +166,8 @@ class ViewEntry extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\EditAction::make(),
-            Actions\DeleteAction::make(),
+            EditAction::make(),
+            DeleteAction::make(),
         ];
     }
 }

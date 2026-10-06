@@ -2,6 +2,12 @@
 
 namespace App\Filament\Resources\EntryResource\Pages;
 
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Fieldset;
+use Carbon\Carbon;
+use App\Enums\EntryPurpose;
+use Illuminate\Database\Eloquent\Model;
+use Filament\Actions\DeleteAction;
 use App\Enums\Roles;
 use App\Filament\Resources\EntryResource;
 use App\Models\Center;
@@ -11,18 +17,14 @@ use App\Models\ServiceCategory;
 use App\Models\ServicePrice;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
-use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\DateTimePicker;
-use Filament\Forms\Components\Fieldset;
-use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\On;
@@ -53,10 +55,10 @@ class EditEntry extends EditRecord
         }
     }
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 // ═══════════════════════════════════════════════════════
                 // Entry Details Fieldset
                 // ═══════════════════════════════════════════════════════
@@ -96,7 +98,7 @@ class EditEntry extends EditRecord
                             ->maxDate(now()->endOfDay())
                             ->live()
                             ->afterStateUpdated(function ($state) {
-                                if (! $state || \Carbon\Carbon::parse($state)->isToday()) {
+                                if (! $state || Carbon::parse($state)->isToday()) {
                                     return;
                                 }
 
@@ -112,10 +114,10 @@ class EditEntry extends EditRecord
                         Radio::make('purpose')
                             ->label(__('general.labels.purpose'))
                             ->options([
-                                \App\Enums\EntryPurpose::Studying() => __('general.purposes.'.\App\Enums\EntryPurpose::Studying()),
-                                \App\Enums\EntryPurpose::Working() => __('general.purposes.'.\App\Enums\EntryPurpose::Working()),
+                                EntryPurpose::Studying() => __('general.purposes.'.EntryPurpose::Studying()),
+                                EntryPurpose::Working() => __('general.purposes.'.EntryPurpose::Working()),
                             ])
-                            ->default(\App\Enums\EntryPurpose::Studying())
+                            ->default(EntryPurpose::Studying())
                             ->inline()
                             ->required()
                             ->columnSpanFull(),
@@ -137,7 +139,7 @@ class EditEntry extends EditRecord
     }
 
     // التعامل مع عملية الحفظ في قاعدة البيانات
-    protected function handleRecordUpdate(\Illuminate\Database\Eloquent\Model $record, array $data): \Illuminate\Database\Eloquent\Model
+    protected function handleRecordUpdate(Model $record, array $data): Model
     {
         $centerId = $data['center_id'] ?? auth()->user()->center_id;
 
@@ -159,7 +161,7 @@ class EditEntry extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make(),
+            DeleteAction::make(),
         ];
     }
 

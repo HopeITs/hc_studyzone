@@ -12,7 +12,7 @@ class HourlyAverageChart extends ChartWidget
 {
     use InteractsWithPageFilters;
 
-    protected static ?string $heading = null;
+    protected ?string $heading = null;
     protected static ?int $sort = 4;
 
     public function getHeading(): string
@@ -27,16 +27,16 @@ class HourlyAverageChart extends ChartWidget
 
     protected function getData(): array
     {
-        $startDate = !is_null($this->filters['startDate'] ?? null)
-            ? Carbon::parse($this->filters['startDate'])->startOfDay()
+        $startDate = !is_null($this->pageFilters['startDate'] ?? null)
+            ? Carbon::parse($this->pageFilters['startDate'])->startOfDay()
             : now()->startOfYear()->startOfDay();
 
-        $endDate = !is_null($this->filters['endDate'] ?? null)
-            ? Carbon::parse($this->filters['endDate'])->endOfDay()
+        $endDate = !is_null($this->pageFilters['endDate'] ?? null)
+            ? Carbon::parse($this->pageFilters['endDate'])->endOfDay()
             : now()->endOfMonth()->endOfDay();
 
-        $centerIds = $this->filters['center'] ?? null;
-        $cityIds = $this->filters['city'] ?? null;
+        $centerIds = $this->pageFilters['center'] ?? null;
+        $cityIds = $this->pageFilters['city'] ?? null;
 
         // Count only the number of distinct days that had entries
         $activeDays = StudentEntry::query()

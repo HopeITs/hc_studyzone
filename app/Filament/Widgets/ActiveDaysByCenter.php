@@ -7,7 +7,6 @@ use App\Models\Center;
 use App\Models\StudentEntry;
 use Carbon\Carbon;
 use Filament\Actions\Action;
-use Filament\Tables\Actions\ExportAction;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Filament\Widgets\Widget;
 use Maatwebsite\Excel\Facades\Excel;
@@ -16,7 +15,7 @@ class ActiveDaysByCenter extends Widget
 {
     use InteractsWithPageFilters;
 
-    protected static string $view = 'filament.widgets.active-days-by-center';
+    protected string $view = 'filament.widgets.active-days-by-center';
 
     protected static ?string $heading = null;
     protected int|string|array $columnSpan = 'full';
@@ -31,16 +30,16 @@ class ActiveDaysByCenter extends Widget
 
     public function getViewData(): array
     {
-        $startDate = !is_null($this->filters['startDate'] ?? null)
-            ? Carbon::parse($this->filters['startDate'])->startOfDay()
+        $startDate = !is_null($this->pageFilters['startDate'] ?? null)
+            ? Carbon::parse($this->pageFilters['startDate'])->startOfDay()
             : now()->startOfYear()->startOfDay();
 
-        $endDate = !is_null($this->filters['endDate'] ?? null)
-            ? Carbon::parse($this->filters['endDate'])->endOfDay()
+        $endDate = !is_null($this->pageFilters['endDate'] ?? null)
+            ? Carbon::parse($this->pageFilters['endDate'])->endOfDay()
             : now()->endOfMonth()->endOfDay();
 
-        $cityIds = $this->filters['city'] ?? null;
-        $centerIds = $this->filters['center'] ?? null;
+        $cityIds = $this->pageFilters['city'] ?? null;
+        $centerIds = $this->pageFilters['center'] ?? null;
         // base query for centers
         $centers = Center::query()
             ->where('is_active', true)

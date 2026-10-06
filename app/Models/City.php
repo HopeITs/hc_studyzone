@@ -16,7 +16,7 @@ class City extends Model
     protected $translatable = ['name'];
     protected $guarded = ['id'];
 
-    public function centers(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function centers(): HasMany
     {
         return $this->hasMany(Center::class);
     }

@@ -11,7 +11,7 @@ trait ActivityLog
    /**
      * Get the default options for the activity log.
      *
-     * @return \Spatie\Activitylog\LogOptions
+     * @return LogOptions
      */
     public function getActivitylogOptions(): LogOptions
     {

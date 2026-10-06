@@ -11,9 +11,9 @@ class EntryGenderChart extends ChartWidget
 {
     use InteractsWithPageFilters;
 
-    protected static ?string $heading = null;
+    protected ?string $heading = null;
     protected static ?int $sort = 6;
-    protected static ?string $maxHeight = '300px';
+    protected ?string $maxHeight = '300px';
 
     public function getHeading(): string
     {
@@ -22,16 +22,16 @@ class EntryGenderChart extends ChartWidget
 
     protected function getData(): array
     {
-        $startDate = !is_null($this->filters['startDate'] ?? null)
-            ? Carbon::parse($this->filters['startDate'])->startOfDay()
+        $startDate = !is_null($this->pageFilters['startDate'] ?? null)
+            ? Carbon::parse($this->pageFilters['startDate'])->startOfDay()
             : now()->startOfYear();
 
-        $endDate = !is_null($this->filters['endDate'] ?? null)
-            ? Carbon::parse($this->filters['endDate'])->endOfDay()
+        $endDate = !is_null($this->pageFilters['endDate'] ?? null)
+            ? Carbon::parse($this->pageFilters['endDate'])->endOfDay()
             : now()->endOfMonth();
 
-        $cityId = $this->filters['city'] ?? null;
-        $centerId = $this->filters['center'] ?? null;
+        $cityId = $this->pageFilters['city'] ?? null;
+        $centerId = $this->pageFilters['center'] ?? null;
 
         $query = StudentEntry::query()
             ->selectRaw('COALESCE(hcsz_students.gender, 0) as gender, COUNT(*) as total')

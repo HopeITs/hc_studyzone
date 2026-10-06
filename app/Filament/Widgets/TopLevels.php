@@ -2,10 +2,10 @@
 
 namespace App\Filament\Widgets;
 
+use Filament\Actions\Action;
 use App\Enums\Gender;
 use App\Models\StudentEducation;
 use Carbon\Carbon;
-use Filament\Tables\Actions\Action;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
@@ -48,18 +48,18 @@ class TopLevels extends BaseTableWidget
                     ->icon('heroicon-o-document-arrow-down')
                     ->action(function () {
                         return Excel::download(new TopLevelsExport(
-                            $this->filters
+                            $this->pageFilters
                         ), 'top_levels.xlsx');
                     }),
             ]);
     }
 
-protected function getQuery(): \Illuminate\Database\Eloquent\Builder
+protected function getQuery(): Builder
 {
-    $startDate = $this->filters['startDate'] ?? now()->startOfYear()->toDateTimeString();
-    $endDate = $this->filters['endDate'] ?? now()->toDateTimeString();
-    $cityIds = isset($this->filters['city']) ? implode(',', (array)$this->filters['city']) : null;
-    $centerIds = isset($this->filters['center']) ? implode(',', (array)$this->filters['center']) : null;
+    $startDate = $this->pageFilters['startDate'] ?? now()->startOfYear()->toDateTimeString();
+    $endDate = $this->pageFilters['endDate'] ?? now()->toDateTimeString();
+    $cityIds = isset($this->pageFilters['city']) ? implode(',', (array)$this->pageFilters['city']) : null;
+    $centerIds = isset($this->pageFilters['center']) ? implode(',', (array)$this->pageFilters['center']) : null;
 
     $cityCondition = $cityIds ? "AND s.street_id IN (SELECT id FROM hcsz_streets WHERE city_id IN ($cityIds))" : "";
     $centerCondition = $centerIds ? "AND sen.center_id IN ($centerIds)" : "";
@@ -85,7 +85,7 @@ protected function getQuery(): \Illuminate\Database\Eloquent\Builder
         GROUP BY sed.level
     ";
 
-    return \App\Models\StudentEducation::query()
+    return StudentEducation::query()
         ->fromRaw("($rawSql) as level_stats")
         ->select(['id', 'level', 'total', 'males', 'females', 'unknown'])
         ->reorder() 

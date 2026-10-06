@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use App\Models\Center;
 use App\Models\StudentEntry;
 use Carbon\Carbon;
 use Filament\Widgets\ChartWidget;
@@ -12,7 +13,7 @@ class ActiveCenterEntriesChart extends ChartWidget
 {
     use InteractsWithPageFilters;
 
-    protected static ?string $heading = null;
+    protected ?string $heading = null;
     protected int|string|array $columnSpan = 'full';
     protected static ?int $sort = 4;
 
@@ -28,11 +29,11 @@ class ActiveCenterEntriesChart extends ChartWidget
 
     protected function getData(): array
     {
-        $startDate = $this->filters['startDate'] ?? now()->startOfMonth();
-        $endDate = $this->filters['endDate'] ?? now()->endOfMonth();
+        $startDate = $this->pageFilters['startDate'] ?? now()->startOfMonth();
+        $endDate = $this->pageFilters['endDate'] ?? now()->endOfMonth();
 
-        $centerIds = $this->filters['center'] ?? null;
-        $cityIds = $this->filters['city'] ?? null;
+        $centerIds = $this->pageFilters['center'] ?? null;
+        $cityIds = $this->pageFilters['city'] ?? null;
 
         // Get the center IDs with their total entries in the period
         $entries = StudentEntry::query()
@@ -49,7 +50,7 @@ class ActiveCenterEntriesChart extends ChartWidget
             ->get();
 
         // Load centers in one go (prevents N+1)
-        $centers = \App\Models\Center::whereIn('id', $entries->pluck('center_id')->toArray())->get();
+        $centers = Center::whereIn('id', $entries->pluck('center_id')->toArray())->get();
 
         $results = $entries->map(function ($entry) use ($centers) {
             $center = $centers->where('id', $entry->center_id)->first();

@@ -2,6 +2,14 @@
 
 namespace App\Filament\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Actions\ViewAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use App\Filament\Resources\UserResource\Pages\ListUsers;
+use App\Filament\Resources\UserResource\Pages\CreateUser;
+use App\Filament\Resources\UserResource\Pages\EditUser;
 use App\Enums\Roles;
 use App\Filament\Resources\UserResource\Pages;
 use App\Models\Center;
@@ -10,11 +18,8 @@ use Filament\Forms;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
-use Filament\Forms\Components\Wizard;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
-use Filament\Tables\Actions\ViewAction;
 use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\CheckboxColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -24,13 +29,12 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Database\Eloquent\Builder;
-use Spatie\Permission\Models\Role;
 
 class UserResource extends Resource
 {
     protected static ?string $model = User::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-user';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-user';
     protected static ?int $navigationSort = 7;
 
     public static function getNavigationLabel(): string
@@ -63,9 +67,9 @@ class UserResource extends Resource
     }
 
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form->schema([
+        return $schema->components([
             TextInput::make('name')
                 ->label(__('general.labels.name'))
                 ->required(),
@@ -165,13 +169,13 @@ class UserResource extends Resource
                         false => __('general.labels.inactive'),
                     ]),
             ])
-            ->actions([
+            ->recordActions([
                 ViewAction::make(),
-                Tables\Actions\EditAction::make()->hidden(fn() => auth()->user()->role === Roles::Observer()),
+                EditAction::make()->hidden(fn() => auth()->user()->role === Roles::Observer()),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make()->hidden(fn() => auth()->user()->role === Roles::Observer()),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make()->hidden(fn() => auth()->user()->role === Roles::Observer()),
                 ])->hidden(fn() => auth()->user()->role === Roles::Observer()),
             ]);
     }
@@ -186,9 +190,9 @@ class UserResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListUsers::route('/'),
-            'create' => Pages\CreateUser::route('/create'),
-            'edit' => Pages\EditUser::route('/{record}/edit'),
+            'index' => ListUsers::route('/'),
+            'create' => CreateUser::route('/create'),
+            'edit' => EditUser::route('/{record}/edit'),
         ];
     }
 

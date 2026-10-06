@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Resources\EntryAuditResource\Pages\ListEntryAudits;
 use App\Enums\Roles;
 use App\Models\Center;
 use App\Models\Student;
@@ -30,7 +31,7 @@ class EntryAuditResource extends Resource
 {
     protected static ?string $model = Activity::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-shield-exclamation';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-shield-exclamation';
 
     protected static ?string $navigationLabel = 'تتبع تعديلات الدخوليات';
 
@@ -40,7 +41,7 @@ class EntryAuditResource extends Resource
 
     protected static ?string $slug = 'entry-audit';
 
-    protected static ?string $navigationGroup = 'إدارة النظام';
+    protected static string | \UnitEnum | null $navigationGroup = 'إدارة النظام';
 
     public static function getEloquentQuery(): Builder
     {
@@ -243,7 +244,7 @@ class EntryAuditResource extends Resource
     {
         return Filter::make('event')
             ->label('نوع الإجراء')
-            ->form([
+            ->schema([
                 CheckboxList::make('events')
                     ->label('')
                     ->options([
@@ -271,7 +272,7 @@ class EntryAuditResource extends Resource
     {
         return Filter::make('min_gap')
             ->label('أقل فارق زمني (أيام)')
-            ->form([
+            ->schema([
                 TextInput::make('min_gap_days')
                     ->label('أظهر فقط الأحداث التي فارقها')
                     ->suffix('يوم فأكثر')
@@ -299,7 +300,7 @@ class EntryAuditResource extends Resource
     {
         return Filter::make('entry_period')
             ->label('فترة تاريخ الدخولية')
-            ->form([
+            ->schema([
                 DatePicker::make('from')->label('من')->native(false),
                 DatePicker::make('to')->label('إلى')->native(false),
             ])
@@ -394,7 +395,7 @@ class EntryAuditResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => EntryAuditResource\Pages\ListEntryAudits::route('/'),
+            'index' => ListEntryAudits::route('/'),
         ];
     }
 

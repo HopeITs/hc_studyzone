@@ -2,10 +2,21 @@
 
 namespace App\Filament\Resources\ServiceResource\RelationManagers;
 
+use Filament\Schemas\Schema;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\DatePicker;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Actions\CreateAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
 use App\Enums\Roles;
 use App\Models\Center;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
@@ -18,14 +29,14 @@ class PricesRelationManager extends RelationManager
 {
     protected static string $relationship = 'centerPrices';
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
         $user = auth()->user();
         $isCenterAdmin = $user->role === Roles::CenterAdmin();
 
-        return $form
-            ->schema([
-                Forms\Components\Select::make('center_id')
+        return $schema
+            ->components([
+                Select::make('center_id')
                     ->label(__('general.labels.center'))
                     ->options(function () use ($user) {
                         $query = Center::where('is_active', 1);
@@ -44,20 +55,20 @@ class PricesRelationManager extends RelationManager
                     ->disabled($isCenterAdmin) // Center admin cannot change the center
                     ->dehydrated(), // Ensure disabled value is still saved
 
-                Forms\Components\TextInput::make('price')
+                TextInput::make('price')
                     ->label(__('general.labels.new_currency_price'))
                     ->numeric()
                     ->suffix('SYP')
                     ->required(),
 
-                Forms\Components\DatePicker::make('start_date')
+                DatePicker::make('start_date')
                     ->label(__('general.labels.start_date'))
                     ->required()
                     ->default(now()),
 
-                Forms\Components\DatePicker::make('end_date')
+                DatePicker::make('end_date')
                     ->label(__('general.labels.end_date'))
-                    ->disabled(fn (Forms\Get $get) => $get('is_active'))
+                    ->disabled(fn (Get $get) => $get('is_active'))
                     ->dehydrated(),
             ]);
     }
@@ -76,32 +87,32 @@ class PricesRelationManager extends RelationManager
                 }
             })
             ->columns([
-                Tables\Columns\TextColumn::make('center.name')
+                TextColumn::make('center.name')
                     ->label(__('general.labels.center'))
                     ->sortable()
                     ->visible($user->role !== Roles::CenterAdmin()), // Hide column if it's always the same center
 
-                Tables\Columns\TextColumn::make('price')
+                TextColumn::make('price')
                     ->label(__('general.services_module.price'))
                     ->suffix(' SYP'),
-                Tables\Columns\TextColumn::make('created_at') //old price
+                TextColumn::make('created_at') //old price
                     ->formatStateUsing(fn (Model $record) => $record->price*100)
                     ->label(__('general.labels.old_currency_price'))
                     ->suffix(' SYP'),
 
-                Tables\Columns\IconColumn::make('is_active')
+                IconColumn::make('is_active')
                     ->label(__('general.labels.status'))
                     ->boolean()
                     ->trueIcon('heroicon-o-check-circle')
                     ->falseIcon('heroicon-o-x-circle')
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('start_date')
+                TextColumn::make('start_date')
                     ->label(__('general.labels.start_date'))
                     ->dateTime('Y-m-d')
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('end_date')
+                TextColumn::make('end_date')
                     ->label(__('general.labels.end_date'))
                     ->dateTime('Y-m-d')
                     ->placeholder('-'),
@@ -133,8 +144,8 @@ class PricesRelationManager extends RelationManager
                   ,
             ])
             ->headerActions([
-                Tables\Actions\CreateAction::make()
-                    ->mutateFormDataUsing(function (array $data) {
+                CreateAction::make()
+                    ->mutateDataUsing(function (array $data) {
                         // Deactivate previous active price for this center
                         $this->getRelationship()->getQuery()
                             ->where('service_id', $this->getOwnerRecord()->id)
@@ -150,13 +161,13 @@ class PricesRelationManager extends RelationManager
                         return $data;
                     }),
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+            ->recordActions([
+                EditAction::make(),
+                DeleteAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }

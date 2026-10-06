@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use App\Traits\ActivityLog;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Concerns\HasVersion4Uuids as HasUuids;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -22,12 +22,12 @@ class StudentEntry extends Model
     ];
     protected $guarded = [];
 
-    public function student(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function student(): BelongsTo
     {
         return $this->belongsTo(Student::class);
     }
 
-    public function center(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function center(): BelongsTo
     {
         return $this->belongsTo(Center::class);
     }

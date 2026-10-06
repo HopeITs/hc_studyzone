@@ -2,6 +2,8 @@
 
 namespace App\Filament\Pages;
 
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
 use App\Enums\Roles;
 use App\Models\Center;
 use App\Models\City;
@@ -12,11 +14,9 @@ use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Forms\Form;
 use Filament\Pages\Page;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
@@ -28,13 +28,13 @@ class Reports extends Page
     use InteractsWithActions;
     use InteractsWithForms;
 
-    protected static ?string $navigationIcon = 'heroicon-o-chart-bar';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-chart-bar';
 
     protected static ?string $slug = 'reports';
 
     protected static ?int $navigationSort = 50;
 
-    protected static string $view = 'filament.pages.reports';
+    protected string $view = 'filament.pages.reports';
 
     public static function getNavigationLabel(): string
     {
@@ -89,10 +89,10 @@ class Reports extends Page
         ];
     }
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 Section::make()
                     ->schema([
                         TextInput::make('search')
@@ -365,7 +365,7 @@ class Reports extends Page
             Action::make('export_students_by_entry_period')
                 ->label(__('general.labels.export_students_period'))
                 ->color('primary')
-                ->form([
+                ->schema([
                     CheckboxList::make('columns')
                         ->label(__('general.labels.columns_to_export'))
                         ->options(collect($columnDefinitions)->map(fn (array $def) => $def['label'])->toArray())

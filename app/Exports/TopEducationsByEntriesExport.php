@@ -3,6 +3,7 @@
 namespace App\Exports;
 
 use Illuminate\Contracts\Support\Responsable;
+use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Facades\Excel;
@@ -20,7 +21,7 @@ class TopEducationsByEntriesExport implements FromCollection, WithHeadings, Resp
         $this->filters = $filters;
     }
 
-    public function collection()
+    public function collection(): Collection
     {
         $startDate = $this->filters['startDate'] ?? now()->startOfYear()->toDateTimeString();
         $endDate = $this->filters['endDate'] ?? now()->toDateTimeString();

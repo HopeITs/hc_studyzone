@@ -2,6 +2,8 @@
 
 namespace App\Helpers;
 
+use Exception;
+use Throwable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -23,7 +25,7 @@ class SyncHelperOld
 
             Log::info("✅ Fully synced table: {$table}");
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error("❌ Sync error for {$table}: " . $e->getMessage());
         }
     }
@@ -70,7 +72,7 @@ class SyncHelperOld
                         ->update(['synced_at' => $data['synced_at']]);
 
                     $syncedCount++;
-                } catch (\Throwable $e) {
+                } catch (Throwable $e) {
                     Log::error("❌ Failed to sync record [{$data['id']}] to online for [{$table}]: {$e->getMessage()}");
                 }
             }
@@ -130,7 +132,7 @@ class SyncHelperOld
                         ->update(['synced_at' => $data['synced_at']]);
 
                     $syncedCount++;
-                } catch (\Throwable $e) {
+                } catch (Throwable $e) {
                     Log::error("❌ Error syncing record [{$data['id']}] in [{$table}]: {$e->getMessage()}");
                 }
             }
@@ -146,7 +148,7 @@ class SyncHelperOld
         try {
             $response = Http::timeout(3)->get('https://www.google.com');
             return $response->successful();
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return false;
         }
     }

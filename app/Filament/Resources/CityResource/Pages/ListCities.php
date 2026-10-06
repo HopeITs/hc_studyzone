@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\CityResource\Pages;
 
+use Filament\Actions\CreateAction;
+use LaraZeus\SpatieTranslatable\Actions\LocaleSwitcher;
 use App\Filament\Resources\CityResource;
 use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
@@ -13,8 +15,8 @@ class ListCities extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make(),
-            Actions\LocaleSwitcher::make(),
+            CreateAction::make(),
+            LocaleSwitcher::make(),
         ];
     }
 }

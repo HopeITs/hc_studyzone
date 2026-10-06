@@ -13,7 +13,7 @@ class ViewStudentEntry extends Page
 
     protected static string $resource = StudentResource::class;
 
-    protected static string $view = 'filament.resources.student-resource.pages.view-student-entry';
+    protected string $view = 'filament.resources.student-resource.pages.view-student-entry';
 
     public StudentEntry $entry;
 

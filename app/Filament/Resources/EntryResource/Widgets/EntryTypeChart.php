@@ -11,8 +11,8 @@ class EntryTypeChart extends ChartWidget
 {
     use InteractsWithPageTable;
 
-    protected static ?string $heading = null;
-    protected static ?string $maxHeight = '280px';
+    protected ?string $heading = null;
+    protected ?string $maxHeight = '280px';
 
     public function getHeading(): string
     {

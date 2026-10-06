@@ -2,6 +2,8 @@
 
 namespace App\Filament\Widgets;
 
+use Filament\Tables\Columns\TextColumn;
+use Filament\Actions\Action;
 use App\Enums\Roles;
 use App\Exports\TopEducationsByEntriesExport;
 use App\Models\Education;
@@ -11,7 +13,6 @@ use Filament\Widgets\TableWidget;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Filament\Tables\Actions\Action;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\DB;
 
@@ -37,14 +38,14 @@ class TopEducationsTable extends TableWidget
         return $table
             ->query($this->getQuery())
             ->columns([
-                Tables\Columns\TextColumn::make('name')
+                TextColumn::make('name')
                     ->label(__('general.labels.education'))
                     ->formatStateUsing(fn($state) => is_string($state) ? 
                         (json_decode($state, true)['ar'] ?? $state) : $state),
-                Tables\Columns\TextColumn::make('total')->label(__('general.labels.total')),
-                Tables\Columns\TextColumn::make('males')->label(__('general.labels.males')),
-                Tables\Columns\TextColumn::make('females')->label(__('general.labels.females')),
-                Tables\Columns\TextColumn::make('unknown')->label(__('general.labels.unknown')),
+                TextColumn::make('total')->label(__('general.labels.total')),
+                TextColumn::make('males')->label(__('general.labels.males')),
+                TextColumn::make('females')->label(__('general.labels.females')),
+                TextColumn::make('unknown')->label(__('general.labels.unknown')),
             ])
             ->paginated(false)
             ->headerActions([
@@ -54,18 +55,18 @@ class TopEducationsTable extends TableWidget
                     ->icon('heroicon-o-document-arrow-down')
                     ->action(function () {
                         return Excel::download(new TopEducationsByEntriesExport(
-                            $this->filters
+                            $this->pageFilters
                         ), 'top_educations_by_entries.xlsx');
                     }),
             ]);
     }
 
-    protected function getQuery(): \Illuminate\Database\Eloquent\Builder
+    protected function getQuery(): Builder
     {
-        $startDate = $this->filters['startDate'] ?? now()->startOfYear()->startOfDay()->toDateTimeString();
-        $endDate = $this->filters['endDate'] ?? now()->toDateTimeString();
-        $cityIds = isset($this->filters['city']) ? implode(',', (array)$this->filters['city']) : null;
-        $centerIds = isset($this->filters['center']) ? implode(',', (array)$this->filters['center']) : null;
+        $startDate = $this->pageFilters['startDate'] ?? now()->startOfYear()->startOfDay()->toDateTimeString();
+        $endDate = $this->pageFilters['endDate'] ?? now()->toDateTimeString();
+        $cityIds = isset($this->pageFilters['city']) ? implode(',', (array)$this->pageFilters['city']) : null;
+        $centerIds = isset($this->pageFilters['center']) ? implode(',', (array)$this->pageFilters['center']) : null;
 
         $cityCondition = $cityIds ? "AND s.street_id IN (SELECT id FROM hcsz_streets WHERE city_id IN ($cityIds))" : "";
         $centerCondition = $centerIds ? "AND sen.center_id IN ($centerIds)" : "";
@@ -99,7 +100,7 @@ class TopEducationsTable extends TableWidget
        
         ";
 
-        return \App\Models\Education::query()
+        return Education::query()
             ->fromRaw("($rawSql) as top_stats")
             ->select(['id', 'name', 'total', 'males', 'females', 'unknown'])
             ->reorder() 

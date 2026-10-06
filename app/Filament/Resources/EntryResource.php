@@ -2,6 +2,19 @@
 
 namespace App\Filament\Resources;
 
+use App\Enums\EntryPurpose;
+use App\Helpers\ServiceHelper;
+use Filament\Actions\Action;
+use Filament\Actions\ViewAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\ExportBulkAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use App\Filament\Resources\EntryResource\Pages\ListEntries;
+use App\Filament\Resources\EntryResource\Pages\EditEntry;
+use App\Filament\Resources\EntryResource\Pages\AddEntryServices;
+use App\Filament\Resources\EntryResource\Pages\ViewEntry;
 use App\Enums\Gender;
 use App\Enums\Religion;
 use App\Enums\Roles;
@@ -19,9 +32,6 @@ use Filament\Actions\Exports\Enums\ExportFormat;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Resources\Resource;
 use Filament\Tables;
-use Filament\Tables\Actions\Action;
-use Filament\Tables\Actions\ExportBulkAction;
-use Filament\Tables\Actions\ViewAction;
 use Filament\Tables\Columns\CheckboxColumn;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -38,7 +48,7 @@ class EntryResource extends Resource
 {
     protected static ?string $model = StudentEntry::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-check';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-clipboard-document-check';
 
     protected static ?int $navigationSort = 7;
 
@@ -176,17 +186,17 @@ class EntryResource extends Resource
                     ->badge()
                     ->formatStateUsing(fn ($state) => __('general.purposes.'.$state))
                     ->color(fn (int $state): string => match ($state) {
-                        \App\Enums\EntryPurpose::Unknown() => 'warning',
-                        \App\Enums\EntryPurpose::Studying() => 'info',
-                        \App\Enums\EntryPurpose::Working() => 'success',
+                        EntryPurpose::Unknown() => 'warning',
+                        EntryPurpose::Studying() => 'info',
+                        EntryPurpose::Working() => 'success',
                     })
                     ->toggleable(),
 
                 CheckboxColumn::make('use_internet')
                     ->label(__('general.labels.internet-service'))
-                    ->disabled(fn ($record) => ! \App\Helpers\ServiceHelper::centerHasInternetService($record->center_id) || LockedMonth::isLocked($record->entry_time))
-                    ->extraAttributes(fn ($record) => \App\Helpers\ServiceHelper::centerHasInternetService($record->center_id) ? [] : ['class' => 'hidden'])
-                    ->updateStateUsing(fn ($record, $state) => \App\Helpers\ServiceHelper::toggleInternetService($record, (bool) $state)),
+                    ->disabled(fn ($record) => ! ServiceHelper::centerHasInternetService($record->center_id) || LockedMonth::isLocked($record->entry_time))
+                    ->extraAttributes(fn ($record) => ServiceHelper::centerHasInternetService($record->center_id) ? [] : ['class' => 'hidden'])
+                    ->updateStateUsing(fn ($record, $state) => ServiceHelper::toggleInternetService($record, (bool) $state)),
 
                 TextColumn::make('student.studentEducations.level')
                     ->label(__('general.labels.education_level'))
@@ -272,7 +282,7 @@ class EntryResource extends Resource
             ->filters([
                 Filter::make('entry_time')
                     ->label(__('general.labels.date'))
-                    ->form([
+                    ->schema([
                         DateTimePicker::make('from')
                             ->label(__('general.labels.from'))
                             ->default(today()->startOfDay())
@@ -444,7 +454,7 @@ class EntryResource extends Resource
 
             ])
             ->filtersTriggerAction(fn (Action $action) => $action->button()->label(''))
-            ->actions([
+            ->recordActions([
                 ViewAction::make('view_student')
                     ->label('')
                     ->color('info')
@@ -456,7 +466,7 @@ class EntryResource extends Resource
                     ->url(fn ($record) => EntryResource::getUrl('add-services', ['record' => $record]))
                     ->disabled(fn ($record) => LockedMonth::isLocked($record->entry_time)),
 
-                Tables\Actions\EditAction::make()
+                EditAction::make()
                     ->label('')
                     ->hidden(fn () => $isObserver)
                     ->disabled(fn ($record) => ! $record->student->completed_data)
@@ -464,16 +474,16 @@ class EntryResource extends Resource
                         ? __('general.labels.create_entry_disabled_tooltip')
                         : null),
 
-                Tables\Actions\DeleteAction::make()
+                DeleteAction::make()
                     ->label('')
                     ->hidden(fn () => $isObserver),
             ])
-            ->bulkActions([
+            ->toolbarActions([
                 ExportBulkAction::make()
                     ->exporter(EntryExporter::class)
                     ->formats([ExportFormat::Xlsx]),
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make()
+                BulkActionGroup::make([
+                    DeleteBulkAction::make()
                         ->hidden(fn () => $isObserver),
                 ])->hidden(fn () => $isObserver),
             ])
@@ -490,10 +500,10 @@ class EntryResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListEntries::route('/'),
-            'edit' => Pages\EditEntry::route('/{record}/edit'),
-            'add-services' => Pages\AddEntryServices::route('/{record}/services'),
-            'view' => Pages\ViewEntry::route('/{record}'),
+            'index' => ListEntries::route('/'),
+            'edit' => EditEntry::route('/{record}/edit'),
+            'add-services' => AddEntryServices::route('/{record}/services'),
+            'view' => ViewEntry::route('/{record}'),
 
         ];
     }

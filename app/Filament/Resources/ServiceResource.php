@@ -2,6 +2,19 @@
 
 namespace App\Filament\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Toggle;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use App\Filament\Resources\ServiceResource\Pages\ListServices;
+use App\Filament\Resources\ServiceResource\Pages\CreateService;
+use App\Filament\Resources\ServiceResource\Pages\EditService;
+use App\Filament\Resources\ServiceResource\RelationManagers\PricesRelationManager;
 use App\Enums\Roles;
 use App\Filament\Resources\ServiceResource\RelationManagers;
 use App\Models\Center;
@@ -9,7 +22,6 @@ use App\Models\Service;
 use Filament\Forms;
 use Filament\Resources\Resource;
 use Filament\Tables;
-use Filament\Tables\Actions\Action;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\SelectFilter;
@@ -21,7 +33,7 @@ class ServiceResource extends Resource
 {
     protected static ?string $model = Service::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-wrench-screwdriver';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-wrench-screwdriver';
 
     public static function getNavigationLabel(): string
     {
@@ -62,29 +74,29 @@ class ServiceResource extends Resource
         return $query->whereRaw('1 = 0');
     }
 
-    public static function form(Forms\Form $form): Forms\Form
+    public static function form(Schema $schema): Schema
     {
         $user = Auth::user();
         $isGeneralAdmin = $user->role === Roles::GeneralAdmin();
 
-        return $form
-            ->schema([
-                Forms\Components\Section::make()
+        return $schema
+            ->components([
+                Section::make()
                     ->schema([
-                        Forms\Components\TextInput::make('name')
+                        TextInput::make('name')
                             ->label(__('general.labels.service_name'))
                             ->required()
                             ->maxLength(255)
                             ->disabled(!$isGeneralAdmin), // Disable for City/Center Admins
 
-                        Forms\Components\Select::make('category_id')
+                        Select::make('category_id')
                             ->relationship('category', 'name')
                             ->label(__('general.services_module.category'))
                             ->required()
                             ->searchable()
                             ->preload()
                             ->disabled(!$isGeneralAdmin), // Disable for City/Center Admins
-                                  Forms\Components\Select::make('reference_column_name')
+                                  Select::make('reference_column_name')
                             ->options([
                                 'use_internet' =>  'use_internet' ,
                                 'use_mecrator' =>  'use_mecrator' ,
@@ -100,16 +112,16 @@ class ServiceResource extends Resource
                             ->preload()
                             ->disabled(!$isGeneralAdmin),
 
-                        Forms\Components\Toggle::make('is_active')
+                        Toggle::make('is_active')
                             ->label(__('general.services_module.active'))
                             ->default(true)
                             ->visible($isGeneralAdmin),
 
-                        Forms\Components\TextInput::make('initial_price')
+                        TextInput::make('initial_price')
                             ->label(__('general.services_module.initial_price').' - '.__('general.labels.new_currency_price'))
                             ->numeric()
                             ->prefix('SYP')
-                            ->required($isGeneralAdmin && ! $form->getRecord())
+                            ->required($isGeneralAdmin && ! $schema->getRecord())
                             ->visible($isGeneralAdmin)
                             ->helperText(__('general.messages.initial_price_help')),
                     ])->columns(2),
@@ -196,18 +208,18 @@ class ServiceResource extends Resource
                     ->preload()
                     ->columnSpan(1),
             ])
-            ->actions([
-                Tables\Actions\EditAction::make()
+            ->recordActions([
+                EditAction::make()
                     ->visible(fn () => $isGeneralAdmin || $isCityAdmin ), // Allow all to edit
 
-                Tables\Actions\DeleteAction::make()
+                DeleteAction::make()
                     ->visible(fn () => $isGeneralAdmin),
 
 
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make()->visible(fn () => $isGeneralAdmin),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make()->visible(fn () => $isGeneralAdmin),
                 ]),
             ]);
     }
@@ -215,15 +227,15 @@ class ServiceResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => ServiceResource\Pages\ListServices::route('/'),
-            'create' => ServiceResource\Pages\CreateService::route('/create'),
-            'edit' => ServiceResource\Pages\EditService::route('/{record}/edit'),
+            'index' => ListServices::route('/'),
+            'create' => CreateService::route('/create'),
+            'edit' => EditService::route('/{record}/edit'),
         ];
     }
 
     public static function getRelations(): array
     {
-        return [RelationManagers\PricesRelationManager::class];
+        return [PricesRelationManager::class];
     }
 
     public static function canCreate(): bool

@@ -2,6 +2,29 @@
 
 namespace App\Filament\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Wizard;
+use Filament\Schemas\Components\Wizard\Step;
+use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Utilities\Set;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Actions\Action;
+use Filament\Actions\ExportBulkAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\ViewAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteAction;
+use App\Filament\Resources\StudentResource\RelationManagers\EntriesRelationManager;
+use App\Filament\Resources\StudentResource\RelationManagers\EducationsRelationManager;
+use App\Filament\Resources\StudentResource\Pages\ListStudents;
+use App\Filament\Resources\StudentResource\Pages\CreateStudent;
+use App\Filament\Resources\StudentResource\Pages\EditStudent;
+use App\Filament\Resources\StudentResource\Pages\ViewStudent;
+use App\Filament\Resources\StudentResource\Pages\CreateStudentEntry;
+use App\Models\ServicePrice;
+use App\Models\EntryService;
 use App\Enums\Roles;
 use App\Filament\Exports\StudentExporter;
 use App\Filament\Resources\StudentResource\Pages;
@@ -18,25 +41,15 @@ use Filament\Actions\Exports\Enums\ExportFormat;
 use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\DateTimePicker;
-use Filament\Forms\Components\Fieldset;
-use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
-use Filament\Forms\Components\Wizard;
-use Filament\Forms\Form;
-use Filament\Forms\Get;
-use Filament\Forms\Set;
-use Filament\Notifications\Actions\Action as NotificationAction;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
-use Filament\Tables\Actions\Action;
-use Filament\Tables\Actions\ActionGroup;
-use Filament\Tables\Actions\ExportBulkAction;
 use Filament\Tables\Columns\CheckboxColumn;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -61,7 +74,7 @@ class StudentResource extends Resource
 
     protected static ?string $model = Student::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-user-group';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-user-group';
 
     protected static ?int $navigationSort = 6;
 
@@ -85,14 +98,14 @@ class StudentResource extends Resource
         return parent::getEloquentQuery()->with(['educations','firstEntry.center']);
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form->schema([Wizard::make([self::personalAndContactInformationStep(), self::educationStep()])->columnSpanFull()]);
+        return $schema->components([Wizard::make([self::personalAndContactInformationStep(), self::educationStep()])->columnSpanFull()]);
     }
 
-    protected static function personalAndContactInformationStep(): Wizard\Step
+    protected static function personalAndContactInformationStep(): Step
     {
-        return Wizard\Step::make(__('general.labels.personal_information').' & '.__('general.labels.contact_information'))
+        return Step::make(__('general.labels.personal_information').' & '.__('general.labels.contact_information'))
             ->schema(
                 fn (?Student $record) => [
                     Placeholder::make('data_status_notice')
@@ -190,7 +203,7 @@ class StudentResource extends Resource
                                         ->title(__('general.messages.student_exists_in_city', ['name' => $student->firstname, 'city' => $student->street->city->name]))
                                         ->danger()
                                         ->persistent()
-                                        ->actions([NotificationAction::make('view')->button()->label(__('general.messages.view_student'))->url(route('filament.admin.resources.students.view', $student), shouldOpenInNewTab: true)])
+                                        ->actions([Action::make('view')->button()->label(__('general.messages.view_student'))->url(route('filament.admin.resources.students.view', $student), shouldOpenInNewTab: true)])
                                         ->send();
 
                                     $fail(__('general.messages.student_exists_in_city', ['name' => $student->firstname, 'city' => $student->street->city->name]));
@@ -262,9 +275,9 @@ class StudentResource extends Resource
             ->columns(3);
     }
 
-    protected static function educationStep(): Wizard\Step
+    protected static function educationStep(): Step
     {
-        return Wizard\Step::make(__('general.labels.education'))
+        return Step::make(__('general.labels.education'))
             ->schema([
                 Repeater::make('educations')
                     ->relationship('studentEducations')
@@ -304,13 +317,13 @@ class StudentResource extends Resource
                             ->options(__('general.edu-types'))
                             ->required(),
 
-                        \Filament\Forms\Components\DatePicker::make('start_date')
+                        DatePicker::make('start_date')
                             ->label(__('general.labels.start_date'))
                             ->default(now())
                             ->required()
                             ->displayFormat('Y-m-d'),
 
-                        \Filament\Forms\Components\DatePicker::make('end_date')
+                        DatePicker::make('end_date')
                             ->label(__('general.labels.end_date'))
                             ->nullable()
                             ->after('start_date')
@@ -480,12 +493,12 @@ class StudentResource extends Resource
             })
             ->toggleColumnsTriggerAction(fn (Action $action) => $action->button())
             ->filtersTriggerAction(fn (Action $action) => $action->button()->label(''))
-            ->actions(self::tableActions())
-            ->bulkActions([
+            ->recordActions(self::tableActions())
+            ->toolbarActions([
                 ExportBulkAction::make()
                     ->exporter(StudentExporter::class)
                     ->formats([ExportFormat::Xlsx]),
-                Tables\Actions\BulkActionGroup::make([Tables\Actions\DeleteBulkAction::make()->hidden(fn () => auth()->user()->role === Roles::Observer())])->hidden(fn () => auth()->user()->role === Roles::Observer()),
+                BulkActionGroup::make([DeleteBulkAction::make()->hidden(fn () => auth()->user()->role === Roles::Observer())])->hidden(fn () => auth()->user()->role === Roles::Observer()),
             ])
             ->paginated([20, 50, 100, 200]);
     }
@@ -713,7 +726,7 @@ class StudentResource extends Resource
                 ->searchable(),
             Filter::make('created_at')
                 ->columns(2)
-                ->form([DatePicker::make('created_from')->label(__('general.labels.created_from')), DatePicker::make('created_until')->label(__('general.labels.created_until'))])
+                ->schema([DatePicker::make('created_from')->label(__('general.labels.created_from')), DatePicker::make('created_until')->label(__('general.labels.created_until'))])
                 ->query(function (Builder $query, array $data): Builder {
                     return $query->when($data['created_from'], fn (Builder $query, $date): Builder => $query->whereDate('created_at', '>=', $date))->when($data['created_until'], fn (Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date));
                 }),
@@ -759,8 +772,8 @@ class StudentResource extends Resource
         $isObserver = auth()->user()->role === Roles::Observer();
 
         return [
-            Tables\Actions\Action::make('view_qr_code')->label(__('general.labels.view_qr_code'))->icon('heroicon-o-qr-code')->modalHeading(__('general.labels.qr_code_modal_heading'))->modalContent(fn (Student $record) => self::qrCodeModalContent($record))->modalCancelAction(false)->modalSubmitAction(false)->hidden($isObserver),
-            Tables\Actions\Action::make('create-entry')
+            Action::make('view_qr_code')->label(__('general.labels.view_qr_code'))->icon('heroicon-o-qr-code')->modalHeading(__('general.labels.qr_code_modal_heading'))->modalContent(fn (Student $record) => self::qrCodeModalContent($record))->modalCancelAction(false)->modalSubmitAction(false)->hidden($isObserver),
+            Action::make('create-entry')
                 ->label(__('general.labels.entry'))
                 ->icon('heroicon-o-document-text')
                 ->url(fn (Student $record) => static::getUrl('create-entry', ['record' => $record]))
@@ -774,23 +787,23 @@ class StudentResource extends Resource
                 })
                 ->hidden($isObserver),
 
-            ActionGroup::make([Tables\Actions\ViewAction::make(), Tables\Actions\EditAction::make()->hidden($isObserver), Tables\Actions\DeleteAction::make()->hidden($isObserver)])->icon('heroicon-m-ellipsis-horizontal'),
+            ActionGroup::make([ViewAction::make(), EditAction::make()->hidden($isObserver), DeleteAction::make()->hidden($isObserver)])->icon('heroicon-m-ellipsis-horizontal'),
         ];
     }
 
     public static function getRelations(): array
     {
-        return [RelationManagers\EntriesRelationManager::class, RelationManagers\EducationsRelationManager::class];
+        return [EntriesRelationManager::class, EducationsRelationManager::class];
     }
 
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListStudents::route('/'),
-            'create' => Pages\CreateStudent::route('/create'),
-            'edit' => Pages\EditStudent::route('/{record}/edit'),
-            'view' => Pages\ViewStudent::route('/{record}'),
-            'create-entry' => Pages\CreateStudentEntry::route('/{record}/entry'),
+            'index' => ListStudents::route('/'),
+            'create' => CreateStudent::route('/create'),
+            'edit' => EditStudent::route('/{record}/edit'),
+            'view' => ViewStudent::route('/{record}'),
+            'create-entry' => CreateStudentEntry::route('/{record}/entry'),
 
 
         ];
@@ -841,7 +854,7 @@ class StudentResource extends Resource
 
     protected static function getCurrentPrice(int $serviceId, int $centerId): int
     {
-        return \App\Models\ServicePrice::where('service_id', $serviceId)
+        return ServicePrice::where('service_id', $serviceId)
             ->where('center_id', $centerId)
             ->where('is_active', true)
             ->where('start_date', '<=', now()->toDateString())
@@ -893,9 +906,9 @@ class StudentResource extends Resource
         $totalAmount = $data['total_amount'] ?? 0;
         $centerId = $data['center_id'] ?? auth()->user()->center_id;
 
-        $entry = \App\Models\StudentEntry::create([
+        $entry = StudentEntry::create([
             'student_id' => $record->id,
-            'user_id' => \Illuminate\Support\Facades\Auth::id(),
+            'user_id' => Auth::id(),
             'center_id' => $centerId,
             'entry_type' => $data['entry_type'],
             'entry_time' => $data['entry_time'],
@@ -908,7 +921,7 @@ class StudentResource extends Resource
             $price = self::getCurrentPrice($serviceId, $centerId);
             $total = $price * $amount;
 
-            \App\Models\EntryService::create([
+            EntryService::create([
                 'entry_id' => $entry->id,
                 'service_id' => $serviceId,
                 'amount' => $amount,

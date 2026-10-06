@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Resources\LockedMonthResource\Pages\ListLockedMonths;
 use App\Enums\Roles;
 use App\Filament\Resources\LockedMonthResource\Pages;
 use App\Models\LockedMonth;
@@ -12,9 +13,9 @@ class LockedMonthResource extends Resource
 {
     protected static ?string $model = LockedMonth::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-lock-closed';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-lock-closed';
 
-    protected static ?string $navigationGroup = 'إدارة النظام';
+    protected static string | \UnitEnum | null $navigationGroup = 'إدارة النظام';
 
     protected static ?int $navigationSort = 60;
 
@@ -58,7 +59,7 @@ class LockedMonthResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListLockedMonths::route('/'),
+            'index' => ListLockedMonths::route('/'),
         ];
     }
 }

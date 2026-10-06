@@ -2,10 +2,18 @@
 
 namespace App\Filament\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Select;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use App\Filament\Resources\ServiceCategoryResource\Pages\ListServiceCategories;
 use App\Enums\Roles;
 use App\Models\ServiceCategory;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -15,7 +23,7 @@ use Illuminate\Support\Facades\Auth;
 class ServiceCategoryResource extends Resource
 {
     protected static ?string $model = ServiceCategory::class;
-    protected static ?string $navigationIcon = 'heroicon-o-tag';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-tag';
 
 
     public static function getNavigationLabel(): string
@@ -44,14 +52,14 @@ class ServiceCategoryResource extends Resource
         return parent::getEloquentQuery()->whereRaw('1 = 0');
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\TextInput::make('name')
+        return $schema
+            ->components([
+                TextInput::make('name')
                     ->required()
                     ->maxLength(255),
-                Forms\Components\Select::make('unit')
+                Select::make('unit')
                     ->label(__('general.labels.unit'))
                     ->required()
                     ->options(__('general.services_module.units')),
@@ -62,28 +70,28 @@ class ServiceCategoryResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('name')
+                TextColumn::make('name')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('unit')
+                TextColumn::make('unit')
                     ->badge()
                     ->formatStateUsing(fn ($state) => __('general.services_module.units.'.$state) !== 'general.services_module.units.'.$state ? __('general.services_module.units.'.$state) : $state),
-                Tables\Columns\TextColumn::make('created_at')
+                TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('updated_at')
+                TextColumn::make('updated_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+            ->recordActions([
+                EditAction::make(),
+                DeleteAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }
@@ -91,7 +99,7 @@ class ServiceCategoryResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => ServiceCategoryResource\Pages\ListServiceCategories::route('/'),
+            'index' => ListServiceCategories::route('/'),
 
         ];
     }

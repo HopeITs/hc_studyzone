@@ -2,14 +2,14 @@
 
 namespace App\Filament\Pages;
 
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use App\Enums\Roles;
 use App\Models\Center;
 use App\Models\City;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Form;
-use Filament\Forms\Get;
 use Filament\Pages\Dashboard as BaseDashboard;
 
 class Dashboard extends BaseDashboard
@@ -21,11 +21,11 @@ class Dashboard extends BaseDashboard
         return __('general.labels.statistics');
     }
 
-    public function filtersForm(Form $form): Form
+    public function filtersForm(Schema $schema): Schema
     {
         $userRole = auth()->user()->role;
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 Section::make()
                     ->schema([
                         Select::make('city')->label(__('general.labels.city'))->options(City::pluck('name', 'id'))->multiple()

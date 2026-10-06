@@ -2,6 +2,8 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Pages\Dashboard;
+use LaraZeus\SpatieTranslatable\SpatieTranslatablePlugin;
 use App\Filament\Pages;
 use App\Filament\Resources\CustomActivitylogResource;
 use App\Filament\Resources\StudentResource\Pages\ListStudents;
@@ -16,11 +18,10 @@ use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Navigation\NavigationGroup;
 use Filament\Panel;
 use Filament\PanelProvider;
-use Filament\SpatieLaravelTranslatablePlugin;
 use Filament\Support\Colors\Color;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
-use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
@@ -51,6 +52,7 @@ class AdminPanelProvider extends PanelProvider
             // fonts.bunny.net CDN: removes the third-party stylesheet that had no
             // Subresource Integrity hash and lets the CSP drop that origin entirely.
             ->font('Inter', asset('css/fonts/inter.css') . '?v=1', LocalFontProvider::class)
+            ->viteTheme('resources/css/filament/admin/theme.css')
             ->databaseNotifications()
             ->colors([
                 'primary' => Color::Amber,
@@ -59,7 +61,7 @@ class AdminPanelProvider extends PanelProvider
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
-                Pages\Dashboard::class,
+                Dashboard::class,
 
             ])
 
@@ -72,7 +74,7 @@ class AdminPanelProvider extends PanelProvider
                 StartSession::class,
                 AuthenticateSession::class,
                 ShareErrorsFromSession::class,
-                VerifyCsrfToken::class,
+                PreventRequestForgery::class,
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
@@ -94,7 +96,7 @@ class AdminPanelProvider extends PanelProvider
                    ->isRestoreActionHidden(true)
         ->isResourceActionHidden(false),
 
-                SpatieLaravelTranslatablePlugin::make()->defaultLocales(['en', 'ar']),
+                SpatieTranslatablePlugin::make()->defaultLocales(['en', 'ar']),
             ])
             ->renderHook(
                 'panels::body.start',

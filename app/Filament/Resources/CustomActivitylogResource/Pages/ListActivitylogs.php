@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\CustomActivitylogResource\Pages;
 
 use App\Filament\Resources\CustomActivitylogResource;
-use Rmsramos\Activitylog\Resources\ActivitylogResource\Pages\ListActivitylog;
+use Rmsramos\Activitylog\Resources\Activitylog\Pages\ListActivitylog;
 
 class ListActivitylogs extends ListActivitylog
 {

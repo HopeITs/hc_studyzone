@@ -11,7 +11,7 @@ class NewStudentsChart extends ChartWidget
 {
     use InteractsWithPageFilters;
 
-    protected static ?string $heading = null;
+    protected ?string $heading = null;
 
     protected static ?int $sort = 2;
 
@@ -27,16 +27,16 @@ class NewStudentsChart extends ChartWidget
 
     protected function getData(): array
     {
-        $startDate = ! empty($this->filters['startDate'] ?? null)
-            ? Carbon::parse($this->filters['startDate'])->startOfDay()
+        $startDate = ! empty($this->pageFilters['startDate'] ?? null)
+            ? Carbon::parse($this->pageFilters['startDate'])->startOfDay()
             : now()->startOfYear();
 
-        $endDate = ! empty($this->filters['endDate'] ?? null)
-            ? Carbon::parse($this->filters['endDate'])->endOfDay()
+        $endDate = ! empty($this->pageFilters['endDate'] ?? null)
+            ? Carbon::parse($this->pageFilters['endDate'])->endOfDay()
             : now()->endOfDay();
 
-        $centerIds = $this->filters['center'] ?? [];
-        $cityIds = $this->filters['city'] ?? [];
+        $centerIds = $this->pageFilters['center'] ?? [];
+        $cityIds = $this->pageFilters['city'] ?? [];
 
         $diffInDays = $startDate->diffInDays($endDate);
 

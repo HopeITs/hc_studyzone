@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Resources\StudentAuditResource\Pages\ListStudentAudits;
 use App\Enums\Roles;
 use App\Models\Street;
 use App\Models\Student;
@@ -28,7 +29,7 @@ class StudentAuditResource extends Resource
 {
     protected static ?string $model = Activity::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-user-circle';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-user-circle';
 
     protected static ?string $navigationLabel = 'تتبع تعديلات الطلاب';
 
@@ -38,7 +39,7 @@ class StudentAuditResource extends Resource
 
     protected static ?string $slug = 'student-audit';
 
-    protected static ?string $navigationGroup = 'إدارة النظام';
+    protected static string | \UnitEnum | null $navigationGroup = 'إدارة النظام';
 
     public static function getEloquentQuery(): Builder
     {
@@ -197,7 +198,7 @@ class StudentAuditResource extends Resource
     {
         return Filter::make('event')
             ->label('نوع الإجراء')
-            ->form([
+            ->schema([
                 CheckboxList::make('events')
                     ->label('')
                     ->options([
@@ -223,7 +224,7 @@ class StudentAuditResource extends Resource
     {
         return Filter::make('event_period')
             ->label('فترة تاريخ الإجراء')
-            ->form([
+            ->schema([
                 DatePicker::make('from')->label('من')->native(false),
                 DatePicker::make('to')->label('إلى')->native(false),
             ])
@@ -254,7 +255,7 @@ class StudentAuditResource extends Resource
     {
         return Filter::make('name_search')
             ->label('بحث باسم الطالب')
-            ->form([
+            ->schema([
                 TextInput::make('name')->label('الاسم أو جزء منه'),
             ])
             ->indicateUsing(fn (array $data) => filled($data['name'] ?? null)
@@ -297,7 +298,7 @@ class StudentAuditResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => StudentAuditResource\Pages\ListStudentAudits::route('/'),
+            'index' => ListStudentAudits::route('/'),
         ];
     }
 

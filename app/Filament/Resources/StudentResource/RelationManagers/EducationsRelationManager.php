@@ -2,22 +2,24 @@
 
 namespace App\Filament\Resources\StudentResource\RelationManagers;
 
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Actions\CreateAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteAction;
 use App\Models\Education;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
-use Filament\Tables\Actions\DeleteAction;
-use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Table;
 
 class EducationsRelationManager extends RelationManager
 {
     protected static string $relationship = 'studentEducations';
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form->schema([
+        return $schema->components([
             Select::make('education_id')
                 ->label(__('general.labels.educations'))
                 ->options(Education::all()->pluck('name', 'id'))
@@ -35,9 +37,9 @@ class EducationsRelationManager extends RelationManager
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('education.name')->label(__('general.labels.education'))->sortable(),
+                TextColumn::make('education.name')->label(__('general.labels.education'))->sortable(),
 
-                Tables\Columns\TextColumn::make('education.degree')
+                TextColumn::make('education.degree')
                     ->label(__('general.labels.degree'))
                     ->formatStateUsing(function ($state, $record) {
                         $degree = $record->education->degree ?? null;
@@ -46,11 +48,11 @@ class EducationsRelationManager extends RelationManager
                     })
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('level')->label(__('general.labels.level'))->formatStateUsing(fn(string $state): string => __("general.edu-levels.{$state}"))->sortable(),
+                TextColumn::make('level')->label(__('general.labels.level'))->formatStateUsing(fn(string $state): string => __("general.edu-levels.{$state}"))->sortable(),
 
-                Tables\Columns\TextColumn::make('type')->label(__('general.labels.type'))->formatStateUsing(fn(string $state): string => __("general.edu-types.{$state}"))->sortable(),
+                TextColumn::make('type')->label(__('general.labels.type'))->formatStateUsing(fn(string $state): string => __("general.edu-types.{$state}"))->sortable(),
             ])
-            ->headerActions([Tables\Actions\CreateAction::make()])
-            ->actions([EditAction::make(), DeleteAction::make()]);
+            ->headerActions([CreateAction::make()])
+            ->recordActions([EditAction::make(), DeleteAction::make()]);
     }
 }

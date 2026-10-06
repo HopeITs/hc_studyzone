@@ -2,6 +2,9 @@
 
 namespace App\Filament\Resources;
 
+use Filament\Support\Enums\Width;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Fieldset;
 use App\Enums\Roles;
 use App\Filament\Resources\CustomActivitylogResource\Pages\ListActivitylogs;
 use App\Filament\Resources\CustomActivitylogResource\Pages\ViewActivitylog;
@@ -16,18 +19,15 @@ use App\Models\User;
 use Carbon\Carbon;
 use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Fieldset;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Support\Enums\MaxWidth;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
-use Rmsramos\Activitylog\Resources\ActivitylogResource;
+use Rmsramos\Activitylog\Resources\Activitylog\ActivitylogResource;
 
 class CustomActivitylogResource extends ActivitylogResource
 {
@@ -70,7 +70,7 @@ class CustomActivitylogResource extends ActivitylogResource
         // Keep related fields together so the wide filter panel remains easy to scan.
         $table
             ->filtersFormColumns(1)
-            ->filtersFormWidth(MaxWidth::SevenExtraLarge)
+            ->filtersFormWidth(Width::SevenExtraLarge)
             ->deferFilters()
             ->filtersFormSchema(fn (array $filters): array => [
                 Section::make('الفلاتر الأساسية')
@@ -171,7 +171,7 @@ class CustomActivitylogResource extends ActivitylogResource
     {
         return Filter::make('data_period')
             ->label('الفترة الزمنية للبيانات المتأثرة')
-            ->form([
+            ->schema([
                 DatePicker::make('period_from')->label('من تاريخ')->native(false),
                 DatePicker::make('period_to')->label('إلى تاريخ')->native(false),
             ])
@@ -303,7 +303,7 @@ class CustomActivitylogResource extends ActivitylogResource
     {
         return Filter::make('registration_mismatch')
             ->label('عدم تطابق تاريخ الدخولية مع تاريخ إدخالها الفعلي')
-            ->form([
+            ->schema([
                 TextInput::make('min_gap_days')
                     ->label('أقل فارق بين تاريخ الدخولية ووقت إنشائها (بالأيام)')
                     ->helperText('اتركه فارغًا لعدم تطبيق تدقيق الإنشاء')
@@ -453,7 +453,7 @@ class CustomActivitylogResource extends ActivitylogResource
     {
         return Filter::make('entry_time_edited')
             ->label('تعديل على تاريخ الدخولية')
-            ->form([
+            ->schema([
                 Checkbox::make('enabled')
                     ->label('عرض أحداث التعديل التي غيّرت تاريخ الدخولية فقط')
                     ->default(false),
@@ -528,7 +528,7 @@ class CustomActivitylogResource extends ActivitylogResource
     {
         return Filter::make('deletion_gap')
             ->label('فارق بين تاريخ الحذف وتاريخ الدخولية')
-            ->form([
+            ->schema([
                 TextInput::make('min_gap_days')
                     ->label('أقل فارق بين تاريخ الدخولية ووقت حذفها (بالأيام)')
                     ->helperText('اتركه فارغًا لعدم تطبيق تدقيق الحذف')

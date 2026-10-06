@@ -2,10 +2,10 @@
 
 namespace App\Filament\Widgets;
 
+use Filament\Actions\Action;
 use App\Enums\Gender;
 use App\Models\StudentEducation;
 use Carbon\Carbon;
-use Filament\Tables\Actions\Action;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
@@ -28,7 +28,7 @@ class TopLevelsEntriesTable extends TableWidget
         return __('general.labels.top_levels_by_entries');
     }
 
-    public function getTableRecordKey(Model $record): string
+    public function getTableRecordKey(Model|array $record): string
     {
         return (string) $record->level;
     }
@@ -59,7 +59,7 @@ class TopLevelsEntriesTable extends TableWidget
                     ->icon('heroicon-o-document-arrow-down')
                     ->action(function () {
                         return Excel::download(
-                            new TopLevelsByEntriesExport($this->filters), 
+                            new TopLevelsByEntriesExport($this->pageFilters), 
                             'top_levels_by_entries.xlsx'
                         );
                     }),
@@ -68,10 +68,10 @@ class TopLevelsEntriesTable extends TableWidget
 
     protected function getQuery(): Builder
     {
-        $startDate = $this->filters['startDate'] ?? now()->startOfYear()->toDateTimeString();
-        $endDate = $this->filters['endDate'] ?? now()->toDateTimeString();
-        $cityIds = isset($this->filters['city']) ? implode(',', (array)$this->filters['city']) : null;
-        $centerIds = isset($this->filters['center']) ? implode(',', (array)$this->filters['center']) : null;
+        $startDate = $this->pageFilters['startDate'] ?? now()->startOfYear()->toDateTimeString();
+        $endDate = $this->pageFilters['endDate'] ?? now()->toDateTimeString();
+        $cityIds = isset($this->pageFilters['city']) ? implode(',', (array)$this->pageFilters['city']) : null;
+        $centerIds = isset($this->pageFilters['center']) ? implode(',', (array)$this->pageFilters['center']) : null;
 
         $cityCondition = $cityIds ? "AND s.street_id IN (SELECT id FROM hcsz_streets WHERE city_id IN ($cityIds))" : "";
         $centerCondition = $centerIds ? "AND sen.center_id IN ($centerIds)" : "";
@@ -97,7 +97,7 @@ class TopLevelsEntriesTable extends TableWidget
             LIMIT 10
         ";
 
-        return \App\Models\StudentEducation::query()
+        return StudentEducation::query()
             ->fromRaw("($rawSql) as level_stats")
             ->select(['id', 'level', 'total', 'males', 'females', 'unknown'])
             ->reorder()

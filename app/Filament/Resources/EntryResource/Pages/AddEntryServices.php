@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\EntryResource\Pages;
 
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Grid;
 use App\Filament\Resources\EntryResource;
 use App\Models\EntryService;
 use App\Models\Service;
@@ -9,9 +11,7 @@ use App\Models\ServiceCategory;
 use App\Models\ServicePrice;
 use App\Models\StudentEntry;
 use Filament\Actions\Action;
-use Filament\Forms\Components\Actions\Action as FormAction;
 use Filament\Forms\Components\CheckboxList;
-use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
@@ -19,7 +19,6 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
-use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Page;
 use Illuminate\Support\Facades\Auth;
@@ -31,7 +30,7 @@ class AddEntryServices extends Page implements HasForms
     use InteractsWithForms;
 
     protected static string $resource = EntryResource::class;
-    protected static string $view = 'filament.resources.entry-resource.pages.add-entry-services';
+    protected string $view = 'filament.resources.entry-resource.pages.add-entry-services';
 
     public ?StudentEntry $record = null;
     public array $formData = [];
@@ -51,10 +50,10 @@ class AddEntryServices extends Page implements HasForms
         ]);
     }
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form
-            ->schema($this->getFormSchema())
+        return $schema
+            ->components($this->getFormSchema())
             ->statePath('formData');
     }
 
@@ -114,7 +113,7 @@ class AddEntryServices extends Page implements HasForms
                 ->addActionLabel('+ '.__('general.labels.add_new_service'))
                 ->live()
                 ->deleteAction(
-                    fn(FormAction $action) => $action
+                    fn(Action $action) => $action
                         ->requiresConfirmation()
                         ->modalHeading(__('general.labels.confirm_delete'))
                         ->modalDescription(__('general.labels.delete_service_question'))

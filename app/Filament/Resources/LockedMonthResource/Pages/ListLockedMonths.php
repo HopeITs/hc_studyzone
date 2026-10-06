@@ -15,7 +15,7 @@ class ListLockedMonths extends Page
 {
     protected static string $resource = LockedMonthResource::class;
 
-    protected static string $view = 'filament.resources.locked-month-resource.pages.list-locked-months';
+    protected string $view = 'filament.resources.locked-month-resource.pages.list-locked-months';
 
     public function getViewData(): array
     {

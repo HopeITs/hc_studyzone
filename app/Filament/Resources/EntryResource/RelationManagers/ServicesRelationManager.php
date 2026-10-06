@@ -2,22 +2,26 @@
 
 namespace App\Filament\Resources\EntryResource\RelationManagers;
 
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Actions\Action;
+use Filament\Schemas\Components\Grid;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
 use App\Models\EntryService;
 use App\Models\Service;
 use App\Models\ServiceCategory;
 use App\Models\ServicePrice;
 use Filament\Forms\Components\CheckboxList;
-use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
-use Filament\Tables\Actions\Action;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
@@ -27,10 +31,10 @@ class ServicesRelationManager extends RelationManager
 
     protected static ?string $recordTitleAttribute = 'service.name';
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 // Keep minimal — the real form is in the custom header action
             ]);
     }
@@ -80,30 +84,30 @@ class ServicesRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('service.name')
             ->columns([
-                Tables\Columns\TextColumn::make('service.name')
+                TextColumn::make('service.name')
                     ->label(__('general.labels.service'))
                     ->searchable(),
-                Tables\Columns\TextColumn::make('service.category.name')
+                TextColumn::make('service.category.name')
                     ->label(__('general.labels.category'))
                     ->searchable(),
-                Tables\Columns\TextColumn::make('amount')
+                TextColumn::make('amount')
                     ->formatStateUsing(fn (Model $record) => $record->amount.' '.__('general.services_module.units.'.$record->service->category->unit))
                     ->label(__('general.labels.quantity'))
                     ->sortable(),
-                Tables\Columns\TextColumn::make('price_at_time')
+                TextColumn::make('price_at_time')
                     ->label(__('general.labels.unit_price'))
                     ->money('SYP')
                     ->sortable(),
-                Tables\Columns\TextColumn::make('total')
+                TextColumn::make('total')
                     ->label(__('general.labels.total_price'))
                     ->money('SYP')
                     ->sortable(),
-                Tables\Columns\TextColumn::make('updated_at')
+                TextColumn::make('updated_at')
                     ->formatStateUsing(fn (Model $record) => $record->total * 100)
                     ->label(__('general.labels.old_currency_price'))
                     ->money('SYP')
                     ->sortable(),
-                Tables\Columns\TextColumn::make('created_at')
+                TextColumn::make('created_at')
                     ->label(__('general.labels.created_at'))
                     ->dateTime()
                     ->sortable()
@@ -116,7 +120,7 @@ class ServicesRelationManager extends RelationManager
                     ->icon('heroicon-o-plus')
                     ->modalHeading(__('general.labels.buy_additional_services'))
                     ->modalSubmitActionLabel(__('general.labels.add_update_total'))
-                    ->form(function () {
+                    ->schema(function () {
                         $record = $this->getOwnerRecord();
                         $centerId = $record->center_id;
 
@@ -335,8 +339,8 @@ class ServicesRelationManager extends RelationManager
                             ->send();
                     }),
             ])
-            ->actions([
-                Tables\Actions\DeleteAction::make()
+            ->recordActions([
+                DeleteAction::make()
                     ->after(function () {
                         // ─── NEW: Sync reference columns after deletion ───
                         $this->syncEntryReferenceColumns();
@@ -344,9 +348,9 @@ class ServicesRelationManager extends RelationManager
                         $this->dispatch('entry-services-updated');
                     }),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make()
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make()
                         ->after(function () {
                             // ─── NEW: Sync reference columns after bulk deletion ───
                             $this->syncEntryReferenceColumns();

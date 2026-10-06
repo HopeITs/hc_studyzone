@@ -11,7 +11,7 @@ class FrequentStudentsChart extends ChartWidget
 {
     use InteractsWithPageFilters;
 
-    protected static ?string $heading = null;
+    protected ?string $heading = null;
     protected int|string|array $columnSpan = 'full';
     protected static ?int $sort = 3;
 
@@ -27,16 +27,16 @@ class FrequentStudentsChart extends ChartWidget
 
     protected function getData(): array
     {
-        $startDate = !is_null($this->filters['startDate'] ?? null)
-            ? Carbon::parse($this->filters['startDate'])->startOfMonth()
+        $startDate = !is_null($this->pageFilters['startDate'] ?? null)
+            ? Carbon::parse($this->pageFilters['startDate'])->startOfMonth()
             : now()->startOfYear();
 
-        $endDate = !is_null($this->filters['endDate'] ?? null)
-            ? Carbon::parse($this->filters['endDate'])->endOfMonth()
+        $endDate = !is_null($this->pageFilters['endDate'] ?? null)
+            ? Carbon::parse($this->pageFilters['endDate'])->endOfMonth()
             : now()->endOfMonth();
 
-        $cityIds = $this->filters['city'] ?? null;
-        $centerIds = $this->filters['center'] ?? null;
+        $cityIds = $this->pageFilters['city'] ?? null;
+        $centerIds = $this->pageFilters['center'] ?? null;
         $minVisits = intval($this->filter ?? 1);
 
         // Step 1: Count entries per student per month

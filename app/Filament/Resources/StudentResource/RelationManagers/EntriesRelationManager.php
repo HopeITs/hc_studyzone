@@ -2,6 +2,20 @@
 
 namespace App\Filament\Resources\StudentResource\RelationManagers;
 
+use Filament\Schemas\Schema;
+use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\DateTimePicker;
+use Carbon\Carbon;
+use Filament\Schemas\Components\Fieldset;
+use App\Helpers\ServiceHelper;
+use Filament\Forms\Components\ViewField;
+use Filament\Forms\Components\Checkbox;
+use App\Enums\EntryPurpose;
+use Filament\Actions\Action;
+use App\Models\EntryService;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
 use App\Enums\Roles;
 use App\Filament\Resources\StudentResource;
 use App\Filament\Resources\EntryResource;
@@ -9,11 +23,9 @@ use App\Models\Center;
 use App\Models\LockedMonth;
 use Filament\Forms;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Actions;
-use Filament\Tables\Actions\Action;
 use Filament\Tables\Columns\CheckboxColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -32,14 +44,14 @@ class EntriesRelationManager extends RelationManager
         return __('general.labels.entries');
     }
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
         $user = Auth::user();
 
-        return $form->schema([
-            Forms\Components\Hidden::make('student_id')->default(fn ($livewire) => $livewire->ownerRecord->id),
-            Forms\Components\Hidden::make('center_id')->default(fn () => $user->center_id)->visible($user->role === Roles::CenterAdmin())->required(),
-            Forms\Components\Hidden::make('user_id')->default(fn () => $user->id)->required(),
+        return $schema->components([
+            Hidden::make('student_id')->default(fn ($livewire) => $livewire->ownerRecord->id),
+            Hidden::make('center_id')->default(fn () => $user->center_id)->visible($user->role === Roles::CenterAdmin())->required(),
+            Hidden::make('user_id')->default(fn () => $user->id)->required(),
             Select::make('center_id')
                 ->label(__('general.labels.center'))
                 ->options(Center::where('is_active', 1)->orderBy('order')->get()->pluck('name', 'id'))
@@ -47,19 +59,19 @@ class EntriesRelationManager extends RelationManager
                 ->visible(auth()->user()->role !== Roles::CenterAdmin())
                 ->required()
                 ->searchable(),
-            Forms\Components\Select::make('entry_type')
+            Select::make('entry_type')
                 ->label(__('general.labels.entry_type'))
                 ->options(__('general.entry-types'))
                 ->default(1)
                 ->required(),
 
-            Forms\Components\DateTimePicker::make('entry_time')
+            DateTimePicker::make('entry_time')
                 ->label(__('general.labels.entry_time'))
                 ->default(now())
                 ->maxDate(now()->endOfDay())
                 ->live()
                 ->afterStateUpdated(function ($state) {
-                    if (! $state || \Carbon\Carbon::parse($state)->isToday()) {
+                    if (! $state || Carbon::parse($state)->isToday()) {
                         return;
                     }
 
@@ -71,14 +83,14 @@ class EntriesRelationManager extends RelationManager
                 })
                 ->required(),
 
-            Forms\Components\Fieldset::make('requested_services')
+            Fieldset::make('requested_services')
                 ->label(__('general.labels.requested_services'))
                 ->schema([
-                    Forms\Components\Select::make('selected_services')
+                    Select::make('selected_services')
                         ->label(__('general.labels.select_services'))
                         ->multiple()
                         ->options(function () {
-                            $services = \App\Helpers\ServiceHelper::getServicesWithPrices();
+                            $services = ServiceHelper::getServicesWithPrices();
                             $options = [];
                             foreach ($services as $service) {
                                 $options[$service['id']] = "{$service['name']} - {$service['price']} SYP";
@@ -87,7 +99,7 @@ class EntriesRelationManager extends RelationManager
                             return $options;
                         })
                         ->default(function () {
-                            $defaultService = \App\Helpers\ServiceHelper::getDefaultEntryService();
+                            $defaultService = ServiceHelper::getDefaultEntryService();
 
                             return $defaultService ? [$defaultService['id']] : [];
                         })
@@ -95,7 +107,7 @@ class EntriesRelationManager extends RelationManager
                         ->preload()
                         ->live()
                         ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                            $services = \App\Helpers\ServiceHelper::getServicesWithPrices();
+                            $services = ServiceHelper::getServicesWithPrices();
                             $selectedDetails = [];
                             $total = 0;
 
@@ -115,7 +127,7 @@ class EntriesRelationManager extends RelationManager
                         })
                         ->columnSpanFull(),
 
-                    \Filament\Forms\Components\ViewField::make('services_list')
+                    ViewField::make('services_list')
                         ->label(__('general.labels.selected_services'))
                         ->view('filament.forms.components.services-list')
                         ->afterStateHydrated(function ($component, $get) {
@@ -124,7 +136,7 @@ class EntriesRelationManager extends RelationManager
                         ->live()
                         ->columnSpanFull(),
 
-                    \Filament\Forms\Components\Checkbox::make('calculate_total')
+                    Checkbox::make('calculate_total')
                         ->label(__('general.labels.close_invoice_show_total'))
                         ->live()
                         ->afterStateUpdated(function ($state, callable $get, callable $set) {
@@ -137,7 +149,7 @@ class EntriesRelationManager extends RelationManager
                         })
                         ->columnSpanFull(),
 
-                    \Filament\Forms\Components\ViewField::make('total_display')
+                    ViewField::make('total_display')
                         ->label(__('general.labels.total'))
                         ->view('filament.forms.components.total-display')
                         ->afterStateHydrated(function ($component, $get) {
@@ -165,18 +177,18 @@ class EntriesRelationManager extends RelationManager
                     ->badge()
                     ->formatStateUsing(fn ($state) => __('general.purposes.'.$state))
                     ->color(fn (int $state): string => match ($state) {
-                        \App\Enums\EntryPurpose::Unknown() => 'warning',
-                        \App\Enums\EntryPurpose::Studying() => 'info',
-                        \App\Enums\EntryPurpose::Working() => 'success',
+                        EntryPurpose::Unknown() => 'warning',
+                        EntryPurpose::Studying() => 'info',
+                        EntryPurpose::Working() => 'success',
                     })
                     ->sortable(),
                 TextColumn::make('center.name')->label(__('general.labels.center'))->sortable(),
                 TextColumn::make('entry_time')->label(__('general.labels.date'))->dateTime('Y-m-d H:i')->sortable(),
                 CheckboxColumn::make('use_internet')
                     ->label(__('general.labels.internet-service'))
-                    ->disabled(fn ($record) => ! \App\Helpers\ServiceHelper::centerHasInternetService($record->center_id) || LockedMonth::isLocked($record->entry_time))
-                    ->extraAttributes(fn ($record) => \App\Helpers\ServiceHelper::centerHasInternetService($record->center_id) ? [] : ['class' => 'hidden'])
-                    ->updateStateUsing(fn ($record, $state) => \App\Helpers\ServiceHelper::toggleInternetService($record, (bool) $state)),
+                    ->disabled(fn ($record) => ! ServiceHelper::centerHasInternetService($record->center_id) || LockedMonth::isLocked($record->entry_time))
+                    ->extraAttributes(fn ($record) => ServiceHelper::centerHasInternetService($record->center_id) ? [] : ['class' => 'hidden'])
+                    ->updateStateUsing(fn ($record, $state) => ServiceHelper::toggleInternetService($record, (bool) $state)),
                 TextColumn::make('services_list')
                     ->label(__('general.labels.provided_services'))
                     ->formatStateUsing(fn ($record) => $record->services_list ?: '-')
@@ -218,7 +230,7 @@ class EntriesRelationManager extends RelationManager
                             'entry_time' => $data['entry_time'],
                         ]);
 
-                        $defaultService = \App\Helpers\ServiceHelper::getDefaultEntryService();
+                        $defaultService = ServiceHelper::getDefaultEntryService();
                         $servicesToAdd = !empty($data['selected_services']) ? $data['selected_services'] : [];
 
                         if ($defaultService && !in_array($defaultService['id'], $servicesToAdd)) {
@@ -226,10 +238,10 @@ class EntriesRelationManager extends RelationManager
                         }
 
                         if (!empty($servicesToAdd)) {
-                            $services = \App\Helpers\ServiceHelper::getServicesWithPrices();
+                            $services = ServiceHelper::getServicesWithPrices();
                             foreach ($services as $service) {
                                 if (in_array($service['id'], $servicesToAdd)) {
-                                    \App\Models\EntryService::create([
+                                    EntryService::create([
                                         'entry_id' => $entry->id,
                                         'service_id' => $service['id'],
                                         'price_at_time' => $service['price'],
@@ -239,7 +251,7 @@ class EntriesRelationManager extends RelationManager
                         }
                     }),
             ])
-            ->actions([
+            ->recordActions([
                 Action::make('view_bill')
                     ->label(__('general.labels.view_invoice'))
                     ->icon('heroicon-o-document-text')
@@ -261,13 +273,13 @@ class EntriesRelationManager extends RelationManager
                     ]))
                     ->disabled(fn ($record) => ! $record->student->completed_data || LockedMonth::isLocked($record->entry_time)),
 
-                Actions\DeleteAction::make()
+                DeleteAction::make()
                     ->disabled(fn ($record) => LockedMonth::isLocked($record->entry_time)),
             ])
 
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ])
             ->checkIfRecordIsSelectableUsing(fn ($record) => ! LockedMonth::isLocked($record->entry_time));

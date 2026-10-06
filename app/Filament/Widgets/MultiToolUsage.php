@@ -2,13 +2,13 @@
 
 namespace App\Filament\Widgets;
 
+use Filament\Widgets\StatsOverviewWidget\Stat;
 use App\Models\Center;
 use App\Models\Student;
 use App\Models\StudentEntry;
 use Carbon\Carbon;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
-use Filament\Widgets\StatsOverviewWidget\Card;
 use Illuminate\Support\Facades\DB;
 
 class MultiToolUsage extends BaseWidget
@@ -17,16 +17,16 @@ class MultiToolUsage extends BaseWidget
 
     protected function getCards(): array
     {
-        $startDate = !is_null($this->filters['startDate'] ?? null)
-            ? Carbon::parse($this->filters['startDate'])->startOfMonth()
+        $startDate = !is_null($this->pageFilters['startDate'] ?? null)
+            ? Carbon::parse($this->pageFilters['startDate'])->startOfMonth()
             : now()->startOfYear();
 
-        $endDate = !is_null($this->filters['endDate'] ?? null)
-            ? Carbon::parse($this->filters['endDate'])->endOfMonth()
+        $endDate = !is_null($this->pageFilters['endDate'] ?? null)
+            ? Carbon::parse($this->pageFilters['endDate'])->endOfMonth()
             : now()->endOfMonth();
 
-        $centerIds = $this->filters['center'] ?? null;
-        $cityIds = $this->filters['city'] ?? null;
+        $centerIds = $this->pageFilters['center'] ?? null;
+        $cityIds = $this->pageFilters['city'] ?? null;
 
         // Base query with applied filters
         $baseQuery = StudentEntry::query()
@@ -101,17 +101,17 @@ class MultiToolUsage extends BaseWidget
 //                ->color($multiToolPercentage >= 50 ? 'success' : 'warning')
 //                ->icon('heroicon-o-adjustments-horizontal'),
 
-            Card::make(__('general.labels.students_visited_multiple_centers'), $studentsWithMultipleCenters)
+            Stat::make(__('general.labels.students_visited_multiple_centers'), $studentsWithMultipleCenters)
                 ->description(__('general.labels.students_visited_multiple_centers_description'))
                 ->color('info')
                 ->icon('heroicon-o-map-pin'),
 
-            Card::make(__('general.labels.architecture_students'), "{$architecturePercentage}%")
+            Stat::make(__('general.labels.architecture_students'), "{$architecturePercentage}%")
                 ->description(__('general.labels.architecture_students_description'))
                 ->color('success')
                 ->icon('heroicon-o-academic-cap'),
 
-            Card::make(__('general.labels.dentistry_students'), "{$dentistryPercentage}%")
+            Stat::make(__('general.labels.dentistry_students'), "{$dentistryPercentage}%")
                 ->description(__('general.labels.dentistry_students_description'))
                 ->color('success')
                 ->icon('heroicon-o-academic-cap'),
