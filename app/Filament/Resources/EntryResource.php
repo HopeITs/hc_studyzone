@@ -334,6 +334,18 @@ class EntryResource extends Resource
                     ->multiple()
                     ->preload(),
 
+                    TernaryFilter::make('student.national_number')
+                    ->label(__('general.labels.national_number_or_residency'))
+                    ->placeholder(__('general.labels.all'))
+                    ->trueLabel(__('general.labels.exists'))
+                    ->falseLabel(__('general.labels.not_exists'))
+                    ->queries(
+                        true: fn (Builder $query) => $query->whereHas('student', fn ($q) => $q->whereNotNull('national_number')),
+                        false: fn (Builder $query) => $query->whereHas('student', fn ($q) => $q->whereNull('national_number')),
+                        blank: fn (Builder $query) => $query,
+                    )
+                    ->columnSpan(1),
+
                 SelectFilter::make('student.education')
                     ->label(__('general.labels.education'))
                     ->options(Education::pluck('name', 'id'))
@@ -377,7 +389,7 @@ class EntryResource extends Resource
                     ->options(__('general.edu-levels'))
                     ->multiple()
                     ->searchable()
-                    ->columnSpan(1)
+                    ->columnSpan(2)
                     ->query(function (Builder $query, array $data): Builder {
                         if (empty($data['values'])) {
                             return $query;
@@ -390,17 +402,7 @@ class EntryResource extends Resource
                     })
                     ->preload(),
 
-                TernaryFilter::make('student.national_number')
-                    ->label(__('general.labels.national_number_or_residency'))
-                    ->placeholder(__('general.labels.all'))
-                    ->trueLabel(__('general.labels.exists'))
-                    ->falseLabel(__('general.labels.not_exists'))
-                    ->queries(
-                        true: fn (Builder $query) => $query->whereHas('student', fn ($q) => $q->whereNotNull('national_number')),
-                        false: fn (Builder $query) => $query->whereHas('student', fn ($q) => $q->whereNull('national_number')),
-                        blank: fn (Builder $query) => $query,
-                    )
-                    ->columnSpan(1),
+
 
                 SelectFilter::make('student.gender')
                     ->label(__('general.labels.gender'))
