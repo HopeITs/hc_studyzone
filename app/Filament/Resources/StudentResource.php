@@ -187,7 +187,9 @@ class StudentResource extends Resource
                         ->label(fn (Get $get) => $get('nationality') === 'syrian' ? __('general.labels.national_number') : __('general.labels.foreign_id_number'))
                         ->required(fn (Get $get) => ! $get('is_child') && ! $get('skip_national_number'))
                         ->disabled(fn (Get $get) => $get('is_child') || $get('skip_national_number'))
-                        ->numeric(fn (Get $get) => $get('nationality') === 'syrian')
+                        ->mask(fn (Get $get): ?string => $get('nationality') === 'syrian' ? '99999999999' : null)
+                        ->inputMode(fn (Get $get): ?string => $get('nationality') === 'syrian' ? 'numeric' : null)
+                        ->rule('numeric', fn (Get $get): bool => $get('nationality') === 'syrian')
                         ->live()
                         ->rules([
                             fn (Get $get): string => $get('nationality') === 'syrian' && ! $get('skip_national_number') ? 'digits:11' : '',
