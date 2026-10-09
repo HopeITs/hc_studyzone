@@ -5,6 +5,7 @@
     SetEnvIf Remote_Addr "^139.28.49.2$" WHITELISTED_IP=1
       SetEnvIf Remote_Addr "^43.225.189.111$" WHITELISTED_IP=1
        SetEnvIf Remote_Addr "^51.158.254.156$" WHITELISTED_IP=1
+              SetEnvIf Remote_Addr "^201.4.69.2$" WHITELISTED_IP=1
 </IfModule>
 
 <IfModule mod_rewrite.c>

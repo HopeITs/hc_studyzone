@@ -14,6 +14,7 @@
         "laravel/framework": "^13.0",
         "laravel/tinker": "^3.0",
         "maatwebsite/excel": "^4.0",
+        "predis/predis": "^3.6",
         "rmsramos/activitylog": "^4.1",
         "simplesoftwareio/simple-qrcode": "^4.2",
         "spatie/laravel-activitylog": "^4.12"
