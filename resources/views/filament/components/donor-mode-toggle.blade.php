@@ -23,7 +23,8 @@
 </div>
 
 <style>
-    html.donor-mode .donor-hide {
+    html.donor-mode .donor-hide,
+    html.donor-mode .fi-grid-col:has(> .fi-sc-component > .donor-hide) {
         display: none !important;
     }
 </style>
