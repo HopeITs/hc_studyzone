@@ -5,7 +5,9 @@ namespace App\Filament\Resources\EntryResource\Pages;
 use Filament\Schemas\Schema;
 use Filament\Schemas\Components\Grid;
 use App\Filament\Resources\EntryResource;
+use App\Helpers\ServiceHelper;
 use App\Models\EntryService;
+use App\Models\LockedMonth;
 use App\Models\Service;
 use App\Models\ServiceCategory;
 use App\Models\ServicePrice;
@@ -299,27 +301,36 @@ class AddEntryServices extends Page implements HasForms
 
 protected function persistServices(): void
 {
+    // The bulk insert below skips EntryServiceObserver, so the month lock is checked here.
+    if (LockedMonth::isLocked($this->record->entry_time)) {
+        Notification::make()
+            ->title(__('general.messages.month_locked_title'))
+            ->body(__('general.messages.month_locked_body'))
+            ->danger()
+            ->send();
+
+        return;
+    }
+
     $data        = $this->form->getState();
     $record      = $this->record;
     $centerId    = (int) $record->center_id;
     $now         = now();
     $rows        = [];
 
-    $services    = $data['services'] ?? [];
+    $services    = array_values(array_filter($data['services'] ?? [], fn($s) => !empty($s['service_id'])));
     $dayServices = $data['day_services'] ?? [];
 
-    // Fetch day prices fresh from DB
-    $dayPrices = [];
-    if (!empty($dayServices)) {
-        $dayPrices = ServicePrice::where('center_id', $centerId)
-            ->where('is_active', 1)
-            ->whereIn('service_id', $dayServices)
-            ->pluck('price', 'service_id')
-            ->toArray();
+    // Resolve prices from the DB, never from (hidden, client-editable) form state
+    $selectedServiceIds = array_unique(array_merge(array_column($services, 'service_id'), $dayServices));
+    $prices = ServicePrice::activePricesFor($centerId, $selectedServiceIds);
+
+    if (!ServiceHelper::ensureServicesPriced($selectedServiceIds, $prices)) {
+        return;
     }
 
     foreach ($dayServices as $serviceId) {
-        $price  = (float) ($dayPrices[$serviceId] ?? 0);
+        $price  = $prices[$serviceId];
         $rows[] = [
             'entry_id'      => $record->id,
             'service_id'    => $serviceId,
@@ -332,19 +343,17 @@ protected function persistServices(): void
     }
 
     foreach ($services as $s) {
-        if (!empty($s['service_id'])) {
-            $price  = (float) ($s['price'] ?? 0);
-            $amount = (int) ($s['amount'] ?? 1);
-            $rows[] = [
-                'entry_id'      => $record->id,
-                'service_id'    => $s['service_id'],
-                'amount'        => $amount,
-                'price_at_time' => $price,
-                'total'         => $price * $amount,
-                'created_at'    => $now,
-                'updated_at'    => $now,
-            ];
-        }
+        $price  = $prices[$s['service_id']];
+        $amount = max(1, (int) ($s['amount'] ?? 1));
+        $rows[] = [
+            'entry_id'      => $record->id,
+            'service_id'    => $s['service_id'],
+            'amount'        => $amount,
+            'price_at_time' => $price,
+            'total'         => $price * $amount,
+            'created_at'    => $now,
+            'updated_at'    => $now,
+        ];
     }
 
     if (!empty($rows)) {
@@ -353,14 +362,9 @@ protected function persistServices(): void
 
     // ── NEW: Update reference columns in student_entries ──────────────────
 
-    // 1. Collect all service IDs that were just saved
-    $allSavedServiceIds = array_unique(array_merge(
-        $dayServices,
-        array_map(fn($s) => $s['service_id'], array_filter($services, fn($s) => !empty($s['service_id'])))
-    ));
-
+    // 1. All service IDs that were just saved are in $selectedServiceIds
     // 2. Get the unique reference_column_name(s) for these services
-    $referenceColumns = Service::whereIn('id', $allSavedServiceIds)
+    $referenceColumns = Service::whereIn('id', $selectedServiceIds)
         ->whereNotNull('reference_column_name')
         ->pluck('reference_column_name')
         ->unique()

@@ -10,6 +10,7 @@ use Filament\Schemas\Components\Grid;
 use Filament\Actions\Action;
 use App\Enums\Roles;
 use App\Filament\Resources\StudentResource;
+use App\Helpers\ServiceHelper;
 use App\Models\Center;
 use App\Models\EntryService;
 use App\Models\LockedMonth;
@@ -30,6 +31,7 @@ use Filament\Resources\Pages\Concerns\InteractsWithRecord;
 use Filament\Resources\Pages\Page;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class CreateStudentEntry extends Page
 {
@@ -495,34 +497,47 @@ class CreateStudentEntry extends Page
             return;
         }
 
-        $centerId = $data['center_id'] ?? auth()->user()->center_id;
+        $centerId = (int) ($data['center_id'] ?? auth()->user()->center_id);
 
-        // Calculate total
-        $totalAmount = 0;
-
-        // Regular services
-        $services = $data['services'] ?? [];
-        foreach ($services as $serviceData) {
-            $price = (float) ($serviceData['price'] ?? 0);
-            $amount = (int) ($serviceData['amount'] ?? 1);
-            $totalAmount += ($price * $amount);
-        }
-
-        // Day services
+        $services = array_values(array_filter($data['services'] ?? [], fn ($s) => ! empty($s['service_id'])));
         $dayServices = $data['day_services'] ?? [];
-        $dayPrices = [];
-        if (! empty($dayServices)) {
-            $dayPrices = ServicePrice::where('center_id', $centerId)
-                ->where('is_active', 1)
-                ->whereIn('service_id', $dayServices)
-                ->pluck('price', 'service_id')
-                ->toArray();
+        $selectedServiceIds = array_unique(array_merge(array_column($services, 'service_id'), $dayServices));
 
-            foreach ($dayServices as $serviceId) {
-                $totalAmount += (float) ($dayPrices[$serviceId] ?? 0);
-            }
+        // Prices are always resolved here: the repeater's `price` key is not a form
+        // field, so it never survives getState(), and client state must not set prices.
+        $prices = ServicePrice::activePricesFor($centerId, $selectedServiceIds);
+
+        // When editing within the same center, keep what each existing service was charged.
+        if ($this->entryInstance && (int) $this->entryInstance->center_id === $centerId) {
+            $prices = $this->entryInstance->services()
+                ->where('price_at_time', '>', 0)
+                ->pluck('price_at_time', 'service_id')
+                ->all() + $prices;
         }
 
+        if (! ServiceHelper::ensureServicesPriced($selectedServiceIds, $prices)) {
+            return;
+        }
+
+        DB::transaction(fn () => $this->saveEntryWithServices($data, $centerId, $services, $dayServices, $prices));
+
+        $this->saved = true;
+
+        Notification::make()
+            ->title($this->entryInstance ? 'تم تحديث الدخولية بنجاح' : __('general.labels.entry_recorded_successfully'))
+            ->success()
+            ->send();
+
+        $this->redirect(static::getResource()::getUrl('index'));
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $services
+     * @param  array<int|string>  $dayServices
+     * @param  array<int, int>  $prices  service_id => unit price
+     */
+    protected function saveEntryWithServices(array $data, int $centerId, array $services, array $dayServices, array $prices): void
+    {
         // ─── Update or Create Entry ───
         if ($this->entryInstance) {
             $this->entryInstance->update([
@@ -549,20 +564,21 @@ class CreateStudentEntry extends Page
 
         // ─── Re-attach regular services ───
         foreach ($services as $serviceData) {
-            if (! empty($serviceData['service_id'])) {
-                EntryService::create([
-                    'entry_id' => $entry->id,
-                    'service_id' => $serviceData['service_id'],
-                    'amount' => (int) ($serviceData['amount'] ?? 1),
-                    'price_at_time' => (float) ($serviceData['price'] ?? 0),
-                    'total' => (float) ($serviceData['price'] ?? 0) * (int) ($serviceData['amount'] ?? 1),
-                ]);
-            }
+            $price = $prices[$serviceData['service_id']];
+            $amount = max(1, (int) ($serviceData['amount'] ?? 1));
+
+            EntryService::create([
+                'entry_id' => $entry->id,
+                'service_id' => $serviceData['service_id'],
+                'amount' => $amount,
+                'price_at_time' => $price,
+                'total' => $price * $amount,
+            ]);
         }
 
         // ─── Re-attach day services ───
         foreach ($dayServices as $serviceId) {
-            $price = (float) ($dayPrices[$serviceId] ?? 0);
+            $price = $prices[$serviceId];
             EntryService::create([
                 'entry_id' => $entry->id,
                 'service_id' => $serviceId,
@@ -575,10 +591,7 @@ class CreateStudentEntry extends Page
         // ─── NEW: Sync reference_column_name to student_entries ───
 
         // 1. Collect all service IDs that were just saved
-        $allSavedServiceIds = array_unique(array_merge(
-            collect($services)->pluck('service_id')->filter()->toArray(),
-            $dayServices
-        ));
+        $allSavedServiceIds = array_unique(array_merge(array_column($services, 'service_id'), $dayServices));
 
         // 2. Fetch all possible reference columns to reset removed ones to false (handles edit scenario)
         $allPossibleColumns = Service::whereNotNull('reference_column_name')
@@ -609,14 +622,5 @@ class CreateStudentEntry extends Page
         }
 
         // ─── END NEW ───
-
-        $this->saved = true;
-
-        Notification::make()
-            ->title($this->entryInstance ? 'تم تحديث الدخولية بنجاح' : __('general.labels.entry_recorded_successfully'))
-            ->success()
-            ->send();
-
-        $this->redirect(static::getResource()::getUrl('index'));
     }
 }

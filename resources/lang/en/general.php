@@ -351,6 +351,8 @@ return [
         'non_today_entry_date_body' => 'The selected entry date does not match today\'s date.',
         'month_locked_title' => 'Month Locked',
         'month_locked_body' => 'The General Admin has locked this month, so entries within it cannot be added, edited, or deleted.',
+        'service_price_missing_title' => 'Service price missing',
+        'service_price_missing_body' => 'Some selected services have no active price in this center: :services',
         'complete_student_before_entry' => 'Complete the student personal data before recording an entry.',
         'missing_fields' => 'Missing fields:',
         'all_data_completed' => 'All data is complete - entries can be recorded',

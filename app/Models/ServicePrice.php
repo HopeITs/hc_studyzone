@@ -28,6 +28,29 @@ class ServicePrice extends Model
         return $this->belongsTo(Center::class);
     }
 
+    /**
+     * Active price of each service in a center, keyed by service_id.
+     * Services without an active price are omitted so callers can detect them.
+     *
+     * @param  array<int|string>  $serviceIds
+     * @return array<int, int>
+     */
+    public static function activePricesFor(int $centerId, array $serviceIds): array
+    {
+        if (empty($serviceIds)) {
+            return [];
+        }
+
+        return static::query()
+            ->where('center_id', $centerId)
+            ->where('is_active', true)
+            ->whereNotNull('price')
+            ->whereIn('service_id', $serviceIds)
+            ->pluck('price', 'service_id')
+            ->map(fn ($price) => (int) $price)
+            ->all();
+    }
+
     public function isValid()
     {
         if (! $this->is_active) {

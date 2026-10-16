@@ -9,6 +9,7 @@ use Filament\Schemas\Components\Grid;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
+use App\Helpers\ServiceHelper;
 use App\Models\EntryService;
 use App\Models\Service;
 use App\Models\ServiceCategory;
@@ -24,6 +25,7 @@ use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class ServicesRelationManager extends RelationManager
 {
@@ -285,46 +287,47 @@ class ServicesRelationManager extends RelationManager
                                 ->live(),
                         ];
                     })
-                    ->action(function (array $data) {
+                    ->action(function (array $data, Action $action) {
                         $record = $this->getOwnerRecord();
-                        $centerId = $record->center_id;
+                        $centerId = (int) $record->center_id;
 
-                        // 1. Add daily services
-                        if (! empty($data['day_services'])) {
-                            $dayPrices = ServicePrice::where('center_id', $centerId)
-                                ->where('is_active', 1)
-                                ->whereIn('service_id', $data['day_services'])
-                                ->pluck('price', 'service_id');
+                        $services = array_values(array_filter($data['services'] ?? [], fn ($s) => ! empty($s['service_id'])));
+                        $dayServices = $data['day_services'] ?? [];
 
-                            foreach ($data['day_services'] as $serviceId) {
-                                $price = (float) ($dayPrices[$serviceId] ?? 0);
+                        // Resolve prices from the DB, never from (hidden, client-editable) form state
+                        $selectedServiceIds = array_unique(array_merge(array_column($services, 'service_id'), $dayServices));
+                        $prices = ServicePrice::activePricesFor($centerId, $selectedServiceIds);
+
+                        if (! ServiceHelper::ensureServicesPriced($selectedServiceIds, $prices)) {
+                            $action->halt();
+                        }
+
+                        DB::transaction(function () use ($record, $services, $dayServices, $prices) {
+                            // 1. Add daily services
+                            foreach ($dayServices as $serviceId) {
                                 EntryService::create([
                                     'entry_id' => $record->id,
                                     'service_id' => $serviceId,
                                     'amount' => 1,
-                                    'price_at_time' => $price,
-                                    'total' => $price,
+                                    'price_at_time' => $prices[$serviceId],
+                                    'total' => $prices[$serviceId],
                                 ]);
                             }
-                        }
 
-                        // 2. Add other services
-                        if (! empty($data['services'])) {
-                            foreach ($data['services'] as $serviceData) {
-                                if (! empty($serviceData['service_id'])) {
-                                    $price = (float) ($serviceData['price'] ?? 0);
-                                    $amount = (int) ($serviceData['amount'] ?? 1);
+                            // 2. Add other services
+                            foreach ($services as $serviceData) {
+                                $price = $prices[$serviceData['service_id']];
+                                $amount = max(1, (int) ($serviceData['amount'] ?? 1));
 
-                                    EntryService::create([
-                                        'entry_id' => $record->id,
-                                        'service_id' => $serviceData['service_id'],
-                                        'amount' => $amount,
-                                        'price_at_time' => $price,
-                                        'total' => $price * $amount,
-                                    ]);
-                                }
+                                EntryService::create([
+                                    'entry_id' => $record->id,
+                                    'service_id' => $serviceData['service_id'],
+                                    'amount' => $amount,
+                                    'price_at_time' => $price,
+                                    'total' => $price * $amount,
+                                ]);
                             }
-                        }
+                        });
 
                         // ─── NEW: Sync reference columns after adding ───
                         $this->syncEntryReferenceColumns();

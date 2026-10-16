@@ -67,6 +67,32 @@ class ServiceHelper
     }
 
     /**
+     * Notify about selected services that have no active price in the center.
+     * Returns true when every service is priced and saving may continue.
+     *
+     * @param  array<int|string>  $serviceIds
+     * @param  array<int, int>  $prices  service_id => price
+     */
+    public static function ensureServicesPriced(array $serviceIds, array $prices): bool
+    {
+        $missing = array_diff($serviceIds, array_keys($prices));
+
+        if (empty($missing)) {
+            return true;
+        }
+
+        Notification::make()
+            ->title(__('general.messages.service_price_missing_title'))
+            ->body(__('general.messages.service_price_missing_body', [
+                'services' => Service::whereIn('id', $missing)->pluck('name')->implode('، '),
+            ]))
+            ->danger()
+            ->send();
+
+        return false;
+    }
+
+    /**
      * Whether the internet service has an active price configured for the given center.
      * Memoized per request to avoid re-querying for every row in a table.
      */

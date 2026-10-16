@@ -354,6 +354,8 @@ return [
         'non_today_entry_date_body' => 'تاريخ الدخولية المحدد لا يطابق تاريخ اليوم الحالي.',
         'month_locked_title' => 'الشهر مقفل',
         'month_locked_body' => 'قام المدير العام بقفل هذا الشهر، لذلك لا يمكن إضافة أو تعديل أو حذف أي دخولية ضمنه.',
+        'service_price_missing_title' => 'لا يوجد سعر للخدمة',
+        'service_price_missing_body' => 'بعض الخدمات المختارة لا تملك سعراً فعّالاً في هذا المركز: :services',
         'complete_student_before_entry' => 'استكمل البيانات الخاصة للطالب قبل تسجيل الدخولية.',
         'missing_fields' => 'الحقول الناقصة:',
         'all_data_completed' => 'جميع البيانات مكتملة - يمكن تسجيل الدخوليات',
