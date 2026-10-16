@@ -189,6 +189,7 @@ class EntryResource extends Resource
                         EntryPurpose::Unknown() => 'warning',
                         EntryPurpose::Studying() => 'info',
                         EntryPurpose::Working() => 'success',
+                        default => 'gray',
                     })
                     ->toggleable(),
 

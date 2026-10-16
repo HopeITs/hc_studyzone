@@ -151,6 +151,12 @@ class CreateStudentEntry extends Page
                             ->label(__('general.labels.entry_type'))
                             ->default(1)
                             ->options(__('general.entry-types'))
+                            ->live()
+                            ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                if (! in_array((int) $get('purpose'), EntryPurpose::forEntryType((int) $state), true)) {
+                                    $set('purpose', EntryPurpose::defaultFor((int) $state));
+                                }
+                            })
                             ->required()
                             ->columnSpan(1),
 
@@ -175,11 +181,9 @@ class CreateStudentEntry extends Page
 
                         Radio::make('purpose')
                             ->label(__('general.labels.purpose'))
-                            ->options([
-                                EntryPurpose::Studying() => __('general.purposes.'.EntryPurpose::Studying()),
-                                EntryPurpose::Working() => __('general.purposes.'.EntryPurpose::Working()),
-                                EntryPurpose::Unknown() => __('general.purposes.'.EntryPurpose::Unknown()),
-                            ])
+                            ->options(fn (callable $get) => collect(EntryPurpose::forEntryType((int) $get('entry_type')))
+                                ->mapWithKeys(fn ($p) => [$p => __('general.purposes.'.$p)])
+                                ->all())
                             ->default(EntryPurpose::Studying())
                             ->inline()
                             ->required()

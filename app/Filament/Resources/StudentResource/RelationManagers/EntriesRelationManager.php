@@ -180,6 +180,7 @@ class EntriesRelationManager extends RelationManager
                         EntryPurpose::Unknown() => 'warning',
                         EntryPurpose::Studying() => 'info',
                         EntryPurpose::Working() => 'success',
+                        default => 'gray',
                     })
                     ->sortable(),
                 TextColumn::make('center.name')->label(__('general.labels.center'))->sortable(),

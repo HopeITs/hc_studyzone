@@ -63,6 +63,10 @@ return [
         EntryPurpose::Unknown() => 'غير معروف',
         EntryPurpose::Studying() => 'دراسة',
         EntryPurpose::Working() => 'عمل',
+        EntryPurpose::Meeting() => 'اجتماع',
+        EntryPurpose::Coordinator() => 'منسق',
+        EntryPurpose::Participant() => 'مشارك',
+        EntryPurpose::Visitor() => 'زائر',
     ],
     'genders' => [
         Gender::Unknown() => 'غير معرف',

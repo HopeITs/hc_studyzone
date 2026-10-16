@@ -63,6 +63,10 @@ return [
         EntryPurpose::Unknown() => 'Unknown',
         EntryPurpose::Studying() => 'Studying',
         EntryPurpose::Working() => 'Working',
+        EntryPurpose::Meeting() => 'Meeting',
+        EntryPurpose::Coordinator() => 'Coordinator',
+        EntryPurpose::Participant() => 'Participant',
+        EntryPurpose::Visitor() => 'Visitor',
     ],
     'genders' => [
         Gender::Unknown() => 'Unknown',
