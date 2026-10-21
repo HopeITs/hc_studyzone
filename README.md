@@ -6,10 +6,10 @@ This is a Laravel project using [Filament](https://filamentphp.com/) for the adm
 
 ## 🚀 Getting Started
 
-### 1. Clone the Repository (SSH)
+### 1. Clone the Repository
 
 ```bash
-git clone git@gitlab.com:hopecenter/hope_studyzone.git 
+git clone https://github.com/HopeITs/hc_studyzone.git hope_studyzone
 cd hope_studyzone
 ```
 
