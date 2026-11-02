@@ -26,6 +26,9 @@ Route::get('/clear-cache', function () {
 
 
 Route::group(['middleware' => ['auth']], function () {
+    Route::get('/invoices/{invoice}/print', \App\Http\Controllers\InvoicePrintController::class)
+        ->name('pos.invoice.print');
+
     Route::get('/download-qr-code/{uuid}', function ($uuid) {
         $student = Student::findOrFail($uuid);
         $url = url("student/{$student->id}/entry");

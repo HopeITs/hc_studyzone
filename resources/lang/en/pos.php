@@ -2,6 +2,59 @@
 
 return [
 
+    'title' => 'Point of Sale',
+
+    'catalog' => [
+        'all' => 'All',
+        'search_placeholder' => 'Search for an item or service…',
+        'empty' => 'No matching items or services',
+        'stock' => 'Stock',
+    ],
+
+    'cart' => [
+        'title' => 'Current Invoice',
+        'empty' => 'No lines added yet — pick from the catalog',
+        'remove' => 'Remove line',
+    ],
+
+    'fields' => [
+        'center' => 'Center',
+        'discount_type' => 'Discount Type',
+        'recipient' => 'Recipient Name',
+        'items' => 'Items',
+    ],
+
+    'discount_types' => [
+        'amount' => 'Amount',
+        'percent' => 'Percent',
+    ],
+
+    'summary' => [
+        'subtotal' => 'Subtotal before discount',
+    ],
+
+    'actions' => [
+        'collect_and_issue' => 'Collect & Issue',
+        'save_unpaid' => 'Save Unpaid',
+        'clear' => 'Clear',
+        'unpaid_invoices' => 'Unpaid Invoices',
+        'team_allocation' => 'Team Allocations',
+    ],
+
+    'messages' => [
+        'select_center' => 'Select a center first',
+        'cart_empty' => 'The invoice is empty — add at least one line',
+        'beneficiary_required' => 'The beneficiary name is required',
+        'collected' => 'Invoice #:number collected and issued',
+        'saved_unpaid' => 'Invoice #:number saved as unpaid',
+        'allocation_recorded' => 'Team allocation recorded and deducted from stock',
+        'failed' => 'The operation could not be completed',
+    ],
+
+    'unpaid' => [
+        'empty' => 'No unpaid invoices',
+    ],
+
     'errors' => [
         'month_locked' => 'This month is locked for accounting; no sales or hand-outs are allowed in it.',
         'empty_lines' => 'The operation cannot be completed without any lines.',
