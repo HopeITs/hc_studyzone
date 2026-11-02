@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Enums\Roles;
 use App\Enums\StockMovementType;
 use App\Models\InventoryItem;
 use App\Models\Invoice;
@@ -12,6 +13,7 @@ use App\Models\Service;
 use App\Models\ServicePrice;
 use App\Models\StockMovement;
 use App\Models\Student;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -37,6 +39,8 @@ class PosService
         ?int $userId = null,
         ?string $studentId = null,
     ): Invoice {
+        $this->assertUserMayActForCenter($userId, $centerId);
+
         if (LockedMonth::isLocked(now())) {
             throw ValidationException::withMessages([
                 'pos' => __('pos.errors.month_locked'),
@@ -148,6 +152,8 @@ class PosService
         ?string $note,
         ?int $userId = null,
     ): void {
+        $this->assertUserMayActForCenter($userId, $centerId);
+
         if (LockedMonth::isLocked(now())) {
             throw ValidationException::withMessages([
                 'pos' => __('pos.errors.month_locked'),
@@ -235,6 +241,34 @@ class PosService
                 ]);
             }
         });
+    }
+
+    /**
+     * Defence in depth: a center-bound acting user (CenterAdmin, Cashier) may
+     * only ever write to their own center, whatever center id the caller
+     * resolved. The UI already forces this; this guard catches tampering.
+     *
+     * @throws ValidationException
+     */
+    protected function assertUserMayActForCenter(?int $userId, int $centerId): void
+    {
+        if ($userId === null) {
+            return;
+        }
+
+        $user = User::query()->find($userId);
+
+        if ($user === null) {
+            return;
+        }
+
+        $centerBound = in_array($user->role, [Roles::CenterAdmin(), Roles::Cashier()], true);
+
+        if ($centerBound && $user->center_id !== null && (int) $user->center_id !== $centerId) {
+            throw ValidationException::withMessages([
+                'pos' => __('pos.errors.center_mismatch'),
+            ]);
+        }
     }
 
     /**

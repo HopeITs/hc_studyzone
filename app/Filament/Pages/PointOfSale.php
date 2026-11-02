@@ -99,6 +99,7 @@ class PointOfSale extends Page
         return in_array(Auth::user()?->role, [
             Roles::GeneralAdmin(),
             Roles::CenterAdmin(),
+            Roles::Cashier(),
         ], true);
     }
 
@@ -109,11 +110,24 @@ class PointOfSale extends Page
 
     public function mount(): void
     {
+        $this->centerId = $this->effectiveCenterId();
+    }
+
+    /**
+     * The center every read/write must act on. Center-bound roles
+     * (CenterAdmin, Cashier) ALWAYS act on their own center — the public
+     * $centerId property is client-writable and is never trusted for them.
+     * Only a GeneralAdmin may pick a center through the dropdown.
+     */
+    public function effectiveCenterId(): ?int
+    {
         $user = Auth::user();
 
-        if ($user->role === Roles::CenterAdmin()) {
-            $this->centerId = $user->center_id;
+        if (in_array($user->role, [Roles::CenterAdmin(), Roles::Cashier()], true)) {
+            return $user->center_id !== null ? (int) $user->center_id : null;
         }
+
+        return $this->centerId !== null ? (int) $this->centerId : null;
     }
 
     /** One place to tighten later if cashiers should lose the discount field. */
@@ -122,6 +136,7 @@ class PointOfSale extends Page
         return in_array(Auth::user()->role, [
             Roles::GeneralAdmin(),
             Roles::CenterAdmin(),
+            Roles::Cashier(),
         ], true);
     }
 
@@ -150,11 +165,13 @@ class PointOfSale extends Page
     /** The currently open cash shift for the selected center, if any. */
     public function getOpenShiftProperty(): ?CashShift
     {
-        if (! $this->centerId) {
+        $centerId = $this->effectiveCenterId();
+
+        if (! $centerId) {
             return null;
         }
 
-        return CashShift::openShiftForCenter($this->centerId);
+        return CashShift::openShiftForCenter($centerId);
     }
 
     /**
@@ -165,12 +182,14 @@ class PointOfSale extends Page
      */
     public function getCatalogProperty(): Collection
     {
-        if (! $this->centerId) {
+        $centerId = $this->effectiveCenterId();
+
+        if (! $centerId) {
             return collect();
         }
 
         $items = InventoryItem::query()
-            ->where('center_id', $this->centerId)
+            ->where('center_id', $centerId)
             ->where('is_active', true)
             ->withSum('movements as stock_sum', 'quantity')
             ->when($this->activeTab !== 'all', fn ($q) => $q->where('category', $this->activeTab))
@@ -199,7 +218,7 @@ class PointOfSale extends Page
             ->orderBy('name')
             ->get();
 
-        $prices = ServicePrice::activePricesFor($this->centerId, $services->pluck('id')->all());
+        $prices = ServicePrice::activePricesFor($centerId, $services->pluck('id')->all());
 
         $services = $services
             ->filter(fn (Service $service) => array_key_exists($service->id, $prices))
@@ -340,7 +359,9 @@ class PointOfSale extends Page
 
     protected function submit(bool $collect): void
     {
-        if (! $this->centerId) {
+        $centerId = $this->effectiveCenterId();
+
+        if (! $centerId) {
             $this->notifyDanger(__('pos.messages.select_center'));
 
             return;
@@ -375,7 +396,7 @@ class PointOfSale extends Page
 
         try {
             $invoice = $service->createInvoice(
-                centerId: $this->centerId,
+                centerId: $centerId,
                 lines: $lines,
                 beneficiaryName: trim($this->beneficiaryName),
                 studentNumber: filled($this->studentNumber) ? trim($this->studentNumber) : null,
@@ -408,12 +429,14 @@ class PointOfSale extends Page
     /** @return Collection<int, Invoice> */
     public function getUnpaidInvoicesProperty(): Collection
     {
-        if (! $this->centerId) {
+        $centerId = $this->effectiveCenterId();
+
+        if (! $centerId) {
             return collect();
         }
 
         return Invoice::query()
-            ->where('center_id', $this->centerId)
+            ->where('center_id', $centerId)
             ->where('status', InvoiceStatus::Unpaid->value)
             ->latest('id')
             ->limit(50)
@@ -473,12 +496,14 @@ class PointOfSale extends Page
     /** The invoice, only when it belongs to the center this cashier is selling for. */
     protected function findAuthorizedInvoice(int $invoiceId): ?Invoice
     {
-        if (! $this->centerId) {
+        $centerId = $this->effectiveCenterId();
+
+        if (! $centerId) {
             return null;
         }
 
         return Invoice::query()
-            ->where('center_id', $this->centerId)
+            ->where('center_id', $centerId)
             ->find($invoiceId);
     }
 
@@ -503,7 +528,7 @@ class PointOfSale extends Page
                 ->label(__('pos.actions.team_allocation'))
                 ->icon('heroicon-o-user-group')
                 ->color('info')
-                ->visible(fn (): bool => (bool) $this->centerId)
+                ->visible(fn (): bool => (bool) $this->effectiveCenterId())
                 ->modalHeading(__('pos.actions.team_allocation'))
                 ->schema([
                     Repeater::make('lines')
@@ -512,7 +537,7 @@ class PointOfSale extends Page
                             Select::make('inventory_item_id')
                                 ->label(__('invoices.fields.inventory_item'))
                                 ->options(fn () => InventoryItem::query()
-                                    ->where('center_id', $this->centerId)
+                                    ->where('center_id', $this->effectiveCenterId())
                                     ->where('is_active', true)
                                     ->orderBy('name')
                                     ->pluck('name', 'id'))
@@ -543,7 +568,7 @@ class PointOfSale extends Page
                 ->action(function (array $data): void {
                     try {
                         app(PosService::class)->recordTeamAllocation(
-                            centerId: $this->centerId,
+                            centerId: (int) $this->effectiveCenterId(),
                             lines: collect($data['lines'])
                                 ->map(fn (array $line) => [
                                     'inventory_item_id' => (int) $line['inventory_item_id'],

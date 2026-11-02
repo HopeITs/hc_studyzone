@@ -2,45 +2,36 @@
 
 namespace App\Filament\Resources;
 
-use Filament\Schemas\Schema;
-use Filament\Schemas\Components\Wizard;
-use Filament\Schemas\Components\Wizard\Step;
-use Filament\Schemas\Components\Grid;
-use Filament\Schemas\Components\Utilities\Set;
-use Filament\Schemas\Components\Utilities\Get;
-use Filament\Actions\Action;
-use Filament\Actions\ExportBulkAction;
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\ActionGroup;
-use Filament\Actions\ViewAction;
-use Filament\Actions\EditAction;
-use Filament\Actions\DeleteAction;
-use App\Filament\Resources\StudentResource\RelationManagers\EntriesRelationManager;
-use App\Filament\Resources\StudentResource\RelationManagers\EducationsRelationManager;
-use App\Filament\Resources\StudentResource\Pages\ListStudents;
-use App\Filament\Resources\StudentResource\Pages\CreateStudent;
-use App\Filament\Resources\StudentResource\Pages\EditStudent;
-use App\Filament\Resources\StudentResource\Pages\ViewStudent;
-use App\Filament\Resources\StudentResource\Pages\CreateStudentEntry;
-use App\Models\ServicePrice;
-use App\Models\EntryService;
 use App\Enums\Roles;
 use App\Filament\Exports\StudentExporter;
-use App\Filament\Resources\StudentResource\Pages;
-use App\Filament\Resources\StudentResource\RelationManagers;
+use App\Filament\Resources\StudentResource\Pages\CreateStudent;
+use App\Filament\Resources\StudentResource\Pages\CreateStudentEntry;
+use App\Filament\Resources\StudentResource\Pages\EditStudent;
+use App\Filament\Resources\StudentResource\Pages\ListStudents;
+use App\Filament\Resources\StudentResource\Pages\ViewStudent;
+use App\Filament\Resources\StudentResource\RelationManagers\EducationsRelationManager;
+use App\Filament\Resources\StudentResource\RelationManagers\EntriesRelationManager;
 use App\Models\City;
 use App\Models\Education;
+use App\Models\EntryService;
+use App\Models\ServicePrice;
 use App\Models\Street;
 use App\Models\Student;
 use App\Models\StudentEducation;
 use App\Models\StudentEntry;
 use Carbon\Carbon;
 use Closure;
+use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\ExportBulkAction;
 use Filament\Actions\Exports\Enums\ExportFormat;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
@@ -49,7 +40,12 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
-use Filament\Tables;
+use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
+use Filament\Schemas\Components\Wizard;
+use Filament\Schemas\Components\Wizard\Step;
+use Filament\Schemas\Schema;
 use Filament\Tables\Columns\CheckboxColumn;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -74,7 +70,7 @@ class StudentResource extends Resource
 
     protected static ?string $model = Student::class;
 
-    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-user-group';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-user-group';
 
     protected static ?int $navigationSort = 6;
 
@@ -95,7 +91,7 @@ class StudentResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->with(['educations','firstEntry.center']);
+        return parent::getEloquentQuery()->with(['educations', 'firstEntry.center']);
     }
 
     public static function form(Schema $schema): Schema
@@ -533,8 +529,7 @@ class StudentResource extends Resource
             TextColumn::make('street.name')->label(__('general.labels.street'))->toggleable()->sortable()->searchable(),
             TextColumn::make('center')
                 ->label(__('general.labels.center'))
-                ->toggleable()
-            ,
+                ->toggleable(),
             TextColumn::make('educations')
                 ->label(__('general.labels.education'))
                 ->formatStateUsing(function (Model $record) {
@@ -721,7 +716,7 @@ class StudentResource extends Resource
                 ->searchable(),
             SelectFilter::make('street_id')->label(__('general.labels.street'))->preload()->options($streets)->searchable(),
             SelectFilter::make('center')
-             ->relationship('firstEntry.center', 'name')
+                ->relationship('firstEntry.center', 'name')
                 ->label(__('general.labels.center'))
                 ->preload()
 
@@ -807,7 +802,6 @@ class StudentResource extends Resource
             'view' => ViewStudent::route('/{record}'),
             'create-entry' => CreateStudentEntry::route('/{record}/entry'),
 
-
         ];
     }
 
@@ -822,6 +816,18 @@ class StudentResource extends Resource
         return $data;
     }
 
+    public static function canViewAny(): bool
+    {
+        // Explicit allow-list: new roles (e.g. Cashier) stay out unless added here.
+        return in_array(auth()->user()->role, [
+            Roles::GeneralAdmin(),
+            Roles::CityAdmin(),
+            Roles::CenterAdmin(),
+            Roles::MealAdmin(),
+            Roles::Observer(),
+        ], true);
+    }
+
     public static function canCreate(): bool
     {
         return (auth()->user()->role === Roles::CenterAdmin() || auth()->user()->role === Roles::GeneralAdmin()) && auth()->user()->role !== Roles::Observer();
@@ -829,7 +835,13 @@ class StudentResource extends Resource
 
     public static function canEdit(Model $record): bool
     {
-        return auth()->user()->role !== Roles::MealAdmin() && auth()->user()->role !== Roles::Observer();
+        // Allow-list instead of the old deny-list, so Cashier (and any future
+        // role) is excluded by default.
+        return in_array(auth()->user()->role, [
+            Roles::GeneralAdmin(),
+            Roles::CityAdmin(),
+            Roles::CenterAdmin(),
+        ], true);
     }
 
     public static function canDelete(Model $record): bool

@@ -9,6 +9,7 @@ use App\Enums\InvoiceStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\StockMovementType;
 use App\Traits\ActivityLog;
+use App\Traits\GuardsLockedMonth;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -19,7 +20,7 @@ use Illuminate\Validation\ValidationException;
 
 class Invoice extends Model
 {
-    use ActivityLog, HasFactory;
+    use ActivityLog, GuardsLockedMonth, HasFactory;
 
     protected $guarded = ['id'];
 
@@ -91,7 +92,7 @@ class Invoice extends Model
      */
     public function markPaid(): void
     {
-        if (LockedMonth::isLocked(now())) {
+        if (LockedMonth::isLocked(now()) || LockedMonth::isLocked($this->created_at)) {
             throw ValidationException::withMessages([
                 'invoice' => __('invoices.errors.month_locked'),
             ]);
@@ -171,7 +172,7 @@ class Invoice extends Model
      */
     public function markCancelled(): void
     {
-        if (LockedMonth::isLocked($this->created_at)) {
+        if (LockedMonth::isLocked($this->created_at) || LockedMonth::isLocked(now())) {
             throw ValidationException::withMessages([
                 'invoice' => __('invoices.errors.month_locked'),
             ]);

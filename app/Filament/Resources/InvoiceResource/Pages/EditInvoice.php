@@ -57,7 +57,9 @@ class EditInvoice extends EditRecord
                 $discount = max(0, (int) ($data['discount'] ?? 0));
                 $total = max(0, (int) array_sum(array_column($lines, 'line_total')) - $discount);
 
-                $record->items()->delete();
+                // Model deletes (not a query-builder delete) so activity
+                // logging and sync replay see each removed line.
+                $record->items()->get()->each->delete();
                 $record->items()->createMany($lines);
 
                 $record->update([

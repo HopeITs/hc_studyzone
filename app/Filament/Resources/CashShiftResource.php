@@ -74,7 +74,8 @@ class CashShiftResource extends Resource
                 fn ($q) => $q->where('city_id', $user->city_id)
             ),
 
-            $user->role === Roles::CenterAdmin() => $query->where('center_id', $user->center_id),
+            $user->role === Roles::CenterAdmin(),
+            $user->role === Roles::Cashier() => $query->where('center_id', $user->center_id),
 
             default => $query->whereRaw('1 = 0'),
         };
@@ -352,8 +353,14 @@ class CashShiftResource extends Resource
             ->modalHeading(__('finance.actions.close_shift'))
             ->modalDescription(__('finance.messages.close_shift_confirm'))
             ->action(function (CashShift $record, array $data): void {
-                // Server-side re-checks: role + shift still open.
-                if (! self::userManagesShifts()) {
+                $user = Auth::user();
+
+                // Center-bound roles may only close their own center's shift.
+                $centerBound = in_array($user->role, [Roles::CenterAdmin(), Roles::Cashier()], true);
+
+                // Server-side re-checks: role + center + shift still open.
+                if (! self::userManagesShifts()
+                    || ($centerBound && $record->center_id !== $user->center_id)) {
                     Notification::make()
                         ->title(__('finance.messages.not_allowed'))
                         ->danger()
@@ -400,12 +407,13 @@ class CashShiftResource extends Resource
             ->visible(fn (CashShift $record): bool => ! $record->isOpen());
     }
 
-    /** GeneralAdmin and CenterAdmin may open/close shifts. */
+    /** GeneralAdmin, CenterAdmin and Cashier may open/close shifts (the latter two for their own center only). */
     public static function userManagesShifts(): bool
     {
         return in_array(Auth::user()->role, [
             Roles::GeneralAdmin(),
             Roles::CenterAdmin(),
+            Roles::Cashier(),
         ], true);
     }
 
@@ -424,6 +432,7 @@ class CashShiftResource extends Resource
             Roles::CityAdmin(),
             Roles::CenterAdmin(),
             Roles::Observer(),
+            Roles::Cashier(),
         ], true);
     }
 

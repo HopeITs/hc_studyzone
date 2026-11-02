@@ -25,7 +25,8 @@ class ShiftReportPrintController extends Controller
 
             $user->role === Roles::CityAdmin() => $shift->center?->city_id === $user->city_id,
 
-            $user->role === Roles::CenterAdmin() => $shift->center_id === $user->center_id,
+            $user->role === Roles::CenterAdmin(),
+            $user->role === Roles::Cashier() => $shift->center_id === $user->center_id,
 
             default => false,
         };

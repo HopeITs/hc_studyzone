@@ -10,10 +10,12 @@ use App\Filament\Widgets\FrequentStudentsChart;
 use App\Filament\Widgets\HourlyAverageChart;
 use App\Filament\Widgets\NewStudentsChart;
 use App\Filament\Widgets\StudentGenderChart;
+use App\Http\Controllers\ExpenseReceiptController;
 use App\Http\Controllers\InvoicePrintController;
 use App\Http\Controllers\ShiftReportPrintController;
 use App\Http\Controllers\SocialLinkController;
 use App\Http\Controllers\StudentEntryController;
+use App\Http\Middleware\EnsureUserIsActive;
 use App\Models\Student;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Artisan;
@@ -27,13 +29,20 @@ Route::get('/clear-cache', function () {
 
 })->middleware(['auth', 'admin.access']);
 
-Route::group(['middleware' => ['auth']], function () {
+// Financial documents: besides auth, a deactivated account must not keep
+// printing invoices/reports or downloading receipts on a stale session.
+Route::group(['middleware' => ['auth', EnsureUserIsActive::class]], function () {
     Route::get('/invoices/{invoice}/print', InvoicePrintController::class)
         ->name('pos.invoice.print');
 
     Route::get('/cash-shifts/{shift}/print', ShiftReportPrintController::class)
         ->name('cash-shifts.print');
 
+    Route::get('/expenses/{expense}/receipt', ExpenseReceiptController::class)
+        ->name('expenses.receipt');
+});
+
+Route::group(['middleware' => ['auth']], function () {
     Route::get('/download-qr-code/{uuid}', function ($uuid) {
         $student = Student::findOrFail($uuid);
         $url = url("student/{$student->id}/entry");

@@ -87,7 +87,8 @@ class InvoiceResource extends Resource
                 fn ($q) => $q->where('city_id', $user->city_id)
             ),
 
-            $user->role === Roles::CenterAdmin() => $query->where('center_id', $user->center_id),
+            $user->role === Roles::CenterAdmin(),
+            $user->role === Roles::Cashier() => $query->where('center_id', $user->center_id),
 
             default => $query->whereRaw('1 = 0'),
         };
@@ -366,7 +367,8 @@ class InvoiceResource extends Resource
         $user = Auth::user();
         $isGeneralAdmin = $user->role === Roles::GeneralAdmin();
         $isCenterAdmin = $user->role === Roles::CenterAdmin();
-        $canCollect = $isGeneralAdmin || $isCenterAdmin;
+        // Cashiers collect too — but never cancel (that stays GeneralAdmin-only).
+        $canCollect = $isGeneralAdmin || $isCenterAdmin || $user->role === Roles::Cashier();
 
         return $table
             ->defaultSort('created_at', 'desc')
@@ -466,7 +468,9 @@ class InvoiceResource extends Resource
                     ->requiresConfirmation()
                     ->modalDescription(__('invoices.messages.collect_confirm'))
                     ->visible(fn (Invoice $record): bool => $canCollect
-                        && $record->status === InvoiceStatus::Unpaid)
+                        && $record->status === InvoiceStatus::Unpaid
+                        && ! LockedMonth::isLocked(now())
+                        && ! LockedMonth::isLocked($record->created_at))
                     ->action(function (Invoice $record): void {
                         try {
                             $record->markPaid();
@@ -491,7 +495,9 @@ class InvoiceResource extends Resource
                     ->requiresConfirmation()
                     ->modalDescription(__('invoices.messages.cancel_confirm'))
                     ->visible(fn (Invoice $record): bool => $isGeneralAdmin
-                        && $record->status !== InvoiceStatus::Cancelled)
+                        && $record->status !== InvoiceStatus::Cancelled
+                        && ! LockedMonth::isLocked(now())
+                        && ! LockedMonth::isLocked($record->created_at))
                     ->action(function (Invoice $record): void {
                         try {
                             $record->markCancelled();
@@ -533,6 +539,7 @@ class InvoiceResource extends Resource
             Roles::CityAdmin(),
             Roles::CenterAdmin(),
             Roles::Observer(),
+            Roles::Cashier(),
         ], true);
     }
 
@@ -541,7 +548,7 @@ class InvoiceResource extends Resource
         return in_array(Auth::user()->role, [
             Roles::GeneralAdmin(),
             Roles::CenterAdmin(),
-        ], true);
+        ], true) && ! LockedMonth::isLocked(now());
     }
 
     public static function canEdit(Model $record): bool

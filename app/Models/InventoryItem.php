@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class InventoryItem extends Model
 {
@@ -70,6 +71,12 @@ class InventoryItem extends Model
         ?string $note = null,
         ?int $userId = null,
     ): StockMovement {
+        if (LockedMonth::isLocked(now())) {
+            throw ValidationException::withMessages([
+                'month' => __('finance.validation.month_locked'),
+            ]);
+        }
+
         return DB::transaction(function () use ($quantity, $cost, $supplier, $note, $userId) {
             $movement = $this->movements()->create([
                 'center_id' => $this->center_id,
@@ -101,6 +108,12 @@ class InventoryItem extends Model
         string $note,
         ?int $userId = null,
     ): ?StockMovement {
+        if (LockedMonth::isLocked(now())) {
+            throw ValidationException::withMessages([
+                'month' => __('finance.validation.month_locked'),
+            ]);
+        }
+
         return DB::transaction(function () use ($countedQuantity, $note, $userId) {
             $difference = $countedQuantity - $this->current_stock;
 

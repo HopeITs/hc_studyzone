@@ -3,35 +3,33 @@
 namespace App\Filament\Resources;
 
 use App\Enums\EntryPurpose;
-use App\Helpers\ServiceHelper;
-use Filament\Actions\Action;
-use Filament\Actions\ViewAction;
-use Filament\Actions\EditAction;
-use Filament\Actions\DeleteAction;
-use Filament\Actions\ExportBulkAction;
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
-use App\Filament\Resources\EntryResource\Pages\ListEntries;
-use App\Filament\Resources\EntryResource\Pages\EditEntry;
-use App\Filament\Resources\EntryResource\Pages\AddEntryServices;
-use App\Filament\Resources\EntryResource\Pages\ViewEntry;
 use App\Enums\Gender;
 use App\Enums\Religion;
 use App\Enums\Roles;
 use App\Filament\Exports\EntryExporter;
-use App\Filament\Resources\EntryResource\Pages;
+use App\Filament\Resources\EntryResource\Pages\AddEntryServices;
+use App\Filament\Resources\EntryResource\Pages\EditEntry;
+use App\Filament\Resources\EntryResource\Pages\ListEntries;
+use App\Filament\Resources\EntryResource\Pages\ViewEntry;
 use App\Filament\Resources\EntryResource\RelationManagers\ServicesRelationManager;
 use App\Filament\Resources\EntryResource\Widgets\EntryStats;
 use App\Filament\Resources\EntryResource\Widgets\EntryTypeChart;
+use App\Helpers\ServiceHelper;
 use App\Models\Education;
 use App\Models\LockedMonth;
 use App\Models\StudentEducation;
 use App\Models\StudentEntry;
 use Carbon\Carbon;
+use Filament\Actions\Action;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\ExportBulkAction;
 use Filament\Actions\Exports\Enums\ExportFormat;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Resources\Resource;
-use Filament\Tables;
 use Filament\Tables\Columns\CheckboxColumn;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -48,7 +46,7 @@ class EntryResource extends Resource
 {
     protected static ?string $model = StudentEntry::class;
 
-    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-clipboard-document-check';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-clipboard-document-check';
 
     protected static ?int $navigationSort = 7;
 
@@ -345,7 +343,7 @@ class EntryResource extends Resource
                     ->multiple()
                     ->preload(),
 
-                    TernaryFilter::make('student.national_number')
+                TernaryFilter::make('student.national_number')
                     ->label(__('general.labels.national_number_or_residency'))
                     ->placeholder(__('general.labels.all'))
                     ->trueLabel(__('general.labels.exists'))
@@ -412,8 +410,6 @@ class EntryResource extends Resource
                         );
                     })
                     ->preload(),
-
-
 
                 SelectFilter::make('student.gender')
                     ->label(__('general.labels.gender'))
@@ -517,11 +513,23 @@ class EntryResource extends Resource
         ];
     }
 
+    public static function canViewAny(): bool
+    {
+        // Explicit allow-list: new roles (e.g. Cashier) stay out unless added here.
+        return in_array(auth()->user()->role, [
+            Roles::GeneralAdmin(),
+            Roles::CityAdmin(),
+            Roles::CenterAdmin(),
+            Roles::MealAdmin(),
+            Roles::Observer(),
+        ], true);
+    }
+
     public static function canEdit(Model $record): bool
     {
         $role = auth()->user()->role;
 
-        if ($role === Roles::MealAdmin() || $role === Roles::Observer()) {
+        if (! in_array($role, [Roles::GeneralAdmin(), Roles::CityAdmin(), Roles::CenterAdmin()], true)) {
             return false;
         }
 
@@ -532,7 +540,7 @@ class EntryResource extends Resource
     {
         $role = auth()->user()->role;
 
-        if ($role === Roles::MealAdmin() || $role === Roles::Observer()) {
+        if (! in_array($role, [Roles::GeneralAdmin(), Roles::CityAdmin(), Roles::CenterAdmin()], true)) {
             return false;
         }
 

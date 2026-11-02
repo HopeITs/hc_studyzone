@@ -70,6 +70,7 @@ return [
         'no_price' => 'The service ":service" has no active price in this center.',
         'insufficient_stock' => 'Requested quantity of ":item" is not available in stock (available: :available).',
         'student_not_found' => 'The selected student does not exist.',
+        'center_mismatch' => 'You may only perform sales operations for your own center.',
     ],
 
     'notes' => [

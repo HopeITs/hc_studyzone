@@ -6,13 +6,14 @@ namespace App\Models;
 
 use App\Enums\StockMovementType;
 use App\Traits\ActivityLog;
+use App\Traits\GuardsLockedMonth;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class StockMovement extends Model
 {
-    use ActivityLog, HasFactory;
+    use ActivityLog, GuardsLockedMonth, HasFactory;
 
     protected $guarded = ['id'];
 

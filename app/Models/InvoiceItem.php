@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Traits\ActivityLog;
+use App\Traits\GuardsLockedMonth;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,7 +13,7 @@ use InvalidArgumentException;
 
 class InvoiceItem extends Model
 {
-    use ActivityLog, HasFactory;
+    use ActivityLog, GuardsLockedMonth, HasFactory;
 
     protected $guarded = ['id'];
 
@@ -33,6 +34,16 @@ class InvoiceItem extends Model
                 );
             }
         });
+    }
+
+    /**
+     * A line is locked by the month of its parent invoice. On the POS /
+     * create-invoice happy path the invoice was just created with now(),
+     * so an open current month lets the lines through.
+     */
+    protected function lockedMonthDates(bool $original = false): array
+    {
+        return [$this->invoice?->created_at ?? now()];
     }
 
     public function invoice(): BelongsTo

@@ -20,7 +20,7 @@
                 </div>
             @endif
 
-            @if ($this->centerId)
+            @if ($this->effectiveCenterId())
                 {{-- Cash shift status --}}
                 @if (! $this->openShift)
                     <div class="flex flex-wrap items-center gap-2 rounded-xl bg-danger-50 p-3 text-sm font-semibold text-danger-700 ring-1 ring-danger-300 dark:bg-danger-500/10 dark:text-danger-400 dark:ring-danger-500/30">

@@ -286,14 +286,16 @@ it('links the invoice to a student and snapshots the registered name', function 
 it('blocks sales in a locked month', function () {
     $center = testCenter();
 
+    // Stock must exist before the lock: the model guard now refuses
+    // creating stock movements inside a locked month too.
+    $item = posStockedItem($center, 10);
+
     LockedMonth::create([
         'year' => now()->year,
         'month' => now()->month,
         'is_locked' => true,
         'locked_at' => now(),
     ]);
-
-    $item = posStockedItem($center, 10);
 
     expect(fn () => app(PosService::class)->createInvoice(
         $center->id,

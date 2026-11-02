@@ -2,8 +2,6 @@
 
 namespace App\Filament\Pages;
 
-use Filament\Schemas\Schema;
-use Filament\Schemas\Components\Section;
 use App\Enums\Roles;
 use App\Models\Center;
 use App\Models\City;
@@ -18,6 +16,8 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Pages\Page;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -28,7 +28,7 @@ class Reports extends Page
     use InteractsWithActions;
     use InteractsWithForms;
 
-    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-chart-bar';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-chart-bar';
 
     protected static ?string $slug = 'reports';
 
@@ -63,7 +63,7 @@ class Reports extends Page
         'skip_national_number' => null,
     ];
 
-    public static function shouldRegisterNavigation(): bool
+    public static function canAccess(): bool
     {
         $user = Auth::user();
 
@@ -74,6 +74,11 @@ class Reports extends Page
             Roles::MealAdmin(),
             Roles::Observer(),
         ], true);
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return static::canAccess();
     }
 
     public function mount(): void
@@ -134,7 +139,7 @@ class Reports extends Page
                             ->multiple()
                             ->searchable()
                             ->default([])
-                             ->columnSpan(1),
+                            ->columnSpan(1),
 
                         Select::make('center_id')
                             ->label(__('general.labels.centers'))
@@ -172,7 +177,7 @@ class Reports extends Page
                             })
                             ->multiple()
                             ->searchable()
-                           ->columnSpan(1)
+                            ->columnSpan(1)
                             ->hidden(auth()->user()->role === Roles::CenterAdmin())
                             ->default(function () {
                                 $user = auth()->user();
@@ -385,7 +390,23 @@ class Reports extends Page
                     $from = $state['from'];
                     $to = $state['to'];
                     $cityId = $state['city_id'] ?? auth()->user()->city_id;
-                    $centerIds = $state['center_id'] ?? [];
+
+                    // Integers only, clamped server-side to the centers this
+                    // user may see — the submitted form state is never trusted.
+                    $centerIds = array_values(array_map(
+                        'intval',
+                        array_filter((array) ($state['center_id'] ?? []), fn ($id) => $id !== null && $id !== '')
+                    ));
+                    $allowedCenterIds = $this->allowedCenterIds();
+
+                    if ($allowedCenterIds !== null) {
+                        $centerIds = $centerIds === []
+                            ? $allowedCenterIds
+                            : array_values(array_intersect($centerIds, $allowedCenterIds));
+
+                        // Nothing allowed: match no centers instead of falling back to all.
+                        $centerIds = $centerIds === [] ? [0] : $centerIds;
+                    }
                     $streetIds = $state['street_id'] ?? [];
                     $dataStatus = $state['data_status'] ?? null;
                     $educationIds = $state['education_id'] ?? [];
@@ -500,6 +521,12 @@ class Reports extends Page
                         });
                     }
 
+                    // Raw SQL bypasses the automatic table prefixing, so prefix
+                    // the names explicitly. Dates go through bindings; the
+                    // center ids are already cast to integers above.
+                    $prefix = DB::getTablePrefix();
+                    $subqueryBindings = [];
+
                     $subquery = "
                         (
                             SELECT GROUP_CONCAT(
@@ -507,17 +534,31 @@ class Reports extends Page
                                 ORDER BY JSON_UNQUOTE(JSON_EXTRACT(c.name, '$.ar'))
                                 SEPARATOR ', '
                             )
-                            FROM hcsz_centers c
-                            INNER JOIN hcsz_student_entries e ON c.id = e.center_id
-                            WHERE e.student_id = hcsz_students.id
-                            ".($from ? "AND DATE(e.entry_time) >= '$from' " : '').
-                        ($to ? "AND DATE(e.entry_time) <= '$to' " : '').
-                        (! empty($centerIds) ? 'AND e.center_id IN ('.implode(',', $centerIds).')' : '').
-                        '
+                            FROM {$prefix}centers c
+                            INNER JOIN {$prefix}student_entries e ON c.id = e.center_id
+                            WHERE e.student_id = {$prefix}students.id
+                            ";
+
+                    if ($from) {
+                        $subquery .= 'AND DATE(e.entry_time) >= ? ';
+                        $subqueryBindings[] = $from;
+                    }
+
+                    if ($to) {
+                        $subquery .= 'AND DATE(e.entry_time) <= ? ';
+                        $subqueryBindings[] = $to;
+                    }
+
+                    if (! empty($centerIds)) {
+                        $subquery .= 'AND e.center_id IN ('.implode(',', $centerIds).')';
+                    }
+
+                    $subquery .= '
                         ) AS center_names
                     ';
 
                     $query->addSelect(DB::raw($subquery));
+                    $query->addBinding($subqueryBindings, 'select');
                     $query = $this->applyRoleScope($query);
 
                     // 3. FIX: Use lazy() instead of get().
@@ -556,6 +597,33 @@ class Reports extends Page
                     );
                 }),
         ];
+    }
+
+    /**
+     * The center ids this user may report on. Null means unrestricted
+     * (GeneralAdmin / Observer). Mirrors FinancialReport::allowedCenterIds().
+     *
+     * @return array<int, int>|null
+     */
+    protected function allowedCenterIds(): ?array
+    {
+        $user = Auth::user();
+
+        return match (true) {
+            $user->role === Roles::GeneralAdmin(),
+            $user->role === Roles::Observer() => null,
+
+            $user->role === Roles::CityAdmin(),
+            $user->role === Roles::MealAdmin() => Center::query()
+                ->where('city_id', $user->city_id)
+                ->pluck('id')
+                ->map(fn ($id) => (int) $id)
+                ->all(),
+
+            $user->role === Roles::CenterAdmin() => [(int) $user->center_id],
+
+            default => [],
+        };
     }
 
     protected function applyRoleScope(Builder $query): Builder

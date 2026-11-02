@@ -32,6 +32,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class InventoryItemResource extends Resource
 {
@@ -70,7 +71,8 @@ class InventoryItemResource extends Resource
                 fn ($q) => $q->where('city_id', $user->city_id)
             ),
 
-            $user->role === Roles::CenterAdmin() => $query->where('center_id', $user->center_id),
+            $user->role === Roles::CenterAdmin(),
+            $user->role === Roles::Cashier() => $query->where('center_id', $user->center_id),
 
             default => $query->whereRaw('1 = 0'),
         };
@@ -147,6 +149,9 @@ class InventoryItemResource extends Resource
                             ->searchable()
                             ->preload()
                             ->required()
+                            // Stock movements reference the item's center: moving
+                            // an item between centers would desync them.
+                            ->disabledOn('edit')
                             ->visible($isGeneralAdmin),
 
                         TextInput::make('purchase_cost')
@@ -367,13 +372,22 @@ class InventoryItemResource extends Resource
                             ->maxLength(500),
                     ])
                     ->action(function (array $data, InventoryItem $record): void {
-                        $record->recordPurchase(
-                            quantity: (int) $data['quantity'],
-                            cost: (int) $data['cost'],
-                            supplier: $data['supplier'] ?? null,
-                            note: $data['note'] ?? null,
-                            userId: Auth::id(),
-                        );
+                        try {
+                            $record->recordPurchase(
+                                quantity: (int) $data['quantity'],
+                                cost: (int) $data['cost'],
+                                supplier: $data['supplier'] ?? null,
+                                note: $data['note'] ?? null,
+                                userId: Auth::id(),
+                            );
+                        } catch (ValidationException $e) {
+                            Notification::make()
+                                ->danger()
+                                ->title(collect($e->errors())->flatten()->first())
+                                ->send();
+
+                            return;
+                        }
 
                         Notification::make()
                             ->success()
@@ -402,11 +416,20 @@ class InventoryItemResource extends Resource
                             ->required(),
                     ])
                     ->action(function (array $data, InventoryItem $record): void {
-                        $movement = $record->recordCountAdjustment(
-                            countedQuantity: (int) $data['counted_quantity'],
-                            note: $data['note'],
-                            userId: Auth::id(),
-                        );
+                        try {
+                            $movement = $record->recordCountAdjustment(
+                                countedQuantity: (int) $data['counted_quantity'],
+                                note: $data['note'],
+                                userId: Auth::id(),
+                            );
+                        } catch (ValidationException $e) {
+                            Notification::make()
+                                ->danger()
+                                ->title(collect($e->errors())->flatten()->first())
+                                ->send();
+
+                            return;
+                        }
 
                         if ($movement === null) {
                             Notification::make()
@@ -459,6 +482,7 @@ class InventoryItemResource extends Resource
             Roles::CityAdmin(),
             Roles::CenterAdmin(),
             Roles::Observer(),
+            Roles::Cashier(),
         ], true);
     }
 

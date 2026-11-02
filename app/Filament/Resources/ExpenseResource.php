@@ -12,6 +12,7 @@ use App\Models\Expense;
 use App\Models\InventoryItem;
 use App\Models\LockedMonth;
 use Closure;
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -76,7 +77,8 @@ class ExpenseResource extends Resource
                 fn ($q) => $q->where('city_id', $user->city_id)
             ),
 
-            $user->role === Roles::CenterAdmin() => $query->where('center_id', $user->center_id),
+            $user->role === Roles::CenterAdmin(),
+            $user->role === Roles::Cashier() => $query->where('center_id', $user->center_id),
 
             default => $query->whereRaw('1 = 0'),
         };
@@ -127,6 +129,9 @@ class ExpenseResource extends Resource
                             ->preload()
                             ->required($isGeneralAdmin)
                             ->visible($isGeneralAdmin)
+                            // Changing a recorded expense's center would desync
+                            // the shift totals it was captured into.
+                            ->disabledOn('edit')
                             ->live(),
 
                         Textarea::make('note')
@@ -136,6 +141,11 @@ class ExpenseResource extends Resource
 
                         FileUpload::make('receipt_path')
                             ->label(__('finance.labels.receipt'))
+                            // Receipts are financial documents: store them on the
+                            // private local disk, served only through the
+                            // authenticated expenses.receipt route below.
+                            ->disk('local')
+                            ->visibility('private')
                             ->directory('expense-receipts')
                             ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'application/pdf'])
                             ->maxSize(4096)
@@ -297,6 +307,13 @@ class ExpenseResource extends Resource
                     ),
             ])
             ->recordActions([
+                Action::make('view_receipt')
+                    ->label(__('finance.actions.view_receipt'))
+                    ->icon('heroicon-o-paper-clip')
+                    ->url(fn (Expense $record): string => route('expenses.receipt', $record))
+                    ->openUrlInNewTab()
+                    ->visible(fn (Expense $record): bool => filled($record->receipt_path)),
+
                 EditAction::make(),
 
                 DeleteAction::make(),
@@ -305,7 +322,8 @@ class ExpenseResource extends Resource
                 BulkActionGroup::make([
                     DeleteBulkAction::make()->visible(fn () => $isGeneralAdmin),
                 ])->visible(fn () => $isGeneralAdmin),
-            ]);
+            ])
+            ->checkIfRecordIsSelectableUsing(fn ($record) => ! LockedMonth::isLocked($record->date));
     }
 
     /** @return array<string, string> */
@@ -332,6 +350,7 @@ class ExpenseResource extends Resource
             Roles::CityAdmin(),
             Roles::CenterAdmin(),
             Roles::Observer(),
+            Roles::Cashier(),
         ], true);
     }
 
@@ -340,6 +359,7 @@ class ExpenseResource extends Resource
         return in_array(Auth::user()->role, [
             Roles::GeneralAdmin(),
             Roles::CenterAdmin(),
+            Roles::Cashier(),
         ], true);
     }
 

@@ -71,6 +71,7 @@ return [
         'close_shift' => 'Close Shift',
         'add_item' => 'Add Item',
         'print_report' => 'Print Closing Report',
+        'view_receipt' => 'View Receipt',
     ],
 
     // Shift closing report (print view)

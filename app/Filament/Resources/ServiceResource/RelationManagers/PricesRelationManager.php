@@ -2,28 +2,27 @@
 
 namespace App\Filament\Resources\ServiceResource\RelationManagers;
 
-use Filament\Schemas\Schema;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\DatePicker;
-use Filament\Schemas\Components\Utilities\Get;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Columns\IconColumn;
-use Filament\Actions\CreateAction;
-use Filament\Actions\EditAction;
-use Filament\Actions\DeleteAction;
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
 use App\Enums\Roles;
 use App\Models\Center;
-use Filament\Forms;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\CreateAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
 use Filament\Resources\RelationManagers\RelationManager;
-use Filament\Tables;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Validation\ValidationException;
 
 class PricesRelationManager extends RelationManager
 {
@@ -95,8 +94,8 @@ class PricesRelationManager extends RelationManager
                 TextColumn::make('price')
                     ->label(__('general.services_module.price'))
                     ->suffix(' SYP'),
-                TextColumn::make('created_at') //old price
-                    ->formatStateUsing(fn (Model $record) => $record->price*100)
+                TextColumn::make('created_at') // old price
+                    ->formatStateUsing(fn (Model $record) => $record->price * 100)
                     ->label(__('general.labels.old_currency_price'))
                     ->suffix(' SYP'),
 
@@ -137,15 +136,17 @@ class PricesRelationManager extends RelationManager
                     ->preload(),
 
                 TernaryFilter::make('is_active')
-                ->label(__('general.labels.status'))
+                    ->label(__('general.labels.status'))
                     ->placeholder(__('general.labels.all'))
                     ->trueLabel(__('general.labels.active'))
-                    ->falseLabel(__('general.labels.inactive'))
-                  ,
+                    ->falseLabel(__('general.labels.inactive')),
             ])
             ->headerActions([
                 CreateAction::make()
                     ->mutateDataUsing(function (array $data) {
+                        // Server-side re-check: the submitted center_id is never trusted.
+                        $data['center_id'] = $this->enforcedCenterId($data['center_id'] ?? null);
+
                         // Deactivate previous active price for this center
                         $this->getRelationship()->getQuery()
                             ->where('service_id', $this->getOwnerRecord()->id)
@@ -162,13 +163,56 @@ class PricesRelationManager extends RelationManager
                     }),
             ])
             ->recordActions([
-                EditAction::make(),
-                DeleteAction::make(),
+                // Price history is immutable for everyone but the GeneralAdmin:
+                // editing or deleting past prices would rewrite invoiced history.
+                EditAction::make()
+                    ->visible(fn (): bool => auth()->user()->role === Roles::GeneralAdmin())
+                    ->mutateDataUsing(function (array $data) {
+                        // Server-side re-check: the submitted center_id is never trusted.
+                        if (array_key_exists('center_id', $data)) {
+                            $data['center_id'] = $this->enforcedCenterId($data['center_id']);
+                        }
+
+                        return $data;
+                    }),
+                DeleteAction::make()
+                    ->visible(fn (): bool => auth()->user()->role === Roles::GeneralAdmin()),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                ]),
+                    DeleteBulkAction::make()
+                        ->visible(fn (): bool => auth()->user()->role === Roles::GeneralAdmin()),
+                ])->visible(fn (): bool => auth()->user()->role === Roles::GeneralAdmin()),
             ]);
+    }
+
+    /**
+     * The center id a submitted price row may actually be written to:
+     * CenterAdmin is always forced to their own center, CityAdmin may only
+     * pick centers inside their city, everyone else keeps what they chose.
+     *
+     * @throws ValidationException
+     */
+    protected function enforcedCenterId(mixed $centerId): int
+    {
+        $user = auth()->user();
+
+        if ($user->role === Roles::CenterAdmin()) {
+            return (int) $user->center_id;
+        }
+
+        if ($user->role === Roles::CityAdmin()) {
+            $belongsToCity = Center::whereKey($centerId)
+                ->where('city_id', $user->city_id)
+                ->exists();
+
+            if (! $belongsToCity) {
+                throw ValidationException::withMessages([
+                    'center_id' => __('general.validation.center_not_in_city'),
+                ]);
+            }
+        }
+
+        return (int) $centerId;
     }
 }

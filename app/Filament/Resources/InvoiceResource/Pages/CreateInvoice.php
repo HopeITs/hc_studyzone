@@ -7,6 +7,7 @@ use App\Enums\PaymentMethod;
 use App\Enums\Roles;
 use App\Filament\Resources\InvoiceResource;
 use App\Models\Invoice;
+use App\Models\LockedMonth;
 use App\Models\Student;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
@@ -23,13 +24,21 @@ class CreateInvoice extends CreateRecord
     {
         $user = Auth::user();
 
-        // A CenterAdmin can only ever invoice their own center,
+        // A center-bound role can only ever invoice its own center,
         // no matter what the client submitted.
-        $centerId = $user->role === Roles::CenterAdmin()
+        $centerId = in_array($user->role, [Roles::CenterAdmin(), Roles::Cashier()], true)
             ? (int) $user->center_id
             : (int) ($data['center_id'] ?? 0);
 
         try {
+            // The model guard would also refuse, but failing here keeps the
+            // whole transaction from starting on a locked current month.
+            if (LockedMonth::isLocked(now())) {
+                throw ValidationException::withMessages([
+                    'invoice' => __('invoices.errors.month_locked'),
+                ]);
+            }
+
             return DB::transaction(function () use ($data, $centerId): Invoice {
                 // Recompute every line server-side from snapshot prices —
                 // quantities come from the form, prices never do.

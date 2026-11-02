@@ -2,40 +2,36 @@
 
 namespace App\Filament\Resources;
 
-use LaraZeus\SpatieTranslatable\Resources\Concerns\Translatable;
-use Filament\Schemas\Schema;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Select;
-use Filament\Actions\ActionGroup;
-use Filament\Actions\ViewAction;
-use Filament\Actions\EditAction;
-use Filament\Actions\DeleteAction;
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
-use App\Filament\Resources\CenterResource\Pages\ListCenters;
 use App\Enums\Roles;
-use App\Filament\Resources\CenterResource\Pages;
-use App\Filament\Resources\CenterResource\RelationManagers;
+use App\Filament\Forms\Components\TranslatableFields;
+use App\Filament\Resources\CenterResource\Pages\ListCenters;
 use App\Models\Center;
 use App\Models\City;
-use Filament\Forms;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
-use Filament\Tables;
+use Filament\Schemas\Schema;
 use Filament\Tables\Columns\CheckboxColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
-use App\Filament\Forms\Components\TranslatableFields;
+use LaraZeus\SpatieTranslatable\Resources\Concerns\Translatable;
 
 class CenterResource extends Resource
 {
-
     use Translatable;
 
     protected static ?string $model = Center::class;
-    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-building-office-2';
+
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-building-office-2';
+
     protected static ?int $navigationSort = 4;
 
     public static function getNavigationLabel(): string
@@ -55,7 +51,8 @@ class CenterResource extends Resource
 
     public static function canCreate(): bool
     {
-        return auth()->user()->role !== Roles::Observer();
+        return auth()->user()->role !== Roles::Observer()
+            && auth()->user()->role !== Roles::Cashier();
     }
 
     public static function canViewAny(): bool
@@ -80,7 +77,7 @@ class CenterResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn(Builder $query) => $query->orderByDesc('is_active')->orderBy('order')->orderBy('city_id'))
+            ->modifyQueryUsing(fn (Builder $query) => $query->orderByDesc('is_active')->orderBy('order')->orderBy('city_id'))
             ->columns([
                 TextColumn::make('name')->sortable()->searchable(),
                 TextColumn::make('city.name')->sortable()->searchable(),
@@ -88,15 +85,15 @@ class CenterResource extends Resource
                 TextColumn::make('phone'),
                 TextColumn::make('entries_count')->counts('entries')->label(__('general.labels.total_entries_count'))->sortable()->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('users_count')->counts('users')->label(__('general.labels.employees_count'))->sortable()->toggleable(isToggledHiddenByDefault: true),
-                CheckboxColumn::make('is_active')->disabled(fn() => auth()->user()->role === Roles::Observer()), TextColumn::make('address')->sortable()->searchable()->toggleable(isToggledHiddenByDefault: true)])
+                CheckboxColumn::make('is_active')->disabled(fn () => auth()->user()->role === Roles::Observer()), TextColumn::make('address')->sortable()->searchable()->toggleable(isToggledHiddenByDefault: true)])
             ->filters([
                 SelectFilter::make('city_id')
                     ->label(__('general.labels.filter_by_city'))
                     ->options(City::all()->pluck('name', 'id'))
                     ->searchable(),
             ])
-            ->recordActions([ActionGroup::make([ViewAction::make(), EditAction::make()->hidden(fn() => auth()->user()->role === Roles::Observer()), DeleteAction::make()->hidden(fn() => auth()->user()->role === Roles::Observer())])->icon('heroicon-m-ellipsis-horizontal')])
-            ->toolbarActions([BulkActionGroup::make([DeleteBulkAction::make()->hidden(fn() => auth()->user()->role === Roles::Observer())])->hidden(fn() => auth()->user()->role === Roles::Observer())]);
+            ->recordActions([ActionGroup::make([ViewAction::make(), EditAction::make()->hidden(fn () => auth()->user()->role === Roles::Observer()), DeleteAction::make()->hidden(fn () => auth()->user()->role === Roles::Observer())])->icon('heroicon-m-ellipsis-horizontal')])
+            ->toolbarActions([BulkActionGroup::make([DeleteBulkAction::make()->hidden(fn () => auth()->user()->role === Roles::Observer())])->hidden(fn () => auth()->user()->role === Roles::Observer())]);
     }
 
     public static function getRelations(): array

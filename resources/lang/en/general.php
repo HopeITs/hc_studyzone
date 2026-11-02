@@ -17,6 +17,7 @@ return [
         Roles::CenterAdmin() => 'Center Admin',
         Roles::MealAdmin() => 'MEAL Admin',
         Roles::Observer() => 'Observer',
+        Roles::Cashier() => 'Cashier',
     ],
 
     'edu-degrees' => [
@@ -414,5 +415,9 @@ return [
             'day' => 'Day',
         ],
         'validation_open_price' => 'Cannot add a new price because the previous price for this service has no end date.',
+    ],
+
+    'validation' => [
+        'center_not_in_city' => 'The selected center does not belong to your city.',
     ],
 ];

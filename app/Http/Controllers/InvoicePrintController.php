@@ -15,11 +15,16 @@ class InvoicePrintController extends Controller
     {
         $user = Auth::user();
 
+        // Same role matrix as ShiftReportPrintController: CityAdmin only
+        // within their own city, center-bound roles only their own center.
         $allowed = match (true) {
             $user->role === Roles::GeneralAdmin(),
-            $user->role === Roles::CityAdmin() => true,
+            $user->role === Roles::Observer() => true,
 
-            $user->role === Roles::CenterAdmin() => $invoice->center_id === $user->center_id,
+            $user->role === Roles::CityAdmin() => $invoice->center?->city_id === $user->city_id,
+
+            $user->role === Roles::CenterAdmin(),
+            $user->role === Roles::Cashier() => $invoice->center_id === $user->center_id,
 
             default => false,
         };

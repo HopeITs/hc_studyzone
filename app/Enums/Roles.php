@@ -9,12 +9,13 @@ enum Roles: int
 {
     use InvokableCases, Values;
 
-    case Unknown      = 0;
+    case Unknown = 0;
     case GeneralAdmin = 1;
-    case CityAdmin    = 2;
-    case CenterAdmin  = 3;
-    case MealAdmin    = 4;
-    case Observer     = 5;
+    case CityAdmin = 2;
+    case CenterAdmin = 3;
+    case MealAdmin = 4;
+    case Observer = 5;
+    case Cashier = 6;
 
     public static function default(): self
     {
@@ -24,12 +25,13 @@ enum Roles: int
     public function label(): string
     {
         return match ($this) {
-            self::Unknown      => 'Unknown',
+            self::Unknown => 'Unknown',
             self::GeneralAdmin => 'General Admin',
-            self::CityAdmin    => 'City Admin',
-            self::CenterAdmin  => 'Center Admin',
-            self::MealAdmin  => 'MEAL Admin',
-            self::Observer     => 'Observer',
+            self::CityAdmin => 'City Admin',
+            self::CenterAdmin => 'Center Admin',
+            self::MealAdmin => 'MEAL Admin',
+            self::Observer => 'Observer',
+            self::Cashier => 'Cashier',
         };
     }
 

@@ -17,6 +17,7 @@ return [
         Roles::CenterAdmin() => 'مدير مركز',
         Roles::MealAdmin() => 'مدير الميل',
         Roles::Observer() => 'مراقب',
+        Roles::Cashier() => 'كاشير',
     ],
 
     'edu-degrees' => [
@@ -86,7 +87,7 @@ return [
         'firstname' => 'الاسم الأول',
         'lastname' => 'اسم العائلة',
         'father_name' => 'اسم الأب',
-         'reference' => 'المرجعية',
+        'reference' => 'المرجعية',
         'national_number' => 'الرقم الوطني',
         'foreign_id_number' => 'رقم الإقامة / الهوية الأجنبية',
         'nationality' => 'الجنسية',
@@ -418,5 +419,9 @@ return [
             'day' => 'يوم',
         ],
         'validation_open_price' => 'لا يمكن إضافة سعر جديد لأن السعر السابق لهذه الخدمة لا يزال مفتوحاً (تاريخ الانتهاء فارغ).',
+    ],
+
+    'validation' => [
+        'center_not_in_city' => 'المركز المحدد لا يتبع لمحافظتك.',
     ],
 ];

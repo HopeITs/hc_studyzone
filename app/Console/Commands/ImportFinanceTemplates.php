@@ -14,7 +14,8 @@ class ImportFinanceTemplates extends Command
         {file : مسار ملف الاكسل المعبأ}
         {--center= : رقم المركز (id)}
         {--user= : رقم المستخدم الذي يُنسب له الإدخال (اختياري)}
-        {--dry-run : فحص الملف فقط بدون حفظ}';
+        {--dry-run : فحص الملف فقط بدون حفظ}
+        {--include-locked : استيراد الأسطر الواقعة ضمن أشهر مقفلة (تجاوز قفل الشهر)}';
 
     protected $description = 'استيراد نماذج الاكسل المالية (مواد / مصاريف / فواتير سابقة)';
 
@@ -41,9 +42,10 @@ class ImportFinanceTemplates extends Command
 
         $userId = $this->option('user') !== null ? (int) $this->option('user') : null;
         $dryRun = (bool) $this->option('dry-run');
+        $includeLocked = (bool) $this->option('include-locked');
 
         try {
-            $result = $importer->import($file, $centerId, $userId, $dryRun);
+            $result = $importer->import($file, $centerId, $userId, $dryRun, $includeLocked);
         } catch (\InvalidArgumentException $e) {
             $this->error($e->getMessage());
 

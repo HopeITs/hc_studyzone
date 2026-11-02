@@ -2,26 +2,23 @@
 
 namespace App\Filament\Resources;
 
-use Filament\Schemas\Schema;
-use Filament\Schemas\Components\Section;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Toggle;
-use Filament\Actions\EditAction;
-use Filament\Actions\DeleteAction;
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
-use App\Filament\Resources\ServiceResource\Pages\ListServices;
+use App\Enums\Roles;
 use App\Filament\Resources\ServiceResource\Pages\CreateService;
 use App\Filament\Resources\ServiceResource\Pages\EditService;
+use App\Filament\Resources\ServiceResource\Pages\ListServices;
 use App\Filament\Resources\ServiceResource\RelationManagers\PricesRelationManager;
-use App\Enums\Roles;
-use App\Filament\Resources\ServiceResource\RelationManagers;
 use App\Models\Center;
 use App\Models\Service;
-use Filament\Forms;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
-use Filament\Tables;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\SelectFilter;
@@ -33,7 +30,7 @@ class ServiceResource extends Resource
 {
     protected static ?string $model = Service::class;
 
-    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-wrench-screwdriver';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-wrench-screwdriver';
 
     public static function getNavigationLabel(): string
     {
@@ -87,7 +84,7 @@ class ServiceResource extends Resource
                             ->label(__('general.labels.service_name'))
                             ->required()
                             ->maxLength(255)
-                            ->disabled(!$isGeneralAdmin), // Disable for City/Center Admins
+                            ->disabled(! $isGeneralAdmin), // Disable for City/Center Admins
 
                         Select::make('category_id')
                             ->relationship('category', 'name')
@@ -95,22 +92,22 @@ class ServiceResource extends Resource
                             ->required()
                             ->searchable()
                             ->preload()
-                            ->disabled(!$isGeneralAdmin), // Disable for City/Center Admins
-                                  Select::make('reference_column_name')
+                            ->disabled(! $isGeneralAdmin), // Disable for City/Center Admins
+                        Select::make('reference_column_name')
                             ->options([
-                                'use_internet' =>  'use_internet' ,
-                                'use_mecrator' =>  'use_mecrator' ,
-                                'use_drawer' =>  'use_drawer' ,
-                                'use_plotter' =>  'use_plotter' ,
-                                'use_printer' =>  'use_printer' ,
-                                'reservation' =>  'reservation' ,
-                                'stationary' =>  'stationary' ,
+                                'use_internet' => 'use_internet',
+                                'use_mecrator' => 'use_mecrator',
+                                'use_drawer' => 'use_drawer',
+                                'use_plotter' => 'use_plotter',
+                                'use_printer' => 'use_printer',
+                                'reservation' => 'reservation',
+                                'stationary' => 'stationary',
                             ])
                             ->label(__('general.services_module.reference'))
                             ->required()
                             ->searchable()
                             ->preload()
-                            ->disabled(!$isGeneralAdmin),
+                            ->disabled(! $isGeneralAdmin),
 
                         Toggle::make('is_active')
                             ->label(__('general.services_module.active'))
@@ -142,7 +139,7 @@ class ServiceResource extends Resource
                     ->label(__('general.labels.service_name'))
                     ->sortable()
                     ->searchable(),
-                        TextColumn::make('reference_column_name')
+                TextColumn::make('reference_column_name')
                     ->label(__('general.labels.reference'))
                     ->sortable()
                     ->searchable(),
@@ -157,7 +154,7 @@ class ServiceResource extends Resource
                     ->label(__('general.services_module.price'))
                     ->state(function (Service $record) use ($isCenterAdmin, $isCityAdmin, $cityId) {
                         if ($isCenterAdmin) {
-                            return $record->price ? $record->price . ' SYP' : null;
+                            return $record->price ? $record->price.' SYP' : null;
                         }
 
                         if ($isCityAdmin && $cityId) {
@@ -172,6 +169,7 @@ class ServiceResource extends Resource
                         if ($range && $range->min_price !== null) {
                             $min = $range->min_price;
                             $max = $range->max_price;
+
                             return $min === $max ? $min.' SYP' : $min.' - '.$max.' SYP';
                         }
 
@@ -190,8 +188,9 @@ class ServiceResource extends Resource
                     ->state(function (Service $record) use ($isCityAdmin, $cityId) {
                         $query = $record->centerPrices()->where('is_active', true);
                         if ($isCityAdmin && $cityId) {
-                            $query->whereHas('center', fn($q) => $q->where('city_id', $cityId));
+                            $query->whereHas('center', fn ($q) => $q->where('city_id', $cityId));
                         }
+
                         return $query->count();
                     })
                     ->badge()
@@ -210,11 +209,10 @@ class ServiceResource extends Resource
             ])
             ->recordActions([
                 EditAction::make()
-                    ->visible(fn () => $isGeneralAdmin || $isCityAdmin ), // Allow all to edit
+                    ->visible(fn () => $isGeneralAdmin || $isCityAdmin), // Allow all to edit
 
                 DeleteAction::make()
                     ->visible(fn () => $isGeneralAdmin),
-
 
             ])
             ->toolbarActions([
@@ -238,6 +236,16 @@ class ServiceResource extends Resource
         return [PricesRelationManager::class];
     }
 
+    public static function canViewAny(): bool
+    {
+        return in_array(Auth::user()->role, [
+            Roles::GeneralAdmin(),
+            Roles::CityAdmin(),
+            Roles::CenterAdmin(),
+            Roles::Observer(),
+        ], true);
+    }
+
     public static function canCreate(): bool
     {
         return Auth::user()->role === Roles::GeneralAdmin();
@@ -246,8 +254,9 @@ class ServiceResource extends Resource
     public static function canEdit($record): bool
     {
         $user = Auth::user();
+
         // Allow General Admin, City Admin, and Center Admin to access the edit page
-        return $user->role === Roles::GeneralAdmin() || $user->role === Roles::CityAdmin() ;
+        return $user->role === Roles::GeneralAdmin() || $user->role === Roles::CityAdmin();
     }
 
     public static function canDelete($record): bool

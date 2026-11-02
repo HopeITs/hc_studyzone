@@ -100,6 +100,12 @@ class CashShift extends Model
      */
     public static function open(int $centerId, int $userId, int $openingCash): self
     {
+        if (LockedMonth::isLocked(now())) {
+            throw ValidationException::withMessages([
+                'shift' => __('finance.validation.month_locked'),
+            ]);
+        }
+
         return DB::transaction(function () use ($centerId, $userId, $openingCash): self {
             $alreadyOpen = static::query()
                 ->where('center_id', $centerId)
@@ -132,6 +138,12 @@ class CashShift extends Model
      */
     public function close(int $countedCash, ?string $note = null): void
     {
+        if (LockedMonth::isLocked(now()) || LockedMonth::isLocked($this->opened_at)) {
+            throw ValidationException::withMessages([
+                'shift' => __('finance.validation.month_locked'),
+            ]);
+        }
+
         DB::transaction(function () use ($countedCash, $note): void {
             /** @var self $shift Fresh, locked row so two users cannot close twice. */
             $shift = static::query()->lockForUpdate()->findOrFail($this->id);

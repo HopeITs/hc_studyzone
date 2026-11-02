@@ -94,7 +94,9 @@ class ExpenseService
      */
     protected function syncWarehouseMovements(Expense $expense, array $warehouseItems): void
     {
-        $expense->stockMovements()->delete();
+        // Model deletes (not a query-builder delete) so activity logging
+        // and sync replay see each removed movement.
+        $expense->stockMovements()->get()->each->delete();
 
         if ($expense->type !== ExpenseType::WarehousePurchase) {
             return;

@@ -11,8 +11,10 @@ use App\Enums\StockMovementType;
 use App\Models\Expense;
 use App\Models\InventoryItem;
 use App\Models\Invoice;
+use App\Models\LockedMonth;
 use App\Models\StockMovement;
 use Carbon\Carbon;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
@@ -62,11 +64,16 @@ class FinanceTemplateImporter
     /** @var list<string> Human-readable problems collected while parsing. */
     public array $errors = [];
 
+    /** When true, rows in locked months are imported (console --include-locked). */
+    private bool $includeLocked = false;
+
     /**
      * @return array{type: string, created: int, skipped: int}
      */
-    public function import(string $path, int $centerId, ?int $userId, bool $dryRun = false): array
+    public function import(string $path, int $centerId, ?int $userId, bool $dryRun = false, bool $includeLocked = false): array
     {
+        $this->includeLocked = $includeLocked;
+
         $sheet = IOFactory::load($path)->getActiveSheet();
         $headers = $this->rowValues($sheet, 2);
         $type = $this->detectTemplate($headers);
@@ -93,6 +100,18 @@ class FinanceTemplateImporter
         }
 
         return ['type' => $type, 'created' => count($parsed), 'skipped' => 0];
+    }
+
+    /**
+     * Flags a row whose month is locked, unless --include-locked was passed.
+     */
+    private function assertMonthOpen(?CarbonInterface $date, int $row, string $field): void
+    {
+        if ($this->includeLocked || $date === null || ! LockedMonth::isLocked($date)) {
+            return;
+        }
+
+        $this->errors[] = "سطر {$row}: الشهر مقفل ({$field}: {$date->format('Y-m')}) — استخدم ‎--include-locked للاستيراد ضمن أشهر مقفلة.";
     }
 
     private function detectTemplate(array $headers): string
@@ -172,6 +191,12 @@ class FinanceTemplateImporter
 
     private function parseInventory(array $rows): array
     {
+        // Opening-stock movements are recorded with today's date, so a locked
+        // current month blocks the whole inventory import.
+        if ($rows !== [] && ! $this->includeLocked && LockedMonth::isLocked(now())) {
+            $this->errors[] = 'الشهر الحالي مقفل — حركات الرصيد الافتتاحي تُسجل بتاريخ اليوم؛ استخدم ‎--include-locked للاستيراد رغم القفل.';
+        }
+
         return array_values(array_filter(array_map(function (array $row): ?array {
             [$name, $category, $unit, $purchaseCost, $salePrice, $quantity, $threshold, $supplier, $lastPurchase, $note] = array_pad($row['cells'], 10, null);
 
@@ -204,6 +229,15 @@ class FinanceTemplateImporter
     }
 
     private function saveInventory(array $items, int $centerId, ?int $userId): void
+    {
+        // With --include-locked the opening-stock movements may land in a
+        // locked current month, so the model guard is bypassed.
+        StockMovement::withoutLockedMonthGuard(function () use ($items, $centerId, $userId): void {
+            $this->persistInventory($items, $centerId, $userId);
+        });
+    }
+
+    private function persistInventory(array $items, int $centerId, ?int $userId): void
     {
         foreach ($items as $item) {
             $openingStock = $item['opening_stock'];
@@ -242,8 +276,11 @@ class FinanceTemplateImporter
                 return null;
             }
 
+            $parsedDate = $this->toDate($date, $row['row'], 'التاريخ', required: true);
+            $this->assertMonthOpen($parsedDate, $row['row'], 'التاريخ');
+
             return [
-                'date' => $this->toDate($date, $row['row'], 'التاريخ', required: true),
+                'date' => $parsedDate,
                 'type' => $typeEnum,
                 'payee' => $payee !== null ? (string) $payee : null,
                 'amount' => $this->toInt($amount, $row['row'], 'المبلغ'),
@@ -254,9 +291,13 @@ class FinanceTemplateImporter
 
     private function saveExpenses(array $expenses, int $centerId, ?int $userId): void
     {
-        foreach ($expenses as $expense) {
-            Expense::create($expense + ['center_id' => $centerId, 'user_id' => $userId]);
-        }
+        // Rows in locked months only reach this point with --include-locked,
+        // so the model guard is bypassed for the historical import.
+        Expense::withoutLockedMonthGuard(function () use ($expenses, $centerId, $userId): void {
+            foreach ($expenses as $expense) {
+                Expense::create($expense + ['center_id' => $centerId, 'user_id' => $userId]);
+            }
+        });
     }
 
     private function parseInvoices(array $rows): array
@@ -280,8 +321,11 @@ class FinanceTemplateImporter
 
             $fullNote = trim(($description !== null ? 'البيان: '.$description : '').($note !== null ? "\n".$note : ''));
 
+            $parsedDate = $this->toDate($date, $row['row'], 'التاريخ', required: true);
+            $this->assertMonthOpen($parsedDate, $row['row'], 'التاريخ');
+
             return [
-                'created_at' => $this->toDate($date, $row['row'], 'التاريخ', required: true),
+                'created_at' => $parsedDate,
                 'beneficiary_name' => $beneficiary,
                 'student_number' => $studentNumber !== null ? (string) $studentNumber : null,
                 'total' => $this->toInt($total, $row['row'], 'الإجمالي'),
@@ -294,15 +338,19 @@ class FinanceTemplateImporter
 
     private function saveInvoices(array $invoices, int $centerId, ?int $userId): void
     {
-        foreach ($invoices as $invoice) {
-            // Historical invoices: number assigned sequentially, no stock movements,
-            // no shift — they predate the system, so markPaid() is intentionally skipped.
-            Invoice::create($invoice + [
-                'center_id' => $centerId,
-                'user_id' => $userId,
-                'number' => Invoice::nextNumberFor($centerId),
-            ]);
-        }
+        // Rows in locked months only reach this point with --include-locked,
+        // so the model guard is bypassed for the historical import.
+        Invoice::withoutLockedMonthGuard(function () use ($invoices, $centerId, $userId): void {
+            foreach ($invoices as $invoice) {
+                // Historical invoices: number assigned sequentially, no stock movements,
+                // no shift — they predate the system, so markPaid() is intentionally skipped.
+                Invoice::create($invoice + [
+                    'center_id' => $centerId,
+                    'user_id' => $userId,
+                    'number' => Invoice::nextNumberFor($centerId),
+                ]);
+            }
+        });
     }
 
     private function toInt(mixed $value, int $row, string $field): int

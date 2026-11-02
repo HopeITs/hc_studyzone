@@ -71,6 +71,7 @@ return [
         'close_shift' => 'إغلاق الوردية',
         'add_item' => 'إضافة مادة',
         'print_report' => 'طباعة تقرير الإغلاق',
+        'view_receipt' => 'عرض الإيصال',
     ],
 
     // Shift closing report (print view)
