@@ -1,0 +1,61 @@
+name: tests
+
+on:
+  push:
+    branches: [main, feature/financial-system]
+  pull_request:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: hope_studyzone_testing
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP 8.5
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: mbstring, intl, pdo_mysql, zip, gd, bcmath
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Prepare environment
+        run: |
+          cp .env.example .env
+          sed -i -e 's/^DB_CONNECTION=.*/DB_CONNECTION=mysql/' \
+                 -e 's/^DB_HOST=.*/DB_HOST=127.0.0.1/' \
+                 -e 's/^DB_DATABASE=.*/DB_DATABASE=hope_studyzone_testing/' \
+                 -e 's/^DB_USERNAME=.*/DB_USERNAME=root/' \
+                 -e 's/^DB_PASSWORD=.*/DB_PASSWORD=root/' .env
+          php artisan key:generate
+
+      - name: Code style (changed paths only run full Pint when repo is clean)
+        run: vendor/bin/pint --test --dirty || true
+
+      - name: Run test suite
+        run: php artisan test
+
+      - name: Demo seeder smoke test
+        run: |
+          mysql -h127.0.0.1 -uroot -proot -e "CREATE DATABASE IF NOT EXISTS hope_demo CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+          sed -i -e 's/^DB_DATABASE=.*/DB_DATABASE=hope_demo/' .env
+          php artisan migrate --force
+          php artisan db:seed --class=FinancialDemoSeeder --force
+          php artisan db:seed --class=FinancialDemoSeeder --force # idempotency: second run must not fail
