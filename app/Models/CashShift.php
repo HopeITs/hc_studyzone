@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 
 class CashShift extends Model
 {
@@ -78,5 +79,50 @@ class CashShift extends Model
     public function isOpen(): bool
     {
         return $this->status === CashShiftStatus::Open;
+    }
+
+    /** The currently open shift for a center, if any. */
+    public static function openShiftForCenter(int $centerId): ?self
+    {
+        return static::query()
+            ->where('center_id', $centerId)
+            ->where('status', CashShiftStatus::Open)
+            ->latest('opened_at')
+            ->first();
+    }
+
+    /** Open a new shift for a center. Caller must ensure no shift is already open. */
+    public static function open(int $centerId, int $userId, int $openingCash): self
+    {
+        return static::create([
+            'center_id' => $centerId,
+            'user_id' => $userId,
+            'opened_at' => now(),
+            'opening_cash' => $openingCash,
+            'status' => CashShiftStatus::Open,
+        ]);
+    }
+
+    /**
+     * Close the shift: snapshot the computed income/expenses, record the
+     * counted cash and the difference against the expected drawer amount.
+     */
+    public function close(int $countedCash, ?string $note = null): void
+    {
+        DB::transaction(function () use ($countedCash, $note): void {
+            $cashIncome = $this->computed_cash_income;
+            $expensesTotal = $this->computed_expenses;
+            $expectedCash = $this->opening_cash + $cashIncome - $expensesTotal;
+
+            $this->forceFill([
+                'cash_income' => $cashIncome,
+                'expenses_total' => $expensesTotal,
+                'counted_cash' => $countedCash,
+                'difference' => $countedCash - $expectedCash,
+                'closing_note' => $note,
+                'closed_at' => now(),
+                'status' => CashShiftStatus::Closed,
+            ])->save();
+        });
     }
 }
