@@ -9,6 +9,7 @@ use App\Filament\Resources\ExpenseResource\Pages\EditExpense;
 use App\Filament\Resources\ExpenseResource\Pages\ListExpenses;
 use App\Models\Center;
 use App\Models\Expense;
+use App\Models\InventoryItem;
 use App\Models\LockedMonth;
 use Closure;
 use Filament\Actions\BulkActionGroup;
@@ -17,11 +18,13 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -91,7 +94,8 @@ class ExpenseResource extends Resource
                         Select::make('type')
                             ->label(__('finance.labels.type'))
                             ->options(self::expenseTypeOptions())
-                            ->required(),
+                            ->required()
+                            ->live(),
 
                         TextInput::make('payee')
                             ->label(__('finance.labels.payee'))
@@ -122,7 +126,8 @@ class ExpenseResource extends Resource
                             ->searchable()
                             ->preload()
                             ->required($isGeneralAdmin)
-                            ->visible($isGeneralAdmin),
+                            ->visible($isGeneralAdmin)
+                            ->live(),
 
                         Textarea::make('note')
                             ->label(__('finance.labels.note'))
@@ -136,6 +141,55 @@ class ExpenseResource extends Resource
                             ->maxSize(4096)
                             ->columnSpanFull(),
                     ])->columns(2),
+
+                Section::make(__('finance.labels.warehouse_items'))
+                    ->description(__('finance.labels.warehouse_items_hint'))
+                    ->visible(fn (Get $get): bool => $get('type') === ExpenseType::WarehousePurchase->value
+                        || $get('type') === ExpenseType::WarehousePurchase)
+                    ->schema([
+                        Repeater::make('warehouse_items')
+                            ->hiddenLabel()
+                            ->addActionLabel(__('finance.actions.add_item'))
+                            ->defaultItems(0)
+                            ->schema([
+                                Select::make('inventory_item_id')
+                                    ->label(__('finance.labels.item'))
+                                    ->options(function (Get $get) use ($user, $isGeneralAdmin): array {
+                                        $centerId = $isGeneralAdmin
+                                            ? $get('../../center_id')
+                                            : $user->center_id;
+
+                                        if (! $centerId) {
+                                            return [];
+                                        }
+
+                                        return InventoryItem::query()
+                                            ->where('center_id', $centerId)
+                                            ->where('is_active', true)
+                                            ->orderBy('name')
+                                            ->pluck('name', 'id')
+                                            ->all();
+                                    })
+                                    ->searchable()
+                                    ->required(),
+
+                                TextInput::make('quantity')
+                                    ->label(__('finance.labels.quantity'))
+                                    ->numeric()
+                                    ->integer()
+                                    ->minValue(1)
+                                    ->required(),
+
+                                TextInput::make('cost')
+                                    ->label(__('finance.labels.cost'))
+                                    ->numeric()
+                                    ->integer()
+                                    ->minValue(0)
+                                    ->suffix('SYP')
+                                    ->required(),
+                            ])
+                            ->columns(3),
+                    ]),
             ]);
     }
 

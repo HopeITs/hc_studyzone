@@ -23,6 +23,12 @@ class Invoice extends Model
 
     protected $guarded = ['id'];
 
+    // Mirror the DB default so a freshly created model already reads Unpaid
+    // without a refresh round-trip.
+    protected $attributes = [
+        'status' => 'unpaid',
+    ];
+
     protected $casts = [
         'status' => InvoiceStatus::class,
         'payment_method' => PaymentMethod::class,

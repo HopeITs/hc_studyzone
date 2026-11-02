@@ -41,4 +41,9 @@ class StockMovement extends Model
     {
         return $this->belongsTo(Invoice::class);
     }
+
+    public function expense(): BelongsTo
+    {
+        return $this->belongsTo(Expense::class);
+    }
 }

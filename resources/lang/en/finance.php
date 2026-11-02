@@ -52,6 +52,13 @@ return [
         'closing_note' => 'Closing Note',
         'from' => 'From',
         'to' => 'To',
+        'warehouse_items' => 'Warehouse Items',
+        'warehouse_items_hint' => 'Items added here automatically create purchase stock movements linked to this expense.',
+        'item' => 'Item',
+        'quantity' => 'Quantity',
+        'cost' => 'Cost',
+        'filtered_total' => 'Total of Shown Expenses',
+        'filtered_count' => 'Records: :count',
         'shift_details' => 'Shift Details',
         'live_values' => 'Live Values (Open Shift)',
         'snapshot_values' => 'Closing Snapshot',
@@ -61,6 +68,12 @@ return [
     'actions' => [
         'open_shift' => 'Open Shift',
         'close_shift' => 'Close Shift',
+        'add_item' => 'Add Item',
+    ],
+
+    // Notes written on auto-created records
+    'notes' => [
+        'warehouse_expense' => 'Warehouse purchase — :payee',
     ],
 
     // Messages / notifications
@@ -76,6 +89,9 @@ return [
     // Validation
     'validation' => [
         'month_locked' => 'Cannot record in a locked month',
+        'invalid_item' => 'Invalid item, or the item belongs to another center',
+        'invalid_quantity' => 'Quantity must be at least 1',
+        'invalid_cost' => 'Cost cannot be negative',
     ],
 
 ];

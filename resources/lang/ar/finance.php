@@ -52,6 +52,13 @@ return [
         'closing_note' => 'ملاحظة الإغلاق',
         'from' => 'من',
         'to' => 'إلى',
+        'warehouse_items' => 'مواد المستودع',
+        'warehouse_items_hint' => 'عند إضافة مواد هنا تُسجَّل حركات شراء في المستودع مرتبطة بهذا المصروف تلقائيًا.',
+        'item' => 'المادة',
+        'quantity' => 'الكمية',
+        'cost' => 'التكلفة',
+        'filtered_total' => 'إجمالي المصاريف المعروضة',
+        'filtered_count' => 'عدد السجلات: :count',
         'shift_details' => 'تفاصيل الوردية',
         'live_values' => 'القيم الحالية (وردية مفتوحة)',
         'snapshot_values' => 'قيم الإغلاق',
@@ -61,6 +68,12 @@ return [
     'actions' => [
         'open_shift' => 'فتح وردية',
         'close_shift' => 'إغلاق الوردية',
+        'add_item' => 'إضافة مادة',
+    ],
+
+    // Notes written on auto-created records
+    'notes' => [
+        'warehouse_expense' => 'شراء مستودع — :payee',
     ],
 
     // Messages / notifications
@@ -76,6 +89,9 @@ return [
     // Validation
     'validation' => [
         'month_locked' => 'لا يمكن التسجيل في شهر مقفل',
+        'invalid_item' => 'مادة غير صالحة أو لا تتبع هذا المركز',
+        'invalid_quantity' => 'الكمية يجب أن تكون 1 على الأقل',
+        'invalid_cost' => 'التكلفة لا يمكن أن تكون سالبة',
     ],
 
 ];
