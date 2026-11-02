@@ -28,7 +28,7 @@ return [
     // Labels
     'labels' => [
         'type' => 'Type',
-        'payee' => 'Payee',
+        'payee' => 'Payee / Supplier',
         'amount' => 'Amount',
         'date' => 'Date',
         'note' => 'Note',
