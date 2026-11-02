@@ -98,6 +98,15 @@ class Invoice extends Model
 
             $lines = $invoice->items()->whereNotNull('inventory_item_id')->with('inventoryItem')->get();
 
+            if ($lines->isNotEmpty()) {
+                // Lock the item rows as a per-item mutex, so two concurrent
+                // collections cannot both pass the availability check below.
+                InventoryItem::query()
+                    ->whereIn('id', $lines->pluck('inventory_item_id'))
+                    ->lockForUpdate()
+                    ->get();
+            }
+
             foreach ($lines as $line) {
                 $available = (int) $line->inventoryItem->current_stock;
 
