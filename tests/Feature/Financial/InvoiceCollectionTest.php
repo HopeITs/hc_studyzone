@@ -10,6 +10,7 @@ use Illuminate\Validation\ValidationException;
 
 it('deducts stock and marks the invoice paid on collection', function () {
     $center = testCenter();
+    openShift($center);
     $item = InventoryItem::factory()->create(['center_id' => $center->id, 'sale_price' => 100]);
     StockMovement::factory()->create([
         'center_id' => $center->id,
@@ -35,6 +36,7 @@ it('deducts stock and marks the invoice paid on collection', function () {
 
 it('refuses collection when stock is insufficient', function () {
     $center = testCenter();
+    openShift($center);
     $item = InventoryItem::factory()->create(['center_id' => $center->id]);
     StockMovement::factory()->create([
         'center_id' => $center->id,
@@ -58,6 +60,7 @@ it('refuses collection when stock is insufficient', function () {
 
 it('refuses collecting the same invoice twice', function () {
     $center = testCenter();
+    openShift($center);
     $item = InventoryItem::factory()->create(['center_id' => $center->id]);
     StockMovement::factory()->create([
         'center_id' => $center->id,
@@ -81,6 +84,7 @@ it('refuses collecting the same invoice twice', function () {
 
 it('restores stock when cancelling a paid invoice', function () {
     $center = testCenter();
+    openShift($center);
     $item = InventoryItem::factory()->create(['center_id' => $center->id]);
     StockMovement::factory()->create([
         'center_id' => $center->id,

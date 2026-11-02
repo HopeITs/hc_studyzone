@@ -5,7 +5,7 @@ return [
     // Resource names
     'expenses' => 'Expenses',
     'expense' => 'Expense',
-    'cash_shifts' => 'Cash Shifts',
+    'cash_shifts' => 'Cash & Shifts',
     'cash_shift' => 'Cash Shift',
 
     // Expense types
@@ -59,6 +59,7 @@ return [
         'cost' => 'Cost',
         'filtered_total' => 'Total of Shown Expenses',
         'filtered_count' => 'Records: :count',
+        'invoices_count' => 'Invoices Count',
         'shift_details' => 'Shift Details',
         'live_values' => 'Live Values (Open Shift)',
         'snapshot_values' => 'Closing Snapshot',
@@ -69,6 +70,16 @@ return [
         'open_shift' => 'Open Shift',
         'close_shift' => 'Close Shift',
         'add_item' => 'Add Item',
+        'print_report' => 'Print Closing Report',
+    ],
+
+    // Shift closing report (print view)
+    'print' => [
+        'title' => 'Shift Closing Report',
+        'period' => 'Period',
+        'center' => 'Center',
+        'user' => 'User',
+        'printed_at' => 'Printed At',
     ],
 
     // Notes written on auto-created records
@@ -92,6 +103,8 @@ return [
         'invalid_item' => 'Invalid item, or the item belongs to another center',
         'invalid_quantity' => 'Quantity must be at least 1',
         'invalid_cost' => 'Cost cannot be negative',
+        'no_open_shift' => 'This center has no open shift — open one first from the Cash & Shifts page.',
+        'note_required_on_difference' => 'The difference is not zero — an explanatory note is required.',
     ],
 
 ];

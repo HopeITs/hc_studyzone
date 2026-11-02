@@ -1,7 +1,9 @@
 <?php
 
+use App\Models\CashShift;
 use App\Models\Center;
 use App\Models\City;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -55,4 +57,11 @@ function testCenter(): Center
     ]);
 
     return Center::factory()->create(['city_id' => $city->id]);
+}
+
+function openShift(Center $center, int $openingCash = 0): CashShift
+{
+    $user = User::factory()->create();
+
+    return CashShift::open($center->id, $user->id, $openingCash);
 }

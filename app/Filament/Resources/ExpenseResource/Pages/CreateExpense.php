@@ -4,7 +4,6 @@ namespace App\Filament\Resources\ExpenseResource\Pages;
 
 use App\Enums\Roles;
 use App\Filament\Resources\ExpenseResource;
-use App\Models\CashShift;
 use App\Services\ExpenseService;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Database\Eloquent\Model;
@@ -28,8 +27,8 @@ class CreateExpense extends CreateRecord
             $data['center_id'] = $user->center_id;
         }
 
-        // Attach the expense to the center's open shift, if one exists.
-        $data['shift_id'] = CashShift::openShiftForCenter((int) $data['center_id'])?->id;
+        // ExpenseService::create attaches the center's open shift (and refuses
+        // to create the expense when none is open), so no shift_id is set here.
 
         // Repeater lines are not an expenses column: they become stock movements.
         $this->warehouseItems = $data['warehouse_items'] ?? [];

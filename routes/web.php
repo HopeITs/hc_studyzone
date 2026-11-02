@@ -1,22 +1,25 @@
 <?php
 
-
+use App\Exports\ActiveDaysPerCenterExport;
+use App\Exports\EntriesByCenterDailyExport;
+use App\Exports\EntriesByCenterExport;
+use App\Filament\Widgets\AllEntriesChart;
+use App\Filament\Widgets\EntryGenderChart;
+use App\Filament\Widgets\EntryToolsChart;
+use App\Filament\Widgets\FrequentStudentsChart;
+use App\Filament\Widgets\HourlyAverageChart;
+use App\Filament\Widgets\NewStudentsChart;
+use App\Filament\Widgets\StudentGenderChart;
+use App\Http\Controllers\InvoicePrintController;
+use App\Http\Controllers\ShiftReportPrintController;
+use App\Http\Controllers\SocialLinkController;
+use App\Http\Controllers\StudentEntryController;
+use App\Models\Student;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
-use App\Models\Student;
-use SimpleSoftwareIO\QrCode\Facades\QrCode;
-use App\Http\Controllers\StudentEntryController;
-use App\Filament\Widgets\EntryGenderChart;
-use App\Filament\Widgets\NewStudentsChart;
-use App\Filament\Widgets\AllEntriesChart;
-use App\Filament\Widgets\EntryToolsChart;
-use App\Filament\Widgets\HourlyAverageChart;
-use App\Filament\Widgets\StudentGenderChart;
-use App\Filament\Widgets\FrequentStudentsChart;
-use App\Filament\Resources\StudentResource;
-use App\Http\Controllers\SocialLinkController;
-use App\Exports\EntriesByCenterExport;
 use Maatwebsite\Excel\Facades\Excel;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 Route::get('/clear-cache', function () {
     Artisan::call('optimize:clear'); // instead of cache:clear
@@ -24,10 +27,12 @@ Route::get('/clear-cache', function () {
 
 })->middleware(['auth', 'admin.access']);
 
-
 Route::group(['middleware' => ['auth']], function () {
-    Route::get('/invoices/{invoice}/print', \App\Http\Controllers\InvoicePrintController::class)
+    Route::get('/invoices/{invoice}/print', InvoicePrintController::class)
         ->name('pos.invoice.print');
+
+    Route::get('/cash-shifts/{shift}/print', ShiftReportPrintController::class)
+        ->name('cash-shifts.print');
 
     Route::get('/download-qr-code/{uuid}', function ($uuid) {
         $student = Student::findOrFail($uuid);
@@ -36,35 +41,38 @@ Route::group(['middleware' => ['auth']], function () {
 
         return response($qrCode)
             ->header('Content-Type', 'image/svg+xml')
-            ->header('Content-Disposition', 'attachment; filename="qr-code-' . $uuid . '.svg"');
+            ->header('Content-Disposition', 'attachment; filename="qr-code-'.$uuid.'.svg"');
     })->name('download-qr-code');
 
     Route::get('/test-export/{from}/{to}', function ($from, $to) {
 
-        $startDate = \Carbon\Carbon::parse($from)->startOfDay();
-        $endDate = \Carbon\Carbon::parse($to)->endOfDay();
+        $startDate = Carbon::parse($from)->startOfDay();
+        $endDate = Carbon::parse($to)->endOfDay();
+
         return Excel::download(
-            new \App\Exports\EntriesByCenterExport($startDate, $endDate),
+            new EntriesByCenterExport($startDate, $endDate),
             'entries-per-month.xlsx'
         );
     })->name('test-export');
 
     Route::get('/entries-by-center-daily-export/{from}/{to}', function ($from, $to) {
 
-        $startDate = \Carbon\Carbon::parse($from)->startOfDay();
-        $endDate = \Carbon\Carbon::parse($to)->endOfDay();
+        $startDate = Carbon::parse($from)->startOfDay();
+        $endDate = Carbon::parse($to)->endOfDay();
+
         return Excel::download(
-            new \App\Exports\EntriesByCenterDailyExport($startDate, $endDate),
+            new EntriesByCenterDailyExport($startDate, $endDate),
             'entries-per-day.xlsx'
         );
     })->name('entries-by-center-daily-export');
 
     Route::get('/active-days-export/{from}/{to}', function ($from, $to) {
 
-        $startDate = \Carbon\Carbon::parse($from)->startOfDay();
-        $endDate = \Carbon\Carbon::parse($to)->endOfDay();
+        $startDate = Carbon::parse($from)->startOfDay();
+        $endDate = Carbon::parse($to)->endOfDay();
+
         return Excel::download(
-            new \App\Exports\ActiveDaysPerCenterExport($startDate, $endDate),
+            new ActiveDaysPerCenterExport($startDate, $endDate),
             'active-days-per-month.xlsx'
         );
     })->name('active-days-export');
@@ -73,52 +81,50 @@ Route::group(['middleware' => ['auth']], function () {
         return Excel::download(new EntriesByCenterExport(now()->startOfYear(), now()->endOfMonth()), 'entries_by_center.xlsx');
     });
 
-
     // Route::get('/student/{uuid}/entry', [StudentEntryController::class, 'showEntryForm'])->name('student.entry');
     Route::post('/student/{uuid}/entry', [StudentEntryController::class, 'store'])->name('student.entry.store');
 
-
     Route::post('/filament/widgets/entry-gender/export', function () {
-        $widget = new EntryGenderChart();
+        $widget = new EntryGenderChart;
+
         return $widget->export();
     })->name('filament.widgets.export-entry-gender');
 
-
     Route::post('/filament/widgets/all-entries/export', function () {
-        $widget = new AllEntriesChart();
+        $widget = new AllEntriesChart;
+
         return $widget->export();
     })->name('filament.widgets.export-all-entries');
 
-
     Route::post('/filament/widgets/new-students/export', function () {
-        $widget = new NewStudentsChart();
+        $widget = new NewStudentsChart;
+
         return $widget->export();
     })->name('filament.widgets.export-new-students');
 
-
     Route::post('/filament/widgets/entry-tools/export', function () {
-        $widget = new EntryToolsChart();
+        $widget = new EntryToolsChart;
+
         return $widget->export();
     })->name('filament.widgets.export-entry-tools');
 
-
     Route::post('/filament/widgets/hourly-average/export', function () {
-        $widget = new HourlyAverageChart();
+        $widget = new HourlyAverageChart;
+
         return $widget->export();
     })->name('filament.widgets.export-hourly-average');
 
-
     Route::post('/filament/widgets/student-gender/export', function () {
-        $widget = new StudentGenderChart();
+        $widget = new StudentGenderChart;
+
         return $widget->export();
     })->name('filament.widgets.export-student-gender');
 
-
     Route::post('/filament/widgets/frequent-students/export', function () {
-        $widget = new FrequentStudentsChart();
+        $widget = new FrequentStudentsChart;
+
         return $widget->export();
     })->name('filament.widgets.export-frequent-students');
-
 
     Route::get('/students/scan', function () {
         return view('filament.qr-code-scanner');

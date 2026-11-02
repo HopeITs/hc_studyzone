@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class CashShift extends Model
 {
@@ -91,38 +92,79 @@ class CashShift extends Model
             ->first();
     }
 
-    /** Open a new shift for a center. Caller must ensure no shift is already open. */
+    /**
+     * Open a new shift for a center. Race-safe: the existing open shift (if any)
+     * is locked, so two cashiers cannot both open one for the same center.
+     *
+     * @throws ValidationException when the center already has an open shift.
+     */
     public static function open(int $centerId, int $userId, int $openingCash): self
     {
-        return static::create([
-            'center_id' => $centerId,
-            'user_id' => $userId,
-            'opened_at' => now(),
-            'opening_cash' => $openingCash,
-            'status' => CashShiftStatus::Open,
-        ]);
+        return DB::transaction(function () use ($centerId, $userId, $openingCash): self {
+            $alreadyOpen = static::query()
+                ->where('center_id', $centerId)
+                ->where('status', CashShiftStatus::Open)
+                ->lockForUpdate()
+                ->exists();
+
+            if ($alreadyOpen) {
+                throw ValidationException::withMessages([
+                    'shift' => __('finance.messages.center_has_open_shift'),
+                ]);
+            }
+
+            return static::create([
+                'center_id' => $centerId,
+                'user_id' => $userId,
+                'opened_at' => now(),
+                'opening_cash' => $openingCash,
+                'status' => CashShiftStatus::Open,
+            ]);
+        });
     }
 
     /**
      * Close the shift: snapshot the computed income/expenses, record the
      * counted cash and the difference against the expected drawer amount.
+     * A closed shift is immutable; a non-zero difference requires a note.
+     *
+     * @throws ValidationException when already closed, or on an unexplained difference.
      */
     public function close(int $countedCash, ?string $note = null): void
     {
         DB::transaction(function () use ($countedCash, $note): void {
-            $cashIncome = $this->computed_cash_income;
-            $expensesTotal = $this->computed_expenses;
-            $expectedCash = $this->opening_cash + $cashIncome - $expensesTotal;
+            /** @var self $shift Fresh, locked row so two users cannot close twice. */
+            $shift = static::query()->lockForUpdate()->findOrFail($this->id);
 
-            $this->forceFill([
+            if (! $shift->isOpen()) {
+                throw ValidationException::withMessages([
+                    'shift' => __('finance.messages.shift_already_closed'),
+                ]);
+            }
+
+            $cashIncome = $shift->computed_cash_income;
+            $expensesTotal = $shift->computed_expenses;
+            $expectedCash = $shift->opening_cash + $cashIncome - $expensesTotal;
+            $difference = $countedCash - $expectedCash;
+
+            if ($difference !== 0 && ($note === null || trim($note) === '')) {
+                throw ValidationException::withMessages([
+                    'closing_note' => __('finance.validation.note_required_on_difference'),
+                ]);
+            }
+
+            $shift->forceFill([
                 'cash_income' => $cashIncome,
                 'expenses_total' => $expensesTotal,
                 'counted_cash' => $countedCash,
-                'difference' => $countedCash - $expectedCash,
+                'difference' => $difference,
                 'closing_note' => $note,
                 'closed_at' => now(),
                 'status' => CashShiftStatus::Closed,
             ])->save();
+
+            // Keep the in-memory instance in sync with what was persisted.
+            $this->setRawAttributes($shift->getAttributes(), true);
         });
     }
 }

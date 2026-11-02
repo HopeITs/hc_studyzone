@@ -351,12 +351,25 @@ class ExpenseResource extends Resource
             return false;
         }
 
+        // A closed shift is immutable; corrections happen as later movements.
+        if ($record->shift && ! $record->shift->isOpen()) {
+            return false;
+        }
+
         return ! LockedMonth::isLocked($record->date);
     }
 
     public static function canDelete(Model $record): bool
     {
-        return Auth::user()->role === Roles::GeneralAdmin()
-            && ! LockedMonth::isLocked($record->date);
+        if (Auth::user()->role !== Roles::GeneralAdmin()) {
+            return false;
+        }
+
+        // A closed shift is immutable; corrections happen as later movements.
+        if ($record->shift && ! $record->shift->isOpen()) {
+            return false;
+        }
+
+        return ! LockedMonth::isLocked($record->date);
     }
 }

@@ -13,6 +13,8 @@ class ViewCashShift extends ViewRecord
     {
         return [
             CashShiftResource::closeShiftAction(),
+
+            CashShiftResource::printReportAction(),
         ];
     }
 }

@@ -5,7 +5,7 @@ return [
     // Resource names
     'expenses' => 'المصاريف',
     'expense' => 'مصروف',
-    'cash_shifts' => 'ورديات الصندوق',
+    'cash_shifts' => 'الصندوق والورديات',
     'cash_shift' => 'وردية صندوق',
 
     // Expense types
@@ -59,6 +59,7 @@ return [
         'cost' => 'التكلفة',
         'filtered_total' => 'إجمالي المصاريف المعروضة',
         'filtered_count' => 'عدد السجلات: :count',
+        'invoices_count' => 'عدد الفواتير',
         'shift_details' => 'تفاصيل الوردية',
         'live_values' => 'القيم الحالية (وردية مفتوحة)',
         'snapshot_values' => 'قيم الإغلاق',
@@ -69,6 +70,16 @@ return [
         'open_shift' => 'فتح وردية',
         'close_shift' => 'إغلاق الوردية',
         'add_item' => 'إضافة مادة',
+        'print_report' => 'طباعة تقرير الإغلاق',
+    ],
+
+    // Shift closing report (print view)
+    'print' => [
+        'title' => 'تقرير إغلاق وردية',
+        'period' => 'الفترة',
+        'center' => 'المركز',
+        'user' => 'المستخدم',
+        'printed_at' => 'تاريخ الطباعة',
     ],
 
     // Notes written on auto-created records
@@ -92,6 +103,8 @@ return [
         'invalid_item' => 'مادة غير صالحة أو لا تتبع هذا المركز',
         'invalid_quantity' => 'الكمية يجب أن تكون 1 على الأقل',
         'invalid_cost' => 'التكلفة لا يمكن أن تكون سالبة',
+        'no_open_shift' => 'لا توجد وردية مفتوحة لهذا المركز — افتح وردية أولاً من صفحة الصندوق والورديات.',
+        'note_required_on_difference' => 'الفرق لا يساوي صفراً — يجب كتابة ملاحظة توضيحية.',
     ],
 
 ];

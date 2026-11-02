@@ -12,6 +12,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 
 class ListCashShifts extends ListRecords
 {
@@ -72,7 +73,18 @@ class ListCashShifts extends ListRecords
                         return;
                     }
 
-                    CashShift::open($centerId, $user->id, (int) $data['opening_cash']);
+                    // The model re-checks race-safely and throws if a shift
+                    // was opened for this center in the meantime.
+                    try {
+                        CashShift::open($centerId, $user->id, (int) $data['opening_cash']);
+                    } catch (ValidationException $e) {
+                        Notification::make()
+                            ->title(collect($e->errors())->flatten()->first())
+                            ->danger()
+                            ->send();
+
+                        return;
+                    }
 
                     Notification::make()
                         ->title(__('finance.messages.shift_opened'))

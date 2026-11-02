@@ -28,6 +28,7 @@ function expenseData(int $centerId, int $userId, array $overrides = []): array
 
 it('creates purchase stock movements for a warehouse purchase expense', function () {
     $center = testCenter();
+    openShift($center);
     $user = User::factory()->create();
 
     $itemA = InventoryItem::factory()->create(['center_id' => $center->id]);
@@ -61,6 +62,7 @@ it('creates purchase stock movements for a warehouse purchase expense', function
 
 it('rejects a warehouse item from another center and persists nothing', function () {
     $center = testCenter();
+    openShift($center);
     $otherCenter = testCenter();
     $user = User::factory()->create();
 
@@ -95,6 +97,7 @@ it('blocks creating an expense in a locked month', function () {
 
 it('blocks editing an expense once its month is locked', function () {
     $center = testCenter();
+    openShift($center);
     $user = User::factory()->create();
 
     $expense = app(ExpenseService::class)->create(

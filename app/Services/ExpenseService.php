@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Enums\ExpenseType;
 use App\Enums\StockMovementType;
+use App\Models\CashShift;
 use App\Models\Expense;
 use App\Models\InventoryItem;
 use App\Models\LockedMonth;
@@ -22,11 +23,22 @@ class ExpenseService
      * @param  array<string, mixed>  $data
      * @param  array<int, array{inventory_item_id?: int|string|null, quantity?: int|string|null, cost?: int|string|null}>  $warehouseItems
      *
-     * @throws ValidationException on a locked month or an invalid warehouse line.
+     * @throws ValidationException on a locked month, no open shift, or an invalid warehouse line.
      */
     public function create(array $data, array $warehouseItems = []): Expense
     {
         $this->assertMonthOpen($data['date'] ?? null);
+
+        // Every expense belongs to the center's open shift; no shift, no expense.
+        $openShift = CashShift::openShiftForCenter((int) $data['center_id']);
+
+        if ($openShift === null) {
+            throw ValidationException::withMessages([
+                'center_id' => __('finance.validation.no_open_shift'),
+            ]);
+        }
+
+        $data['shift_id'] = $openShift->id;
 
         return DB::transaction(function () use ($data, $warehouseItems): Expense {
             $expense = Expense::create($data);
