@@ -19,7 +19,7 @@ return [
         'created_at' => 'Date',
         'type' => 'Movement Type',
         'quantity' => 'Quantity',
-        'signed_quantity' => 'Quantity (+/-)',
+        'counted_quantity' => 'Actual Counted Quantity',
         'total_cost' => 'Total Cost',
         'cost' => 'Cost',
         'user' => 'User',
@@ -48,25 +48,30 @@ return [
 
     'actions' => [
         'add_purchase' => 'Add Purchase',
-        'adjustment' => 'Adjustment',
+        'adjustment' => 'Stock Count Adjustment',
+        'export' => 'Export to Excel',
     ],
 
     'filters' => [
         'all' => 'All',
         'active' => 'Active',
         'inactive' => 'Inactive',
-        'low_stock' => 'Low Stock',
-        'low_only' => 'Low only',
-        'ok_only' => 'Above threshold only',
+        'category' => 'Category',
+        'unit' => 'Unit',
+        'stock_status' => 'Stock Status',
+        'below_threshold' => 'Below threshold',
+        'in_stock' => 'In stock',
+        'out_of_stock' => 'Out of stock',
     ],
 
     'helpers' => [
         'old_currency' => 'In new SYP — old currency value = value × 100',
-        'signed_quantity' => 'Positive to increase stock, negative to decrease it (cannot be zero)',
+        'counted_quantity' => 'Enter the actual quantity counted during the stock take; the system records an adjustment movement for the difference automatically',
     ],
 
     'messages' => [
         'purchase_recorded' => 'Purchase recorded successfully',
         'adjustment_recorded' => 'Adjustment recorded successfully',
+        'adjustment_no_difference' => 'No difference between the entered quantity and the current stock — no movement was recorded',
     ],
 ];

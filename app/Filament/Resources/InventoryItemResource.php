@@ -4,7 +4,6 @@ namespace App\Filament\Resources;
 
 use App\Enums\InventoryUnit;
 use App\Enums\Roles;
-use App\Enums\StockMovementType;
 use App\Filament\Resources\InventoryItemResource\Pages\CreateInventoryItem;
 use App\Filament\Resources\InventoryItemResource\Pages\EditInventoryItem;
 use App\Filament\Resources\InventoryItemResource\Pages\ListInventoryItems;
@@ -78,23 +77,30 @@ class InventoryItemResource extends Resource
     }
 
     /**
-     * SQL constraint: current stock (sum of signed movements) at or below the threshold.
+     * SQL constraint on the current stock (sum of signed movements):
+     * 'out' = none left, 'below' = some left but at or under the threshold,
+     * 'in' = above the threshold, 'low' = 'out' or 'below' combined.
      * Raw SQL bypasses the automatic table prefixing, so prefix the names explicitly.
      */
-    protected static function applyLowStockConstraint(Builder $query, bool $low = true): Builder
+    protected static function applyStockStatusConstraint(Builder $query, string $status): Builder
     {
         $prefix = DB::getTablePrefix();
-        $operator = $low ? '<=' : '>';
+        $stock = "(select coalesce(sum(m.quantity), 0) from {$prefix}stock_movements m where m.inventory_item_id = {$prefix}inventory_items.id)";
+        $threshold = "{$prefix}inventory_items.min_stock_threshold";
 
-        return $query->whereRaw(
-            "(select coalesce(sum(m.quantity), 0) from {$prefix}stock_movements m where m.inventory_item_id = {$prefix}inventory_items.id) {$operator} {$prefix}inventory_items.min_stock_threshold"
-        );
+        return match ($status) {
+            'out' => $query->whereRaw("{$stock} <= 0"),
+            'below' => $query->whereRaw("{$stock} > 0 and {$stock} <= {$threshold}"),
+            'in' => $query->whereRaw("{$stock} > {$threshold}"),
+            default => $query->whereRaw("{$stock} <= {$threshold}"),
+        };
     }
 
     public static function getNavigationBadge(): ?string
     {
-        $count = static::applyLowStockConstraint(
-            static::getEloquentQuery()->where('is_active', true)
+        $count = static::applyStockStatusConstraint(
+            static::getEloquentQuery()->where('is_active', true),
+            'low'
         )->count();
 
         return $count > 0 ? (string) $count : null;
@@ -217,18 +223,42 @@ class InventoryItemResource extends Resource
                     ->suffix(' SYP')
                     ->sortable(),
 
+                TextColumn::make('purchase_cost')
+                    ->label(__('inventory.fields.purchase_cost'))
+                    ->suffix(' SYP')
+                    ->sortable()
+                    ->toggleable(),
+
                 TextColumn::make('stock_sum')
                     ->label(__('inventory.fields.current_stock'))
                     ->state(fn (InventoryItem $record) => (int) ($record->stock_sum ?? 0))
                     ->badge()
-                    ->color(fn (InventoryItem $record) => (int) ($record->stock_sum ?? 0) <= $record->min_stock_threshold
-                        ? 'danger'
-                        : 'success')
+                    ->color(function (InventoryItem $record) {
+                        $stock = (int) ($record->stock_sum ?? 0);
+
+                        return match (true) {
+                            $stock <= 0 => 'gray',
+                            $stock <= $record->min_stock_threshold => 'danger',
+                            default => 'success',
+                        };
+                    })
                     ->sortable(),
 
                 TextColumn::make('min_stock_threshold')
                     ->label(__('inventory.fields.min_stock_threshold'))
                     ->sortable(),
+
+                TextColumn::make('supplier')
+                    ->label(__('inventory.fields.supplier'))
+                    ->searchable()
+                    ->placeholder('-')
+                    ->toggleable(),
+
+                TextColumn::make('last_purchase_date')
+                    ->label(__('inventory.fields.last_purchase_date'))
+                    ->date('Y-m-d')
+                    ->sortable()
+                    ->placeholder('-'),
 
                 TextColumn::make('center.name')
                     ->label(__('inventory.fields.center'))
@@ -258,6 +288,30 @@ class InventoryItemResource extends Resource
                     ->visible($isGeneralAdmin || $isCityAdmin)
                     ->columnSpan(1),
 
+                SelectFilter::make('category')
+                    ->label(__('inventory.filters.category'))
+                    ->options(
+                        fn () => static::getEloquentQuery()
+                            ->whereNotNull('category')
+                            ->distinct()
+                            ->orderBy('category')
+                            ->pluck('category', 'category')
+                            ->all()
+                    )
+                    ->searchable()
+                    ->columnSpan(1),
+
+                SelectFilter::make('unit')
+                    ->label(__('inventory.filters.unit'))
+                    ->options(
+                        collect(InventoryUnit::cases())
+                            ->mapWithKeys(fn (InventoryUnit $unit) => [
+                                $unit->value => __('inventory.units.'.$unit->value),
+                            ])
+                            ->all()
+                    )
+                    ->columnSpan(1),
+
                 TernaryFilter::make('is_active')
                     ->label(__('inventory.fields.is_active'))
                     ->placeholder(__('inventory.filters.all'))
@@ -265,16 +319,18 @@ class InventoryItemResource extends Resource
                     ->falseLabel(__('inventory.filters.inactive'))
                     ->columnSpan(1),
 
-                TernaryFilter::make('low_stock')
-                    ->label(__('inventory.filters.low_stock'))
-                    ->placeholder(__('inventory.filters.all'))
-                    ->trueLabel(__('inventory.filters.low_only'))
-                    ->falseLabel(__('inventory.filters.ok_only'))
-                    ->queries(
-                        true: fn (Builder $query) => static::applyLowStockConstraint($query, true),
-                        false: fn (Builder $query) => static::applyLowStockConstraint($query, false),
-                        blank: fn (Builder $query) => $query,
-                    )
+                SelectFilter::make('stock_status')
+                    ->label(__('inventory.filters.stock_status'))
+                    ->options([
+                        'below' => __('inventory.filters.below_threshold'),
+                        'in' => __('inventory.filters.in_stock'),
+                        'out' => __('inventory.filters.out_of_stock'),
+                    ])
+                    ->query(function (Builder $query, array $data) {
+                        return filled($data['value'] ?? null)
+                            ? static::applyStockStatusConstraint($query, $data['value'])
+                            : $query;
+                    })
                     ->columnSpan(1),
             ])
             ->recordActions([
@@ -301,29 +357,23 @@ class InventoryItemResource extends Resource
                             ->helperText(__('inventory.helpers.old_currency'))
                             ->required(),
 
+                        TextInput::make('supplier')
+                            ->label(__('inventory.fields.supplier'))
+                            ->maxLength(255)
+                            ->default(fn (InventoryItem $record) => $record->supplier),
+
                         Textarea::make('note')
                             ->label(__('inventory.fields.note'))
                             ->maxLength(500),
                     ])
                     ->action(function (array $data, InventoryItem $record): void {
-                        $quantity = (int) $data['quantity'];
-                        $cost = (int) $data['cost'];
-
-                        DB::transaction(function () use ($data, $record, $quantity, $cost) {
-                            $record->movements()->create([
-                                'center_id' => $record->center_id,
-                                'user_id' => Auth::id(),
-                                'type' => StockMovementType::Purchase,
-                                'quantity' => $quantity,
-                                'cost' => $cost,
-                                'note' => $data['note'] ?? null,
-                            ]);
-
-                            $record->update([
-                                'last_purchase_date' => today(),
-                                'purchase_cost' => (int) round($cost / max(1, $quantity)),
-                            ]);
-                        });
+                        $record->recordPurchase(
+                            quantity: (int) $data['quantity'],
+                            cost: (int) $data['cost'],
+                            supplier: $data['supplier'] ?? null,
+                            note: $data['note'] ?? null,
+                            userId: Auth::id(),
+                        );
 
                         Notification::make()
                             ->success()
@@ -338,12 +388,12 @@ class InventoryItemResource extends Resource
                     ->visible(fn () => $canManage)
                     ->modalHeading(__('inventory.actions.adjustment'))
                     ->schema([
-                        TextInput::make('quantity')
-                            ->label(__('inventory.fields.signed_quantity'))
+                        TextInput::make('counted_quantity')
+                            ->label(__('inventory.fields.counted_quantity'))
                             ->numeric()
                             ->integer()
-                            ->rules(['not_in:0'])
-                            ->helperText(__('inventory.helpers.signed_quantity'))
+                            ->minValue(0)
+                            ->helperText(__('inventory.helpers.counted_quantity'))
                             ->required(),
 
                         Textarea::make('note')
@@ -352,15 +402,20 @@ class InventoryItemResource extends Resource
                             ->required(),
                     ])
                     ->action(function (array $data, InventoryItem $record): void {
-                        DB::transaction(function () use ($data, $record) {
-                            $record->movements()->create([
-                                'center_id' => $record->center_id,
-                                'user_id' => Auth::id(),
-                                'type' => StockMovementType::Adjustment,
-                                'quantity' => (int) $data['quantity'],
-                                'note' => $data['note'],
-                            ]);
-                        });
+                        $movement = $record->recordCountAdjustment(
+                            countedQuantity: (int) $data['counted_quantity'],
+                            note: $data['note'],
+                            userId: Auth::id(),
+                        );
+
+                        if ($movement === null) {
+                            Notification::make()
+                                ->warning()
+                                ->title(__('inventory.messages.adjustment_no_difference'))
+                                ->send();
+
+                            return;
+                        }
 
                         Notification::make()
                             ->success()
