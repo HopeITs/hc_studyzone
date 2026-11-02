@@ -18,6 +18,7 @@ return [
         'number' => 'Invoice Number',
         'center' => 'Center',
         'beneficiary_name' => 'Beneficiary Name',
+        'student' => 'Student (optional)',
         'student_number' => 'Student Number',
         'payment_method' => 'Payment Method',
         'discount' => 'Discount',
@@ -83,6 +84,7 @@ return [
         'invalid_line' => 'One of the lines is invalid; pick an item or a service and a valid quantity.',
         'item_not_in_center' => 'The selected item is not available or inactive in this center.',
         'no_active_price' => 'This service has no active price in this center.',
+        'no_open_shift' => 'This center has no open shift — open one first from the Cash & Shifts page.',
     ],
 
     'notes' => [

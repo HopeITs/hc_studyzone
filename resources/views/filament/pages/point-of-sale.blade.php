@@ -21,6 +21,28 @@
             @endif
 
             @if ($this->centerId)
+                {{-- Cash shift status --}}
+                @if (! $this->openShift)
+                    <div class="flex flex-wrap items-center gap-2 rounded-xl bg-danger-50 p-3 text-sm font-semibold text-danger-700 ring-1 ring-danger-300 dark:bg-danger-500/10 dark:text-danger-400 dark:ring-danger-500/30">
+                        <x-heroicon-o-exclamation-triangle class="h-5 w-5 shrink-0" />
+                        <span class="flex-1">{{ __('finance.validation.no_open_shift') }}</span>
+                        <a
+                            href="{{ \App\Filament\Resources\CashShiftResource::getUrl() }}"
+                            class="shrink-0 underline hover:no-underline"
+                        >
+                            {{ __('finance.cash_shifts') }}
+                        </a>
+                    </div>
+                @else
+                    <div class="flex items-center gap-2 rounded-xl bg-success-50 px-3 py-2 text-xs font-medium text-success-700 ring-1 ring-success-200 dark:bg-success-500/10 dark:text-success-400 dark:ring-success-500/30">
+                        <x-heroicon-o-check-circle class="h-4 w-4 shrink-0" />
+                        <span>
+                            {{ __('finance.shift_status.open') }}
+                            — {{ __('finance.labels.opened_at') }}: {{ $this->openShift->opened_at->format('Y-m-d H:i') }}
+                        </span>
+                    </div>
+                @endif
+
                 <div class="rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10 space-y-4">
                     {{-- Search --}}
                     <input
@@ -159,6 +181,58 @@
 
                 {{-- Beneficiary --}}
                 <div class="space-y-3">
+                    {{-- Student search: links the invoice to a registered student --}}
+                    <div class="relative">
+                        <label for="pos-student-search" class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-200">
+                            {{ __('pos.fields.student_search') }}
+                        </label>
+
+                        @if ($studentId)
+                            <div class="flex items-center justify-between gap-2 rounded-lg border border-primary-300 bg-primary-50 px-3 py-2 text-sm dark:border-primary-700 dark:bg-primary-950">
+                                <span class="font-medium text-primary-700 dark:text-primary-300">
+                                    {{ $beneficiaryName }}
+                                </span>
+                                <button
+                                    type="button"
+                                    wire:click="clearStudent"
+                                    class="text-gray-400 hover:text-danger-500"
+                                    title="{{ __('pos.actions.clear_student') }}"
+                                >
+                                    &times;
+                                </button>
+                            </div>
+                        @else
+                            <input
+                                id="pos-student-search"
+                                type="text"
+                                wire:model.live.debounce.400ms="studentSearch"
+                                placeholder="{{ __('pos.fields.student_search_placeholder') }}"
+                                class="block w-full rounded-lg border-gray-300 text-sm shadow-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                            />
+
+                            @if ($this->studentResults->isNotEmpty())
+                                <ul class="absolute z-20 mt-1 w-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800">
+                                    @foreach ($this->studentResults as $result)
+                                        <li>
+                                            <button
+                                                type="button"
+                                                wire:click="selectStudent('{{ $result['id'] }}')"
+                                                class="flex w-full items-center justify-between px-3 py-2 text-start text-sm hover:bg-gray-50 dark:hover:bg-gray-700"
+                                            >
+                                                <span class="text-gray-800 dark:text-gray-100">{{ $result['name'] }}</span>
+                                                @if ($result['phone'])
+                                                    <span class="text-xs text-gray-400">{{ $result['phone'] }}</span>
+                                                @endif
+                                            </button>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            @elseif (mb_strlen(trim($studentSearch)) >= 2)
+                                <p class="mt-1 text-xs text-gray-400">{{ __('pos.messages.no_students_found') }}</p>
+                            @endif
+                        @endif
+                    </div>
+
                     <div>
                         <label for="pos-beneficiary" class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-200">
                             {{ __('invoices.fields.beneficiary_name') }} <span class="text-danger-500">*</span>
@@ -167,7 +241,8 @@
                             id="pos-beneficiary"
                             type="text"
                             wire:model="beneficiaryName"
-                            class="block w-full rounded-lg border-gray-300 text-sm shadow-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                            @disabled($studentId)
+                            class="block w-full rounded-lg border-gray-300 text-sm shadow-sm disabled:bg-gray-100 disabled:text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:disabled:bg-gray-900"
                         />
                     </div>
 

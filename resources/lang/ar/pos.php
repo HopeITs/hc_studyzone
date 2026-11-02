@@ -22,6 +22,8 @@ return [
         'discount_type' => 'نوع الحسم',
         'recipient' => 'اسم المستلم',
         'items' => 'المواد',
+        'student_search' => 'بحث عن طالب',
+        'student_search_placeholder' => 'اكتب اسم الطالب أو رقم هاتفه…',
     ],
 
     'discount_types' => [
@@ -39,6 +41,7 @@ return [
         'clear' => 'تفريغ',
         'unpaid_invoices' => 'الفواتير غير المحصلة',
         'team_allocation' => 'مخصصات الفريق',
+        'clear_student' => 'إلغاء ربط الطالب',
     ],
 
     'messages' => [
@@ -49,6 +52,7 @@ return [
         'saved_unpaid' => 'تم حفظ الفاتورة رقم :number غير محصلة',
         'allocation_recorded' => 'تم تسجيل مخصصات الفريق وخصمها من المخزون',
         'failed' => 'تعذر إتمام العملية',
+        'no_students_found' => 'لا يوجد طالب مطابق — اكتب الاسم يدويًا بالأسفل',
     ],
 
     'unpaid' => [
@@ -65,6 +69,7 @@ return [
         'item_unavailable' => 'إحدى المواد غير متاحة في هذا المركز أو غير فعّالة.',
         'no_price' => 'لا يوجد سعر فعّال للخدمة ":service" في هذا المركز.',
         'insufficient_stock' => 'الكمية المطلوبة من ":item" غير متوفرة في المخزون (المتوفر: :available).',
+        'student_not_found' => 'الطالب المحدد غير موجود.',
     ],
 
     'notes' => [

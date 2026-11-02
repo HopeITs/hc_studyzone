@@ -4,11 +4,13 @@ namespace App\Filament\Pages;
 
 use App\Enums\InvoiceStatus;
 use App\Enums\Roles;
+use App\Models\CashShift;
 use App\Models\Center;
 use App\Models\InventoryItem;
 use App\Models\Invoice;
 use App\Models\Service;
 use App\Models\ServicePrice;
+use App\Models\Student;
 use App\Services\PosService;
 use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
@@ -70,6 +72,11 @@ class PointOfSale extends Page
     public string $beneficiaryName = '';
 
     public ?string $studentNumber = null;
+
+    /** UUID of the linked student, when the beneficiary is a registered one. */
+    public ?string $studentId = null;
+
+    public string $studentSearch = '';
 
     public string $discountType = 'amount';
 
@@ -138,6 +145,16 @@ class PointOfSale extends Page
     public function updatedCenterId(): void
     {
         $this->cart = [];
+    }
+
+    /** The currently open cash shift for the selected center, if any. */
+    public function getOpenShiftProperty(): ?CashShift
+    {
+        if (! $this->centerId) {
+            return null;
+        }
+
+        return CashShift::openShiftForCenter($this->centerId);
     }
 
     /**
@@ -238,7 +255,58 @@ class PointOfSale extends Page
 
     public function clearCart(): void
     {
-        $this->reset(['cart', 'beneficiaryName', 'studentNumber', 'discountType', 'discountValue', 'note']);
+        $this->reset([
+            'cart', 'beneficiaryName', 'studentNumber', 'studentId', 'studentSearch',
+            'discountType', 'discountValue', 'note',
+        ]);
+    }
+
+    /**
+     * Live student search results: ['id', 'name', 'phone'].
+     *
+     * @return Collection<int, array<string, mixed>>
+     */
+    public function getStudentResultsProperty(): Collection
+    {
+        $term = trim($this->studentSearch);
+
+        if ($this->studentId !== null || mb_strlen($term) < 2) {
+            return collect();
+        }
+
+        return Student::query()
+            ->where(function ($query) use ($term): void {
+                $query->where('firstname', 'like', "%{$term}%")
+                    ->orWhere('lastname', 'like', "%{$term}%")
+                    ->orWhere('father_name', 'like', "%{$term}%")
+                    ->orWhere('phone', 'like', "%{$term}%");
+            })
+            ->orderBy('firstname')
+            ->limit(8)
+            ->get(['id', 'firstname', 'father_name', 'lastname', 'phone'])
+            ->map(fn (Student $student) => [
+                'id' => $student->id,
+                'name' => $student->getFilamentName(),
+                'phone' => $student->phone,
+            ]);
+    }
+
+    public function selectStudent(string $studentId): void
+    {
+        $student = Student::query()->find($studentId);
+
+        if (! $student) {
+            return;
+        }
+
+        $this->studentId = $student->id;
+        $this->beneficiaryName = $student->getFilamentName();
+        $this->studentSearch = '';
+    }
+
+    public function clearStudent(): void
+    {
+        $this->reset(['studentId', 'studentSearch', 'beneficiaryName']);
     }
 
     public function getSubtotalProperty(): int
@@ -315,6 +383,7 @@ class PointOfSale extends Page
                 note: filled($this->note) ? trim($this->note) : null,
                 collect: $collect,
                 userId: Auth::id(),
+                studentId: $this->studentId,
             );
         } catch (ValidationException $e) {
             $this->notifyDanger(collect($e->errors())->flatten()->first());

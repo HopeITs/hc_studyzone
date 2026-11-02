@@ -61,6 +61,11 @@ class Invoice extends Model
         return $this->belongsTo(CashShift::class, 'shift_id');
     }
 
+    public function student(): BelongsTo
+    {
+        return $this->belongsTo(Student::class);
+    }
+
     /**
      * Next sequential invoice number for a center.
      * Call inside a transaction when creating, so two cashiers
@@ -142,9 +147,16 @@ class Invoice extends Model
                 ->where('center_id', $invoice->center_id)
                 ->where('status', CashShiftStatus::Open->value)
                 ->latest('id')
+                ->lockForUpdate()
                 ->first();
 
-            $invoice->shift_id = $openShift?->id;
+            if ($openShift === null) {
+                throw ValidationException::withMessages([
+                    'invoice' => __('invoices.errors.no_open_shift'),
+                ]);
+            }
+
+            $invoice->shift_id = $openShift->id;
             $invoice->status = InvoiceStatus::Paid;
             $invoice->save();
 

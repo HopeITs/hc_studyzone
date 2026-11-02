@@ -15,6 +15,7 @@ use App\Models\Invoice;
 use App\Models\LockedMonth;
 use App\Models\Service;
 use App\Models\ServicePrice;
+use App\Models\Student;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
@@ -74,7 +75,7 @@ class InvoiceResource extends Resource
         $user = Auth::user();
 
         $query = parent::getEloquentQuery()
-            ->with(['center.city', 'user'])
+            ->with(['center.city', 'user', 'student'])
             ->withCount('items');
 
         return match (true) {
@@ -117,9 +118,36 @@ class InvoiceResource extends Resource
                                 ->default($user->center_id)
                                 ->dehydrated(),
 
+                        Select::make('student_id')
+                            ->label(__('invoices.fields.student'))
+                            ->searchable()
+                            // Search server-side: students are too many to preload.
+                            ->getSearchResultsUsing(fn (string $search): array => Student::query()
+                                ->where(function ($query) use ($search): void {
+                                    $query->where('firstname', 'like', "%{$search}%")
+                                        ->orWhere('lastname', 'like', "%{$search}%")
+                                        ->orWhere('father_name', 'like', "%{$search}%")
+                                        ->orWhere('phone', 'like', "%{$search}%");
+                                })
+                                ->limit(20)
+                                ->get()
+                                ->mapWithKeys(fn (Student $student) => [
+                                    $student->id => $student->getFilamentName(),
+                                ])
+                                ->all())
+                            ->getOptionLabelUsing(fn ($value): ?string => Student::find($value)?->getFilamentName())
+                            ->live()
+                            ->afterStateUpdated(function (Set $set, ?string $state): void {
+                                if ($state && ($student = Student::find($state))) {
+                                    $set('beneficiary_name', $student->getFilamentName());
+                                }
+                            }),
+
                         TextInput::make('beneficiary_name')
                             ->label(__('invoices.fields.beneficiary_name'))
                             ->required()
+                            ->disabled(fn (Get $get): bool => filled($get('student_id')))
+                            ->dehydrated()
                             ->maxLength(255),
 
                         TextInput::make('student_number')
@@ -266,6 +294,11 @@ class InvoiceResource extends Resource
 
                         TextEntry::make('beneficiary_name')
                             ->label(__('invoices.fields.beneficiary_name')),
+
+                        TextEntry::make('student.id')
+                            ->label(__('invoices.fields.student'))
+                            ->state(fn (Invoice $record): ?string => $record->student?->getFilamentName())
+                            ->placeholder('-'),
 
                         TextEntry::make('student_number')
                             ->label(__('invoices.fields.student_number'))

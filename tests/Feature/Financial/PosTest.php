@@ -10,8 +10,11 @@ use App\Models\Service;
 use App\Models\ServiceCategory;
 use App\Models\ServicePrice;
 use App\Models\StockMovement;
+use App\Models\Street;
+use App\Models\Student;
 use App\Models\User;
 use App\Services\PosService;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 function posStockedItem(Center $center, int $stock, int $salePrice = 100): InventoryItem
@@ -32,6 +35,7 @@ function posStockedItem(Center $center, int $stock, int $salePrice = 100): Inven
 
 it('collection creates a paid invoice and deducts stock with a price snapshot', function () {
     $center = testCenter();
+    openShift($center);
     $user = User::factory()->create();
     $item = posStockedItem($center, 10, 100);
 
@@ -81,6 +85,7 @@ it('saving an unpaid invoice does not touch stock', function () {
 
 it('collecting an unpaid invoice later deducts stock at that moment', function () {
     $center = testCenter();
+    openShift($center);
     $item = posStockedItem($center, 10);
 
     $invoice = app(PosService::class)->createInvoice(
@@ -103,6 +108,7 @@ it('collecting an unpaid invoice later deducts stock at that moment', function (
 
 it('rejects collection on insufficient stock and persists nothing', function () {
     $center = testCenter();
+    openShift($center);
     $item = posStockedItem($center, 2);
 
     $invoices = Invoice::count();
@@ -123,6 +129,7 @@ it('rejects collection on insufficient stock and persists nothing', function () 
 
 it('applies the discount correctly and clamps it to the subtotal', function () {
     $center = testCenter();
+    openShift($center);
     $service = app(PosService::class);
 
     // Percent resolution: 10% of 1000 = 100.
@@ -161,6 +168,7 @@ it('applies the discount correctly and clamps it to the subtotal', function () {
 
 it('prices a service line from the center price', function () {
     $center = testCenter();
+    openShift($center);
 
     $category = ServiceCategory::create(['name' => 'طباعة', 'unit' => 'page']);
     $service = Service::create([
@@ -225,6 +233,54 @@ it('team allocation deducts stock without an invoice and rejects insufficient st
     ))->toThrow(ValidationException::class);
 
     expect($item->fresh()->current_stock)->toBe(6);
+});
+
+it('links the invoice to a student and snapshots the registered name', function () {
+    $center = testCenter();
+    $item = posStockedItem($center, 10);
+
+    // StudentFactory picks a random existing street, so seed one.
+    Street::create([
+        'name' => ['en' => 'Test Street'],
+        'city_id' => $center->city_id,
+    ]);
+
+    $student = Student::factory()->create([
+        'firstname' => 'جورج',
+        'father_name' => 'يوسف',
+        'lastname' => 'حداد',
+    ]);
+
+    $invoice = app(PosService::class)->createInvoice(
+        $center->id,
+        [['inventory_item_id' => $item->id, 'quantity' => 1]],
+        'اسم مكتوب يدويًا سيُستبدل',
+        null,
+        0,
+        null,
+        // Unpaid: linking does not need a collection (that needs an open shift).
+        false,
+        null,
+        $student->id,
+    );
+
+    // The in-memory factory id can be a Uuid object; compare as strings.
+    expect($invoice->student_id)->toBe((string) $student->id)
+        ->and($invoice->beneficiary_name)->toBe('جورج يوسف حداد')
+        ->and((string) $invoice->student->id)->toBe((string) $student->id);
+
+    // An unknown student id is refused and persists nothing.
+    expect(fn () => app(PosService::class)->createInvoice(
+        $center->id,
+        [['inventory_item_id' => $item->id, 'quantity' => 1]],
+        'مستفيد',
+        null,
+        0,
+        null,
+        false,
+        null,
+        Str::uuid()->toString(),
+    ))->toThrow(ValidationException::class);
 });
 
 it('blocks sales in a locked month', function () {

@@ -7,6 +7,7 @@ use App\Enums\PaymentMethod;
 use App\Enums\Roles;
 use App\Filament\Resources\InvoiceResource;
 use App\Models\Invoice;
+use App\Models\Student;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Database\Eloquent\Model;
@@ -37,13 +38,19 @@ class CreateInvoice extends CreateRecord
                 $discount = max(0, (int) ($data['discount'] ?? 0));
                 $total = max(0, (int) array_sum(array_column($lines, 'line_total')) - $discount);
 
+                // A linked student always names the invoice server-side.
+                $student = isset($data['student_id'])
+                    ? Student::query()->find($data['student_id'])
+                    : null;
+
                 $invoice = Invoice::create([
                     'center_id' => $centerId,
                     'user_id' => Auth::id(),
                     'number' => Invoice::nextNumberFor($centerId),
                     'status' => InvoiceStatus::Unpaid,
-                    'beneficiary_name' => $data['beneficiary_name'],
+                    'beneficiary_name' => $student?->getFilamentName() ?? $data['beneficiary_name'],
                     'student_number' => $data['student_number'] ?? null,
+                    'student_id' => $student?->id,
                     'payment_method' => PaymentMethod::Cash,
                     'discount' => $discount,
                     'total' => $total,

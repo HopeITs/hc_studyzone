@@ -11,6 +11,7 @@ use App\Models\LockedMonth;
 use App\Models\Service;
 use App\Models\ServicePrice;
 use App\Models\StockMovement;
+use App\Models\Student;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -34,11 +35,27 @@ class PosService
         ?string $note,
         bool $collect,
         ?int $userId = null,
+        ?string $studentId = null,
     ): Invoice {
         if (LockedMonth::isLocked(now())) {
             throw ValidationException::withMessages([
                 'pos' => __('pos.errors.month_locked'),
             ]);
+        }
+
+        $student = null;
+
+        if ($studentId !== null) {
+            $student = Student::query()->find($studentId);
+
+            if ($student === null) {
+                throw ValidationException::withMessages([
+                    'pos' => __('pos.errors.student_not_found'),
+                ]);
+            }
+
+            // Snapshot the registered name server-side — never trust the browser.
+            $beneficiaryName = $student->getFilamentName();
         }
 
         if (trim($beneficiaryName) === '') {
@@ -59,6 +76,7 @@ class PosService
             $note,
             $collect,
             $userId,
+            $student,
         ): Invoice {
             $subtotal = 0;
 
@@ -74,6 +92,7 @@ class PosService
                 'number' => Invoice::nextNumberFor($centerId),
                 'beneficiary_name' => $beneficiaryName,
                 'student_number' => $studentNumber !== null && trim($studentNumber) !== '' ? $studentNumber : null,
+                'student_id' => $student?->id,
                 'discount' => $discount,
                 'total' => max(0, $subtotal - $discount),
                 'note' => $note,

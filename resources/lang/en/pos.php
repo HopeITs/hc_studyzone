@@ -22,6 +22,8 @@ return [
         'discount_type' => 'Discount Type',
         'recipient' => 'Recipient Name',
         'items' => 'Items',
+        'student_search' => 'Find a Student',
+        'student_search_placeholder' => 'Type the student name or phone…',
     ],
 
     'discount_types' => [
@@ -39,6 +41,7 @@ return [
         'clear' => 'Clear',
         'unpaid_invoices' => 'Unpaid Invoices',
         'team_allocation' => 'Team Allocations',
+        'clear_student' => 'Unlink student',
     ],
 
     'messages' => [
@@ -49,6 +52,7 @@ return [
         'saved_unpaid' => 'Invoice #:number saved as unpaid',
         'allocation_recorded' => 'Team allocation recorded and deducted from stock',
         'failed' => 'The operation could not be completed',
+        'no_students_found' => 'No matching student — type the name manually below',
     ],
 
     'unpaid' => [
@@ -65,6 +69,7 @@ return [
         'item_unavailable' => 'One of the items is not available in this center or is inactive.',
         'no_price' => 'The service ":service" has no active price in this center.',
         'insufficient_stock' => 'Requested quantity of ":item" is not available in stock (available: :available).',
+        'student_not_found' => 'The selected student does not exist.',
     ],
 
     'notes' => [
