@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use Closure;
+use Filament\Facades\Filament;
 use Filament\Notifications\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -13,7 +14,7 @@ class EnsureUserIsActive
     /**
      * Handle an incoming request.
      *
-     * @param Closure(Request):Response $next
+     * @param  Closure(Request):Response  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
@@ -25,7 +26,10 @@ class EnsureUserIsActive
                 ->title('الحساب غير مغعل يرجى التواصل مع مدير لوحة التحكم')
                 ->danger()
                 ->send();
-            return redirect()->route('login')
+
+            // No route named "login" exists in this app; the panel's login
+            // URL is the only sign-in page.
+            return redirect()->to(Filament::getLoginUrl() ?? '/')
                 ->withErrors([
                     'email' => 'Your account is inactive. Please contact the administrator.',
                 ]);
