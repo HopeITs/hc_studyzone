@@ -97,6 +97,22 @@ return [
         'close_shift_confirm' => 'سيتم تثبيت المقبوضات والمصاريف وحساب الفرق. لا يمكن التراجع عن إغلاق الوردية.',
     ],
 
+    // Dashboard widgets
+    'widgets' => [
+        'today_sales' => 'مبيعات اليوم',
+        'today_expenses' => 'مصاريف اليوم',
+        'today_net' => 'صافي اليوم',
+        'today_invoices' => 'عدد فواتير اليوم',
+        'low_stock_items' => 'أصناف تحت الحد',
+        'daily_revenue' => 'الإيرادات اليومية',
+        'revenue' => 'الإيرادات',
+        'sales_by_category' => 'المبيعات حسب الفئة',
+        'sales' => 'المبيعات',
+        'last_7_days' => 'آخر 7 أيام',
+        'last_30_days' => 'آخر 30 يومًا',
+        'dashboard_filters' => 'حسب فلاتر اللوحة',
+    ],
+
     // Validation
     'validation' => [
         'month_locked' => 'لا يمكن التسجيل في شهر مقفل',

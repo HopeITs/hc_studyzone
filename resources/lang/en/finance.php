@@ -97,6 +97,22 @@ return [
         'close_shift_confirm' => 'Cash income and expenses will be snapshotted and the difference calculated. Closing a shift cannot be undone.',
     ],
 
+    // Dashboard widgets
+    'widgets' => [
+        'today_sales' => "Today's Sales",
+        'today_expenses' => "Today's Expenses",
+        'today_net' => "Today's Net",
+        'today_invoices' => "Today's Invoices",
+        'low_stock_items' => 'Items Below Min Stock',
+        'daily_revenue' => 'Daily Revenue',
+        'revenue' => 'Revenue',
+        'sales_by_category' => 'Sales by Category',
+        'sales' => 'Sales',
+        'last_7_days' => 'Last 7 Days',
+        'last_30_days' => 'Last 30 Days',
+        'dashboard_filters' => 'By Dashboard Filters',
+    ],
+
     // Validation
     'validation' => [
         'month_locked' => 'Cannot record in a locked month',
