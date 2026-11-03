@@ -19,7 +19,7 @@
 
                     <x-filament::button
                         size="sm"
-                        color="success"
+                        color="secondary"
                         icon="heroicon-o-banknotes"
                         wire:click="collectInvoice({{ $invoice->id }})"
                         wire:loading.attr="disabled"

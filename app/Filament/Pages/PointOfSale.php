@@ -513,7 +513,7 @@ class PointOfSale extends Page
             Action::make('unpaidInvoices')
                 ->label(__('pos.actions.unpaid_invoices'))
                 ->icon('heroicon-o-clock')
-                ->color('warning')
+                ->color('primary')
                 ->badge(fn (): ?string => $this->unpaidInvoices->count() ?: null)
                 ->modalHeading(__('pos.actions.unpaid_invoices'))
                 ->modalContent(fn (): View => view('filament.pages.partials.pos-unpaid-invoices', [
@@ -527,7 +527,7 @@ class PointOfSale extends Page
             Action::make('teamAllocation')
                 ->label(__('pos.actions.team_allocation'))
                 ->icon('heroicon-o-user-group')
-                ->color('info')
+                ->color('secondary')
                 ->visible(fn (): bool => (bool) $this->effectiveCenterId())
                 ->modalHeading(__('pos.actions.team_allocation'))
                 ->schema([

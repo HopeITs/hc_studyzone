@@ -55,8 +55,35 @@ class AdminPanelProvider extends PanelProvider
             ->viteTheme('resources/css/filament/admin/theme.css')
             ->databaseNotifications()
             ->colors([
-                'primary' => Color::Amber,
-                'secondary' => '#063c54',
+                // Study Zone logo palette only: orange accent + dark blue.
+                // Shades are pinned manually: Color::hex() keeps only the hue
+                // and regenerates lightness, which turned #023D55 into cyan.
+                'primary' => [
+                    50 => '#FEF7EC',
+                    100 => '#FDEED3',
+                    200 => '#FBDCA6',
+                    300 => '#FACB7A',
+                    400 => '#F9B44A',
+                    500 => '#F99E1E',
+                    600 => '#F99E1E',
+                    700 => '#DD8A10',
+                    800 => '#B56F0B',
+                    900 => '#8A5408',
+                    950 => '#5C3805',
+                ],
+                'secondary' => [
+                    50 => '#F0F6F9',
+                    100 => '#D9E7EE',
+                    200 => '#B3CFDD',
+                    300 => '#8DB7CC',
+                    400 => '#4D89A6',
+                    500 => '#0E5B7A',
+                    600 => '#023D55',
+                    700 => '#02354A',
+                    800 => '#012C3E',
+                    900 => '#012332',
+                    950 => '#011A25',
+                ],
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
