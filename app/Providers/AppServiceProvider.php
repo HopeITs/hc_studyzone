@@ -15,8 +15,11 @@ use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Support\Facades\FilamentAsset;
 use Filament\Tables\Table;
+use Illuminate\Database\DatabaseManager;
+use Illuminate\Database\SqlServerConnection;
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
+use PDO;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -25,7 +28,28 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->registerLegacyOdbcDriver();
+    }
+
+    /**
+     * SQL Server over PDO ODBC for the legacy finance import (PHP 8.5 has no
+     * pdo_sqlsrv build). Windows-authenticated, read-only usage: the importer
+     * only ever SELECTs from these connections.
+     */
+    private function registerLegacyOdbcDriver(): void
+    {
+        $this->app->resolving('db', function (DatabaseManager $db) {
+            $db->extend('odbc_sqlsrv', function (array $config, string $name) {
+                $pdo = new PDO(sprintf(
+                    'odbc:Driver={%s};Server=%s;Database=%s;Trusted_Connection=yes;',
+                    $config['odbc_driver'],
+                    $config['host'],
+                    $config['database'],
+                ), null, null, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+
+                return new SqlServerConnection($pdo, $config['database'], $config['prefix'] ?? '', $config);
+            });
+        });
     }
 
     /**

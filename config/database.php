@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Str;
+use Pdo\Mysql;
 
 return [
 
@@ -35,7 +36,7 @@ return [
             'strict' => true,
             'engine' => null,
             'options' => extension_loaded('pdo_mysql') ? array_filter([
-                \Pdo\Mysql::ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
+                Mysql::ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
             ]) : [],
         ],
 
@@ -85,6 +86,18 @@ return [
 
         ],
 
+        // Read-only source for finance:import-legacy. PHP 8.5 has no
+        // pdo_sqlsrv build, so the attached legacy databases are read over
+        // ODBC (driver registered in AppServiceProvider). The command
+        // overrides 'database' with the attached DB name per center.
+        'legacy' => [
+            'driver' => 'odbc_sqlsrv',
+            'odbc_driver' => env('LEGACY_ODBC_DRIVER', 'ODBC Driver 17 for SQL Server'),
+            'host' => env('LEGACY_DB_HOST', 'localhost\\SQLEXPRESS'),
+            'database' => env('LEGACY_DB_DATABASE', ''),
+            'prefix' => '',
+        ],
+
         'online_mysql' => [
             'driver' => 'mysql',
             'prefix' => 'hcsz_',
@@ -110,7 +123,7 @@ return [
 
         'options' => [
             'cluster' => env('REDIS_CLUSTER', 'redis'),
-            'prefix' => env('REDIS_PREFIX', Str::slug(env('APP_NAME', 'laravel'), '_') . '_database_'),
+            'prefix' => env('REDIS_PREFIX', Str::slug(env('APP_NAME', 'laravel'), '_').'_database_'),
         ],
 
         'default' => [
