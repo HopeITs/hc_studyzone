@@ -11,6 +11,7 @@ use App\Models\Center;
 use App\Models\Expense;
 use App\Models\InventoryItem;
 use App\Models\LockedMonth;
+use App\Support\FinanceAccess;
 use Closure;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
@@ -345,7 +346,7 @@ class ExpenseResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return in_array(Auth::user()->role, [
+        return FinanceAccess::allowed() && in_array(Auth::user()->role, [
             Roles::GeneralAdmin(),
             Roles::CityAdmin(),
             Roles::CenterAdmin(),
@@ -356,7 +357,7 @@ class ExpenseResource extends Resource
 
     public static function canCreate(): bool
     {
-        return in_array(Auth::user()->role, [
+        return FinanceAccess::allowed() && in_array(Auth::user()->role, [
             Roles::GeneralAdmin(),
             Roles::CenterAdmin(),
             Roles::Cashier(),
@@ -367,7 +368,7 @@ class ExpenseResource extends Resource
     {
         $role = Auth::user()->role;
 
-        if (! in_array($role, [Roles::GeneralAdmin(), Roles::CenterAdmin()], true)) {
+        if (! FinanceAccess::allowed() || ! in_array($role, [Roles::GeneralAdmin(), Roles::CenterAdmin()], true)) {
             return false;
         }
 
@@ -381,7 +382,7 @@ class ExpenseResource extends Resource
 
     public static function canDelete(Model $record): bool
     {
-        if (Auth::user()->role !== Roles::GeneralAdmin()) {
+        if (! FinanceAccess::allowed() || Auth::user()->role !== Roles::GeneralAdmin()) {
             return false;
         }
 

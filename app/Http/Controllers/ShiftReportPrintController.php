@@ -8,6 +8,7 @@ use App\Enums\CashShiftStatus;
 use App\Enums\InvoiceStatus;
 use App\Enums\Roles;
 use App\Models\CashShift;
+use App\Support\FinanceAccess;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 
@@ -15,6 +16,8 @@ class ShiftReportPrintController extends Controller
 {
     public function __invoke(CashShift $shift): View
     {
+        abort_unless(FinanceAccess::allowed(), 403);
+
         $user = Auth::user();
 
         $shift->load(['center', 'user']);
