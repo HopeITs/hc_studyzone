@@ -12,6 +12,7 @@ use App\Models\Service;
 use App\Models\ServicePrice;
 use App\Models\Student;
 use App\Services\PosService;
+use App\Support\FinanceAccess;
 use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Forms\Components\Repeater;
@@ -96,7 +97,7 @@ class PointOfSale extends Page
 
     public static function canAccess(): bool
     {
-        return in_array(Auth::user()?->role, [
+        return FinanceAccess::allowed() && in_array(Auth::user()?->role, [
             Roles::GeneralAdmin(),
             Roles::CenterAdmin(),
             Roles::Cashier(),

@@ -16,6 +16,7 @@ use App\Models\LockedMonth;
 use App\Models\Service;
 use App\Models\ServicePrice;
 use App\Models\Student;
+use App\Support\FinanceAccess;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
@@ -534,7 +535,7 @@ class InvoiceResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return in_array(Auth::user()->role, [
+        return FinanceAccess::allowed() && in_array(Auth::user()->role, [
             Roles::GeneralAdmin(),
             Roles::CityAdmin(),
             Roles::CenterAdmin(),
@@ -545,7 +546,7 @@ class InvoiceResource extends Resource
 
     public static function canCreate(): bool
     {
-        return in_array(Auth::user()->role, [
+        return FinanceAccess::allowed() && in_array(Auth::user()->role, [
             Roles::GeneralAdmin(),
             Roles::CenterAdmin(),
         ], true) && ! LockedMonth::isLocked(now());
@@ -555,7 +556,8 @@ class InvoiceResource extends Resource
     {
         $user = Auth::user();
 
-        if (! in_array($user->role, [Roles::GeneralAdmin(), Roles::CenterAdmin()], true)) {
+        if (! FinanceAccess::allowed($user)
+            || ! in_array($user->role, [Roles::GeneralAdmin(), Roles::CenterAdmin()], true)) {
             return false;
         }
 

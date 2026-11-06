@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\Roles;
 use App\Models\Invoice;
+use App\Support\FinanceAccess;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 
@@ -13,6 +14,8 @@ class InvoicePrintController extends Controller
 {
     public function __invoke(Invoice $invoice): View
     {
+        abort_unless(FinanceAccess::allowed(), 403);
+
         $user = Auth::user();
 
         // Same role matrix as ShiftReportPrintController: CityAdmin only

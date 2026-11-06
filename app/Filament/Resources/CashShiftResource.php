@@ -9,6 +9,7 @@ use App\Filament\Resources\CashShiftResource\Pages\ListCashShifts;
 use App\Filament\Resources\CashShiftResource\Pages\ViewCashShift;
 use App\Models\CashShift;
 use App\Models\Center;
+use App\Support\FinanceAccess;
 use Filament\Actions\Action;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DatePicker;
@@ -427,7 +428,7 @@ class CashShiftResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return in_array(Auth::user()->role, [
+        return FinanceAccess::allowed() && in_array(Auth::user()->role, [
             Roles::GeneralAdmin(),
             Roles::CityAdmin(),
             Roles::CenterAdmin(),

@@ -36,16 +36,6 @@ function centerAdminFor(Center $center): User
     ]);
 }
 
-it('lets a cashier access the POS page but a MEAL admin not', function () {
-    $center = testCenter();
-
-    $this->actingAs(cashierFor($center));
-    expect(PointOfSale::canAccess())->toBeTrue();
-
-    $this->actingAs(User::factory()->create(['role' => Roles::MealAdmin()]));
-    expect(PointOfSale::canAccess())->toBeFalse();
-});
-
 it('scopes cashier invoice, expense, shift and inventory queries to their own center', function () {
     $own = testCenter();
     $other = testCenter();
@@ -177,7 +167,13 @@ it('blocks a user of another center from downloading an expense receipt', functi
         ->get(route('expenses.receipt', $expense))
         ->assertForbidden();
 
+    // Finance is General-Admin-only in this release: even the owning
+    // center's own staff are refused.
     $this->actingAs(cashierFor($center))
+        ->get(route('expenses.receipt', $expense))
+        ->assertForbidden();
+
+    $this->actingAs(User::factory()->create(['role' => Roles::GeneralAdmin()]))
         ->get(route('expenses.receipt', $expense))
         ->assertOk();
 });

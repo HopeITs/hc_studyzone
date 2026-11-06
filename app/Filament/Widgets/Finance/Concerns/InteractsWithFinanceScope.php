@@ -6,6 +6,7 @@ namespace App\Filament\Widgets\Finance\Concerns;
 
 use App\Enums\Roles;
 use App\Models\Center;
+use App\Support\FinanceAccess;
 use App\Support\FinanceDisplay;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -14,7 +15,7 @@ trait InteractsWithFinanceScope
 {
     public static function canView(): bool
     {
-        return in_array(Auth::user()?->role, [
+        return FinanceAccess::allowed() && in_array(Auth::user()?->role, [
             Roles::GeneralAdmin(),
             Roles::CityAdmin(),
             Roles::CenterAdmin(),

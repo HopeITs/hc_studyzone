@@ -8,6 +8,7 @@ use App\Enums\ExpenseType;
 use App\Enums\Roles;
 use App\Models\Center;
 use App\Services\FinanceReportService;
+use App\Support\FinanceAccess;
 use App\Support\FinanceDisplay;
 use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
@@ -66,7 +67,7 @@ class FinancialReport extends Page
 
     public static function canAccess(): bool
     {
-        return in_array(Auth::user()?->role, [
+        return FinanceAccess::allowed() && in_array(Auth::user()?->role, [
             Roles::GeneralAdmin(),
             Roles::CityAdmin(),
             Roles::CenterAdmin(),

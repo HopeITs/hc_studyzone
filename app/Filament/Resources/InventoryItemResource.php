@@ -9,6 +9,7 @@ use App\Filament\Resources\InventoryItemResource\Pages\EditInventoryItem;
 use App\Filament\Resources\InventoryItemResource\Pages\ListInventoryItems;
 use App\Filament\Resources\InventoryItemResource\RelationManagers\MovementsRelationManager;
 use App\Models\InventoryItem;
+use App\Support\FinanceAccess;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -477,7 +478,7 @@ class InventoryItemResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return in_array(Auth::user()->role, [
+        return FinanceAccess::allowed() && in_array(Auth::user()->role, [
             Roles::GeneralAdmin(),
             Roles::CityAdmin(),
             Roles::CenterAdmin(),
@@ -488,7 +489,7 @@ class InventoryItemResource extends Resource
 
     public static function canCreate(): bool
     {
-        return in_array(Auth::user()->role, [
+        return FinanceAccess::allowed() && in_array(Auth::user()->role, [
             Roles::GeneralAdmin(),
             Roles::CenterAdmin(),
         ], true);
@@ -496,7 +497,7 @@ class InventoryItemResource extends Resource
 
     public static function canEdit($record): bool
     {
-        return in_array(Auth::user()->role, [
+        return FinanceAccess::allowed() && in_array(Auth::user()->role, [
             Roles::GeneralAdmin(),
             Roles::CenterAdmin(),
         ], true);
@@ -504,6 +505,6 @@ class InventoryItemResource extends Resource
 
     public static function canDelete($record): bool
     {
-        return Auth::user()->role === Roles::GeneralAdmin();
+        return FinanceAccess::allowed() && Auth::user()->role === Roles::GeneralAdmin();
     }
 }

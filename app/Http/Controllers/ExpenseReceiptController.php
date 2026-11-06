@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\Roles;
 use App\Models\Expense;
+use App\Support\FinanceAccess;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\Response;
@@ -18,6 +19,8 @@ class ExpenseReceiptController extends Controller
 {
     public function __invoke(Expense $expense): Response
     {
+        abort_unless(FinanceAccess::allowed(), 403);
+
         $user = Auth::user();
 
         $allowed = match (true) {
