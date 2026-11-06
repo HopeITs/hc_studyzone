@@ -13,7 +13,7 @@ class NewStudentsChart extends ChartWidget
 
     protected ?string $heading = null;
 
-    protected static ?int $sort = 2;
+    protected static ?int $sort = 1;
 
     public function getHeading(): string
     {
