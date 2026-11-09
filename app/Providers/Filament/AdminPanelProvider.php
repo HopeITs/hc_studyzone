@@ -16,6 +16,7 @@ use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Navigation\NavigationGroup;
+use Filament\Navigation\NavigationItem;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
@@ -116,6 +117,13 @@ class AdminPanelProvider extends PanelProvider
                 NavigationGroup::make()->label(__('general.navigation.admin_management')),
                 NavigationGroup::make()->label(__('general.navigation.city_management')),
                 NavigationGroup::make()->label(__('general.navigation.student_management')),
+            ])
+            // Temporary Google Apps Script form until the Tracking / Hub system launches.
+            ->navigationItems([
+                NavigationItem::make(fn (): string => __('general.navigation.team_activity_log'))
+                    ->url('https://script.google.com/macros/s/AKfycbx2U2KLMmKEAbCdIlEqSYPalqkgejIRmzHQYDDQXvyLxVkEw2c3DQZH7zWWcPgkSXOlgw/exec', shouldOpenInNewTab: true)
+                    ->icon('heroicon-o-clipboard-document-list')
+                    ->sort(100),
             ])
             ->plugins([
                 ActivitylogPlugin::make()

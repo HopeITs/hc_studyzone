@@ -348,6 +348,7 @@ return [
         'city_management' => 'City Management',
         'student_management' => 'Student Management',
         'reports' => 'Reports',
+        'team_activity_log' => 'Team Activity Log',
     ],
     'messages' => [
         'future_entry_date_title' => 'Entry date is not allowed',

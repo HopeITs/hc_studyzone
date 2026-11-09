@@ -351,6 +351,7 @@ return [
         'city_management' => 'إدارة المدن',
         'student_management' => 'إدارة الطلاب',
         'reports' => 'التقارير',
+        'team_activity_log' => 'تسجيل أنشطة الفريق',
     ],
     'messages' => [
         'future_entry_date_title' => 'تاريخ الدخولية غير مسموح',
