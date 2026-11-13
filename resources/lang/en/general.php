@@ -224,6 +224,8 @@ return [
         'export_by_month' => 'Export by Month',
         'export_by_day' => 'Export by Day',
         'total_entries' => 'Total Entries',
+        'working_entries' => 'Work Entries',
+        'studying_entries' => 'Study Entries',
         'daily_services' => 'Daily Services',
         'one_time_daily_services' => 'Daily Services (requested once)',
         'additional_services' => 'Additional Services',

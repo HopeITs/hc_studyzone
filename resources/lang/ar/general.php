@@ -227,6 +227,8 @@ return [
         'export_by_month' => 'تصدير حسب الشهر',
         'export_by_day' => 'تصدير حسب اليوم',
         'total_entries' => 'إجمالي الدخوليات',
+        'working_entries' => 'دخوليات بغرض العمل',
+        'studying_entries' => 'دخوليات بغرض الدراسة',
         'daily_services' => 'خدمات يومية',
         'one_time_daily_services' => 'خدمات يومية (تُطلب لمرة واحدة)',
         'additional_services' => 'خدمات إضافية',

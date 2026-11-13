@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\EntryResource\Widgets;
 
+use App\Enums\EntryPurpose;
 use App\Enums\EntryType;
 use App\Filament\Resources\EntryResource\Pages\ListEntries;
 use App\Models\EntryService;
@@ -132,7 +133,15 @@ class EntryStats extends BaseWidget
             ->groupBy('entry_type')
             ->pluck('total', 'entry_type');
 
-        $architectureEducationIds = [65, 176, 242];
+        // Purpose breakdown (work / study) in one grouped query, respecting the table filters
+        $purposeCounts = $this->getPageTableQuery()
+            ->reorder()
+            ->toBase()
+            ->selectRaw('purpose, COUNT(*) as total')
+            ->groupBy('purpose')
+            ->pluck('total', 'purpose');
+
+        $architectureEducationIds =[65, 176, 242];
         $dentistryEducationIds = [25, 77, 111, 136, 221, 223, 224, 225, 226, 227, 228];
 
         $educationCohortQuery = function (array $educationIds) {
@@ -157,6 +166,9 @@ class EntryStats extends BaseWidget
 
             Stat::make(__('general.labels.active_days_per_center'), (int) round($avgActiveDays))
                 ->description($activeDaysDescription),
+
+            Stat::make(__('general.labels.working_entries'), (int) ($purposeCounts[EntryPurpose::Working()] ?? 0)),
+            Stat::make(__('general.labels.studying_entries'), (int) ($purposeCounts[EntryPurpose::Studying()] ?? 0)),
 
             Stat::make(__('general.entry-types.' . EntryType::Free()), (int) ($entryTypeCounts[EntryType::Free()] ?? 0))
                 ->extraAttributes(['class' => 'donor-hide']),
