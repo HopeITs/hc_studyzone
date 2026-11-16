@@ -50,6 +50,21 @@ return [
         'add_purchase' => 'Add Purchase',
         'adjustment' => 'Stock Count Adjustment',
         'export' => 'Export to Excel',
+        'import' => 'Import from Excel',
+    ],
+
+    'import' => [
+        'upload' => 'Upload Excel file',
+        'download_template' => 'Download blank template',
+        'heading' => 'Import items from Excel',
+        'description' => 'Use the blank template: one row per item. The current quantity is recorded as opening stock. If any row has an error, nothing is saved.',
+        'file' => 'Excel file (.xlsx)',
+        'submit' => 'Import',
+        'success' => ':count items imported successfully',
+        'failed' => 'Nothing was saved — fix these errors in the file and upload it again',
+        'more_errors' => 'and :count more errors',
+        'unreadable' => 'The file could not be read — make sure it is the items template with unchanged headers.',
+        'wrong_template' => 'This is not the items template — download the correct one with the template button.',
     ],
 
     'filters' => [
