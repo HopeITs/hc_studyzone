@@ -89,6 +89,10 @@ class FinanceTemplateImporter
             'invoices' => $this->parseInvoices($rows),
         };
 
+        if ($type === 'inventory') {
+            $this->assertNoDuplicateItems($parsed, $centerId);
+        }
+
         if ($this->errors !== []) {
             return ['type' => $type, 'created' => 0, 'skipped' => count($rows)];
         }
@@ -217,7 +221,7 @@ class FinanceTemplateImporter
             }
 
             return [
-                'name' => $name,
+                'name' => $this->normalizeName($name),
                 'category' => $category !== null ? (string) $category : null,
                 'unit' => $unitEnum ?? InventoryUnit::default(),
                 'purchase_cost' => $this->toInt($purchaseCost, $row['row'], 'سعر الشراء'),
@@ -228,6 +232,37 @@ class FinanceTemplateImporter
                 'last_purchase_date' => $this->toDate($lastPurchase, $row['row'], 'تاريخ آخر شراء', required: false),
             ];
         }, $rows)));
+    }
+
+    /**
+     * Uploading the same file twice would create every item (and its opening
+     * stock) again, so names must be unique within the file and the center.
+     */
+    private function assertNoDuplicateItems(array $items, int $centerId): void
+    {
+        $names = array_map(fn (array $item): string => $this->normalizeName($item['name']), $items);
+
+        foreach (array_unique(array_diff_assoc($names, array_unique($names))) as $name) {
+            $this->errors[] = "المادة \"{$name}\" مكررة داخل الملف — ادمج السطرين في سطر واحد.";
+        }
+
+        $existing = InventoryItem::query()
+            ->where('center_id', $centerId)
+            ->pluck('name')
+            ->map(fn (string $name): string => $this->normalizeName($name))
+            ->intersect($names)
+            ->unique();
+
+        foreach ($existing as $name) {
+            $this->errors[] = "المادة \"{$name}\" موجودة مسبقاً في مستودع هذا المركز — احذف سطرها من الملف أو عدّلها من الشاشة.";
+        }
+    }
+
+    // Excel cells often carry double spaces ("ملح  ليمون"), which must not
+    // hide a duplicate.
+    private function normalizeName(string $name): string
+    {
+        return trim((string) preg_replace('/\s+/u', ' ', $name));
     }
 
     private function saveInventory(array $items, int $centerId, ?int $userId): void
