@@ -39,6 +39,8 @@ class FinanceTemplateImporter
         'قطعة' => InventoryUnit::Piece,
         'علبة' => InventoryUnit::Box,
         'كغ' => InventoryUnit::Kg,
+        // Staff often type the word instead of picking the dropdown abbreviation.
+        'كيلو' => InventoryUnit::Kg,
         'رزمة' => InventoryUnit::Ream,
         'متر' => InventoryUnit::Meter,
     ];
