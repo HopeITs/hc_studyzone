@@ -23,7 +23,12 @@ return [
         'recipient' => 'Recipient Name',
         'items' => 'Items',
         'student_search' => 'Find a Student',
-        'student_search_placeholder' => 'Type the student name or phone…',
+        'student_search_placeholder' => 'Search by name, surname, or phone…',
+        'beneficiary_type' => 'Customer',
+        'student' => 'Registered student',
+        'walk_in' => 'Walk-in customer',
+        'optional_beneficiary_name' => 'Beneficiary name (optional)',
+        'additional_details' => 'Additional details',
     ],
 
     'discount_types' => [
@@ -36,6 +41,8 @@ return [
     ],
 
     'actions' => [
+        'register_visit' => 'Register visit and add services',
+        'refresh_visit' => 'Check again',
         'collect_and_issue' => 'Collect & Issue',
         'save_unpaid' => 'Save Unpaid',
         'clear' => 'Clear',
@@ -45,6 +52,10 @@ return [
     ],
 
     'messages' => [
+        'student_has_no_visit' => 'This student has no visit today at this center.',
+        'student_has_visit' => 'A visit is registered today at this center.',
+        'register_visit_hint' => 'The visit form opens in a new tab. After saving, return here and choose “Check again”.',
+        'visit_registration_unavailable' => 'Check that the student profile is complete and you have permission to register a visit.',
         'select_center' => 'Select a center first',
         'cart_empty' => 'The invoice is empty — add at least one line',
         'beneficiary_required' => 'The beneficiary name is required',
@@ -52,7 +63,9 @@ return [
         'saved_unpaid' => 'Invoice #:number saved as unpaid',
         'allocation_recorded' => 'Team allocation recorded and deducted from stock',
         'failed' => 'The operation could not be completed',
-        'no_students_found' => 'No matching student — type the name manually below',
+        'no_students_found' => 'No matching student. Try the first name and surname, or search by phone.',
+        'select_student' => 'Select a student from the search results.',
+        'refine_student_search' => 'Add a surname to narrow the results.',
     ],
 
     'unpaid' => [

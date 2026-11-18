@@ -4,6 +4,7 @@ namespace App\Filament\Pages;
 
 use App\Enums\InvoiceStatus;
 use App\Enums\Roles;
+use App\Filament\Resources\StudentResource;
 use App\Models\CashShift;
 use App\Models\Center;
 use App\Models\InventoryItem;
@@ -23,15 +24,20 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Filament\Support\Enums\Width;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
+use Livewire\Attributes\Locked;
 
 class PointOfSale extends Page
 {
     use InteractsWithActions;
     use InteractsWithForms;
+
+    protected Width|string|null $maxContentWidth = Width::Full;
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-shopping-cart';
 
@@ -71,11 +77,15 @@ class PointOfSale extends Page
      */
     public array $cart = [];
 
+    #[Locked]
+    public string $beneficiaryType = 'walk_in';
+
     public string $beneficiaryName = '';
 
     public ?string $studentNumber = null;
 
     /** UUID of the linked student, when the beneficiary is a registered one. */
+    #[Locked]
     public ?string $studentId = null;
 
     public string $studentSearch = '';
@@ -277,9 +287,19 @@ class PointOfSale extends Page
     public function clearCart(): void
     {
         $this->reset([
-            'cart', 'beneficiaryName', 'studentNumber', 'studentId', 'studentSearch',
+            'cart', 'beneficiaryType', 'beneficiaryName', 'studentNumber', 'studentId', 'studentSearch',
             'discountType', 'discountValue', 'note',
         ]);
+    }
+
+    public function chooseBeneficiaryType(string $type): void
+    {
+        if (! in_array($type, ['student', 'walk_in'], true) || $this->beneficiaryType === $type) {
+            return;
+        }
+
+        $this->clearStudent();
+        $this->beneficiaryType = $type;
     }
 
     /**
@@ -289,21 +309,31 @@ class PointOfSale extends Page
      */
     public function getStudentResultsProperty(): Collection
     {
-        $term = trim($this->studentSearch);
+        $term = trim(mb_substr($this->studentSearch, 0, 120));
 
-        if ($this->studentId !== null || mb_strlen($term) < 2) {
+        if ($this->beneficiaryType !== 'student' || $this->studentId !== null || mb_strlen($term) < 2) {
             return collect();
         }
 
-        return Student::query()
-            ->where(function ($query) use ($term): void {
-                $query->where('firstname', 'like', "%{$term}%")
-                    ->orWhere('lastname', 'like', "%{$term}%")
-                    ->orWhere('father_name', 'like', "%{$term}%")
-                    ->orWhere('phone', 'like', "%{$term}%");
-            })
+        $words = preg_split('/\s+/u', $term, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $students = Student::query();
+
+        // Every word can match a different part of the registered name.
+        foreach ($words as $word) {
+            $pattern = '%'.addcslashes($word, '\\%_').'%';
+            $students->where(fn (Builder $query) => $query
+                ->where('firstname', 'like', $pattern)
+                ->orWhere('father_name', 'like', $pattern)
+                ->orWhere('lastname', 'like', $pattern)
+                ->orWhere('phone', 'like', $pattern));
+        }
+
+        return $students
+            ->orderByRaw('CASE WHEN firstname = ? THEN 0 ELSE 1 END', [$words[0] ?? $term])
             ->orderBy('firstname')
-            ->limit(8)
+            ->orderBy('lastname')
+            ->orderBy('id')
+            ->limit(12)
             ->get(['id', 'firstname', 'father_name', 'lastname', 'phone'])
             ->map(fn (Student $student) => [
                 'id' => $student->id,
@@ -320,6 +350,7 @@ class PointOfSale extends Page
             return;
         }
 
+        $this->chooseBeneficiaryType('student');
         $this->studentId = $student->id;
         $this->beneficiaryName = $student->getFilamentName();
         $this->studentSearch = '';
@@ -327,7 +358,30 @@ class PointOfSale extends Page
 
     public function clearStudent(): void
     {
-        $this->reset(['studentId', 'studentSearch', 'beneficiaryName']);
+        $this->reset(['studentId', 'studentSearch', 'beneficiaryName', 'studentNumber']);
+    }
+
+    public function getSelectedStudentHasVisitProperty(): ?bool
+    {
+        if ($this->studentId === null || $this->effectiveCenterId() === null) {
+            return null;
+        }
+
+        return $this->todayEntry !== null;
+    }
+
+    public function getRegisterVisitUrlProperty(): ?string
+    {
+        $student = Student::query()->find($this->studentId);
+
+        if ($student === null || ! $student->canHaveEntry() || ! StudentResource::canEdit($student)) {
+            return null;
+        }
+
+        return StudentResource::getUrl('create-entry', [
+            'record' => $student,
+            'center_id' => $this->effectiveCenterId(),
+        ]);
     }
 
     /** The selected student's entry today at this center, if any. */
@@ -408,10 +462,14 @@ class PointOfSale extends Page
             return;
         }
 
-        if (trim($this->beneficiaryName) === '') {
-            $this->notifyDanger(__('pos.messages.beneficiary_required'));
+        if ($this->beneficiaryType === 'student' && $this->studentId === null) {
+            $this->notifyDanger(__('pos.messages.select_student'));
 
             return;
+        }
+
+        if ($this->beneficiaryType === 'walk_in') {
+            $this->validate(['beneficiaryName' => ['nullable', 'string', 'max:255']]);
         }
 
         if (! $confirmedWithoutEntry && $this->todayEntry === null) {
@@ -439,7 +497,9 @@ class PointOfSale extends Page
             $invoice = $service->createInvoice(
                 centerId: $centerId,
                 lines: $lines,
-                beneficiaryName: trim($this->beneficiaryName),
+                beneficiaryName: filled($this->beneficiaryName)
+                    ? trim($this->beneficiaryName)
+                    : __('pos.fields.walk_in'),
                 studentNumber: filled($this->studentNumber) ? trim($this->studentNumber) : null,
                 discount: $discount,
                 note: filled($this->note) ? trim($this->note) : null,
