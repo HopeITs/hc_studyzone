@@ -1,7 +1,22 @@
 <x-filament-panels::page>
-    <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
+    <style>
+        .sz-pos { container-type: inline-size; }
+        .sz-pos-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; align-items: start; }
+        .sz-pos-grid > *, .sz-pos-cards > *, .sz-pos-pair > * { min-width: 0; }
+        .sz-pos-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr)); gap: .75rem; }
+        .sz-pos-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr)); gap: .5rem; }
+        .sz-pos-line { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+        .sz-pos-line-name { flex: 1 1 8rem; min-width: 0; }
+        .sz-pos-wrap { overflow-wrap: anywhere; }
+        .sz-pos-student-result { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: .25rem .75rem; }
+        @container (min-width: 43rem) {
+            .sz-pos-grid { grid-template-columns: minmax(0, 1.5fr) minmax(21rem, 1fr); }
+        }
+    </style>
+    <div class="sz-pos">
+    <div class="sz-pos-grid">
         {{-- Catalog --}}
-        <div class="lg:col-span-2 space-y-4">
+        <div class="space-y-4">
             @if ($this->isGeneralAdmin())
                 <x-filament::section>
                     <label for="pos-center" class="mb-2 block text-sm font-medium text-gray-950 dark:text-white">
@@ -49,6 +64,7 @@
                                 type="search"
                                 wire:model.live.debounce.400ms="search"
                                 placeholder="{{ __('pos.catalog.search_placeholder') }}"
+                                aria-label="{{ __('pos.catalog.search_placeholder') }}"
                             />
                         </x-filament::input.wrapper>
 
@@ -87,7 +103,7 @@
                                 {{ __('pos.catalog.empty') }}
                             </p>
                         @else
-                            <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+                            <div class="sz-pos-cards">
                                 @foreach ($this->catalog as $card)
                                     <button
                                         type="button"
@@ -95,7 +111,7 @@
                                         wire:key="card-{{ $card['key'] }}"
                                         class="flex flex-col items-start gap-1 rounded-xl border border-gray-200 bg-white p-3 text-start transition hover:border-[#023D55] hover:shadow dark:border-white/10 dark:bg-white/5 dark:hover:border-[#F99E1E]"
                                     >
-                                        <span class="w-full truncate text-sm font-semibold text-gray-950 dark:text-white">
+                                        <span class="sz-pos-wrap w-full text-sm font-semibold text-gray-950 dark:text-white">
                                             {{ $card['name'] }}
                                         </span>
 
@@ -142,9 +158,9 @@
                     @else
                         <ul class="divide-y divide-gray-100 dark:divide-white/10">
                             @foreach ($this->cart as $key => $line)
-                                <li class="flex items-center gap-2 py-2" wire:key="line-{{ $key }}">
-                                    <div class="min-w-0 flex-1">
-                                        <p class="truncate text-sm font-medium text-gray-950 dark:text-white">
+                                <li class="sz-pos-line py-2" wire:key="line-{{ $key }}">
+                                    <div class="sz-pos-line-name">
+                                        <p class="sz-pos-wrap text-sm font-medium text-gray-950 dark:text-white">
                                             {{ $line['name'] }}
                                         </p>
                                         <p class="text-xs text-gray-500 dark:text-gray-400">
@@ -165,7 +181,7 @@
                                         </x-filament::input.wrapper>
                                     </div>
 
-                                    <span class="w-20 text-end text-sm font-semibold text-gray-950 dark:text-white">
+                                    <span class="shrink-0 text-end text-sm font-semibold text-gray-950 dark:text-white">
                                         {{ number_format(max(1, (int) $line['quantity']) * (int) $line['unit_price']) }}
                                     </span>
 
@@ -182,128 +198,187 @@
 
                     {{-- Beneficiary --}}
                     <div class="space-y-3">
-                        {{-- Student search: links the invoice to a registered student --}}
-                        <div class="relative">
-                            <label for="pos-student-search" class="mb-2 block text-sm font-medium text-gray-950 dark:text-white">
-                                {{ __('pos.fields.student_search') }}
-                            </label>
-
-                            @if ($studentId)
-                                <div class="flex items-center justify-between gap-2 rounded-lg border border-[#023D55]/40 bg-[#023D55]/5 px-3 py-2 text-sm dark:border-[#F99E1E]/40 dark:bg-[#F99E1E]/10">
-                                    <span class="font-medium text-[#023D55] dark:text-[#F99E1E]">
-                                        {{ $beneficiaryName }}
-                                    </span>
+                        <fieldset class="min-w-0 space-y-2">
+                            <legend class="text-sm font-medium text-gray-950 dark:text-white">{{ __('pos.fields.beneficiary_type') }}</legend>
+                            <div class="sz-pos-pair">
+                                @foreach (['walk_in', 'student'] as $type)
                                     <button
                                         type="button"
-                                        wire:click="clearStudent"
-                                        class="text-gray-400 hover:text-danger-500"
-                                        title="{{ __('pos.actions.clear_student') }}"
+                                        wire:click="chooseBeneficiaryType(@js($type))"
+                                        aria-pressed="{{ $beneficiaryType === $type ? 'true' : 'false' }}"
+                                        @class([
+                                            'min-h-10 rounded-lg border px-3 py-2 text-sm font-medium',
+                                            'border-[#023D55] bg-[#023D55] text-white dark:border-[#F99E1E] dark:bg-[#F99E1E] dark:text-[#023D55]' => $beneficiaryType === $type,
+                                            'border-gray-200 text-gray-700 hover:bg-gray-50 dark:border-white/10 dark:text-gray-200 dark:hover:bg-white/5' => $beneficiaryType !== $type,
+                                        ])
                                     >
-                                        &times;
+                                        {{ __('pos.fields.'.$type) }}
                                     </button>
-                                </div>
-                            @else
-                                <x-filament::input.wrapper prefix-icon="heroicon-m-user">
-                                    <x-filament::input
-                                        id="pos-student-search"
-                                        type="text"
-                                        wire:model.live.debounce.400ms="studentSearch"
-                                        placeholder="{{ __('pos.fields.student_search_placeholder') }}"
-                                    />
-                                </x-filament::input.wrapper>
+                                @endforeach
+                            </div>
+                        </fieldset>
+                        @if ($beneficiaryType === 'student')
+                            <div>
+                                <label for="pos-student-search" class="mb-2 block text-sm font-medium text-gray-950 dark:text-white">
+                                    {{ __('pos.fields.student_search') }}
+                                </label>
 
-                                @if ($this->studentResults->isNotEmpty())
-                                    <ul class="absolute z-20 mt-1 w-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg dark:border-white/10 dark:bg-gray-900">
-                                        @foreach ($this->studentResults as $result)
-                                            <li>
-                                                <button
-                                                    type="button"
-                                                    wire:click="selectStudent('{{ $result['id'] }}')"
-                                                    class="flex w-full items-center justify-between px-3 py-2 text-start text-sm hover:bg-gray-50 dark:hover:bg-white/5"
-                                                >
-                                                    <span class="text-gray-950 dark:text-white">{{ $result['name'] }}</span>
-                                                    @if ($result['phone'])
-                                                        <span class="text-xs text-gray-400">{{ $result['phone'] }}</span>
-                                                    @endif
-                                                </button>
-                                            </li>
-                                        @endforeach
-                                    </ul>
-                                @elseif (mb_strlen(trim($studentSearch)) >= 2)
-                                    <p class="mt-1 text-xs text-gray-400">{{ __('pos.messages.no_students_found') }}</p>
+                                @if ($studentId)
+                                    <div class="flex items-center justify-between gap-2 rounded-lg border border-[#023D55]/40 bg-[#023D55]/5 px-3 py-2 text-sm dark:border-[#F99E1E]/40 dark:bg-[#F99E1E]/10">
+                                        <span class="sz-pos-wrap min-w-0 font-medium text-[#023D55] dark:text-[#F99E1E]">
+                                            {{ $beneficiaryName }}
+                                        </span>
+                                        <button
+                                            type="button"
+                                            wire:click="clearStudent"
+                                            class="text-gray-400 hover:text-danger-500"
+                                            title="{{ __('pos.actions.clear_student') }}"
+                                        >
+                                            &times;
+                                        </button>
+                                    </div>
+                                @if ($this->selectedStudentHasVisit === false)
+                                    <div class="space-y-2 rounded-lg border border-gray-200 px-3 py-2 dark:border-white/10" role="status">
+                                        <x-filament::badge color="warning">
+                                            {{ __('pos.messages.student_has_no_visit') }}
+                                        </x-filament::badge>
+                                        @if ($visitUrl = $this->registerVisitUrl)
+                                            <p class="text-sm text-gray-600 dark:text-gray-300">{{ __('pos.messages.register_visit_hint') }}</p>
+                                            <div class="flex flex-wrap gap-2">
+                                                <x-filament::button tag="a" :href="$visitUrl" target="_blank" rel="noopener">
+                                                    {{ __('pos.actions.register_visit') }}
+                                                </x-filament::button>
+                                                <x-filament::button color="gray" wire:click="$refresh">
+                                                    {{ __('pos.actions.refresh_visit') }}
+                                                </x-filament::button>
+                                            </div>
+                                        @else
+                                            <p class="text-sm text-gray-600 dark:text-gray-300">{{ __('pos.messages.visit_registration_unavailable') }}</p>
+                                        @endif
+                                    </div>
+                                @elseif ($this->selectedStudentHasVisit === true)
+                                    <x-filament::badge color="success">{{ __('pos.messages.student_has_visit') }}</x-filament::badge>
                                 @endif
-                            @endif
-                        </div>
-
-                        <div>
-                            <label for="pos-beneficiary" class="mb-2 block text-sm font-medium text-gray-950 dark:text-white">
-                                {{ __('invoices.fields.beneficiary_name') }} <span class="text-danger-500">*</span>
-                            </label>
-                            <x-filament::input.wrapper :disabled="(bool) $studentId">
-                                <x-filament::input
-                                    id="pos-beneficiary"
-                                    type="text"
-                                    wire:model="beneficiaryName"
-                                    @disabled($studentId)
-                                />
-                            </x-filament::input.wrapper>
-                        </div>
-
-                        <div>
-                            <label for="pos-student-number" class="mb-2 block text-sm font-medium text-gray-950 dark:text-white">
-                                {{ __('invoices.fields.student_number') }}
-                            </label>
-                            <x-filament::input.wrapper>
-                                <x-filament::input
-                                    id="pos-student-number"
-                                    type="text"
-                                    wire:model="studentNumber"
-                                />
-                            </x-filament::input.wrapper>
-                        </div>
-
-                        @if ($this->canApplyDiscount())
-                            <div class="grid grid-cols-2 gap-2">
-                                <div>
-                                    <label for="pos-discount-type" class="mb-2 block text-sm font-medium text-gray-950 dark:text-white">
-                                        {{ __('pos.fields.discount_type') }}
-                                    </label>
-                                    <x-filament::input.wrapper>
-                                        <x-filament::input.select id="pos-discount-type" wire:model.live="discountType">
-                                            <option value="amount">{{ __('pos.discount_types.amount') }}</option>
-                                            <option value="percent">{{ __('pos.discount_types.percent') }}</option>
-                                        </x-filament::input.select>
-                                    </x-filament::input.wrapper>
-                                </div>
-                                <div>
-                                    <label for="pos-discount-value" class="mb-2 block text-sm font-medium text-gray-950 dark:text-white">
-                                        {{ __('invoices.fields.discount') }}
-                                    </label>
-                                    <x-filament::input.wrapper>
+                                @else
+                                    <x-filament::input.wrapper prefix-icon="heroicon-m-user">
                                         <x-filament::input
-                                            id="pos-discount-value"
-                                            type="number"
-                                            min="0"
-                                            wire:model.live.debounce.400ms="discountValue"
+                                            id="pos-student-search"
+                                            type="text"
+                                            maxlength="120"
+                                            wire:model.live.debounce.400ms="studentSearch"
+                                            placeholder="{{ __('pos.fields.student_search_placeholder') }}"
                                         />
                                     </x-filament::input.wrapper>
-                                </div>
+
+                                    @php($studentResults = $this->studentResults)
+
+                                    @if ($studentResults->isNotEmpty())
+                                        <ul class="mt-2 divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white dark:divide-white/10 dark:border-white/10 dark:bg-gray-900">
+                                            @foreach ($studentResults as $result)
+                                                <li>
+                                                    <button
+                                                        type="button"
+                                                        wire:click="selectStudent('{{ $result['id'] }}')"
+                                                        class="sz-pos-student-result w-full px-3 py-2 text-start text-sm hover:bg-gray-50 dark:hover:bg-white/5"
+                                                    >
+                                                        <span class="sz-pos-wrap min-w-0 text-gray-950 dark:text-white">{{ $result['name'] }}</span>
+                                                        @if ($result['phone'])
+                                                            <span class="text-xs text-gray-400">{{ $result['phone'] }}</span>
+                                                        @endif
+                                                    </button>
+                                                </li>
+                                            @endforeach
+                                        </ul>
+                                    @elseif (mb_strlen(trim($studentSearch)) >= 2)
+                                        <p class="mt-1 text-xs text-gray-400">{{ __('pos.messages.no_students_found') }}</p>
+                                    @endif
+                                    @if ($studentResults->count() === 12)
+                                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ __('pos.messages.refine_student_search') }}</p>
+                                    @endif
+                                @endif
+                            </div>
+
+                        @else
+                            <div>
+                                <label for="pos-beneficiary" class="mb-2 block text-sm font-medium text-gray-950 dark:text-white">
+                                    {{ __('pos.fields.optional_beneficiary_name') }}
+                                </label>
+                                <x-filament::input.wrapper>
+                                    <x-filament::input
+                                        id="pos-beneficiary"
+                                        type="text"
+                                        maxlength="255"
+                                        wire:model="beneficiaryName"
+                                    />
+                                </x-filament::input.wrapper>
+                                @error('beneficiaryName')
+                                    <p class="mt-1 text-sm text-danger-600 dark:text-danger-400">{{ $message }}</p>
+                                @enderror
                             </div>
                         @endif
 
-                        <div>
-                            <label for="pos-note" class="mb-2 block text-sm font-medium text-gray-950 dark:text-white">
-                                {{ __('invoices.fields.note') }}
-                            </label>
-                            <x-filament::input.wrapper>
-                                <textarea
-                                    id="pos-note"
-                                    rows="2"
-                                    wire:model="note"
-                                    class="fi-input"
-                                ></textarea>
-                            </x-filament::input.wrapper>
-                        </div>
+                        <details wire:ignore.self class="rounded-lg border border-gray-200 px-3 py-2 dark:border-white/10">
+                            <summary class="cursor-pointer text-sm font-medium text-gray-950 dark:text-white">{{ __('pos.fields.additional_details') }}</summary>
+                            <div class="mt-3 space-y-3">
+                                @if ($beneficiaryType === 'student')
+                                <div>
+                                    <label for="pos-student-number" class="mb-2 block text-sm font-medium text-gray-950 dark:text-white">
+                                        {{ __('invoices.fields.student_number') }}
+                                    </label>
+                                    <x-filament::input.wrapper>
+                                        <x-filament::input
+                                            id="pos-student-number"
+                                            type="text"
+                                            wire:model="studentNumber"
+                                        />
+                                    </x-filament::input.wrapper>
+                                </div>
+                                @endif
+
+                                @if ($this->canApplyDiscount())
+                                    <div class="sz-pos-pair">
+                                        <div>
+                                            <label for="pos-discount-type" class="mb-2 block text-sm font-medium text-gray-950 dark:text-white">
+                                                {{ __('pos.fields.discount_type') }}
+                                            </label>
+                                            <x-filament::input.wrapper>
+                                                <x-filament::input.select id="pos-discount-type" wire:model.live="discountType">
+                                                    <option value="amount">{{ __('pos.discount_types.amount') }}</option>
+                                                    <option value="percent">{{ __('pos.discount_types.percent') }}</option>
+                                                </x-filament::input.select>
+                                            </x-filament::input.wrapper>
+                                        </div>
+                                        <div>
+                                            <label for="pos-discount-value" class="mb-2 block text-sm font-medium text-gray-950 dark:text-white">
+                                                {{ __('invoices.fields.discount') }}
+                                            </label>
+                                            <x-filament::input.wrapper>
+                                                <x-filament::input
+                                                    id="pos-discount-value"
+                                                    type="number"
+                                                    min="0"
+                                                    wire:model.live.debounce.400ms="discountValue"
+                                                />
+                                            </x-filament::input.wrapper>
+                                        </div>
+                                    </div>
+                                @endif
+
+                                <div>
+                                    <label for="pos-note" class="mb-2 block text-sm font-medium text-gray-950 dark:text-white">
+                                        {{ __('invoices.fields.note') }}
+                                    </label>
+                                    <x-filament::input.wrapper>
+                                        <textarea
+                                            id="pos-note"
+                                            rows="2"
+                                            wire:model="note"
+                                            class="fi-input"
+                                        ></textarea>
+                                    </x-filament::input.wrapper>
+                                </div>
+                            </div>
+                        </details>
                     </div>
 
                     {{-- Summary --}}
@@ -357,6 +432,8 @@
                 </div>
             </x-filament::section>
         </div>
+    </div>
+
     </div>
 
     <script>

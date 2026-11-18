@@ -71,7 +71,7 @@ class CreateStudentEntry extends Page
             $this->fillFormForEdit();
         } else {
             $this->form->fill([
-                'center_id' => auth()->user()->center_id,
+                'center_id' => $this->initialCenterId(),
                 'entry_type' => 1,
                 'purpose' => EntryPurpose::Studying(),
                 'entry_time' => now(),
@@ -79,6 +79,19 @@ class CreateStudentEntry extends Page
                 'day_services' => [],
             ]);
         }
+    }
+
+    protected function initialCenterId(): ?int
+    {
+        $user = Auth::user();
+        $requestedCenter = request()->integer('center_id');
+
+        if ($user->role === Roles::GeneralAdmin() && $requestedCenter > 0
+            && Center::query()->whereKey($requestedCenter)->where('is_active', true)->exists()) {
+            return $requestedCenter;
+        }
+
+        return $user->center_id === null ? null : (int) $user->center_id;
     }
 
     protected function fillFormForEdit(): void

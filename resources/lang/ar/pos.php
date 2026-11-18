@@ -23,7 +23,12 @@ return [
         'recipient' => 'اسم المستلم',
         'items' => 'المواد',
         'student_search' => 'بحث عن طالب',
-        'student_search_placeholder' => 'اكتب اسم الطالب أو رقم هاتفه…',
+        'student_search_placeholder' => 'ابحث بالاسم أو الكنية أو رقم الهاتف…',
+        'beneficiary_type' => 'المستفيد',
+        'student' => 'طالب مسجّل',
+        'walk_in' => 'زبون عابر',
+        'optional_beneficiary_name' => 'اسم المستفيد (اختياري)',
+        'additional_details' => 'تفاصيل إضافية',
     ],
 
     'discount_types' => [
@@ -36,6 +41,8 @@ return [
     ],
 
     'actions' => [
+        'register_visit' => 'تسجيل دخولية وإضافة خدمات',
+        'refresh_visit' => 'تحقّق مجدداً',
         'collect_and_issue' => 'تحصيل وإصدار',
         'save_unpaid' => 'حفظ غير محصلة',
         'clear' => 'تفريغ',
@@ -45,6 +52,10 @@ return [
     ],
 
     'messages' => [
+        'student_has_no_visit' => 'هذا الطالب ليس له دخولية اليوم في هذا المركز.',
+        'student_has_visit' => 'دخولية اليوم مسجّلة في هذا المركز.',
+        'register_visit_hint' => 'يفتح نموذج الدخولية بتبويب جديد. بعد الحفظ، ارجع لهون واضغط «تحقّق مجدداً».',
+        'visit_registration_unavailable' => 'تأكّد من اكتمال بيانات الطالب وصلاحية تسجيل الدخولية.',
         'select_center' => 'اختر المركز أولاً',
         'cart_empty' => 'الفاتورة فارغة — أضف بنداً واحداً على الأقل',
         'beneficiary_required' => 'اسم المستفيد مطلوب',
@@ -52,7 +63,9 @@ return [
         'saved_unpaid' => 'تم حفظ الفاتورة رقم :number غير محصلة',
         'allocation_recorded' => 'تم تسجيل مخصصات الفريق وخصمها من المخزون',
         'failed' => 'تعذر إتمام العملية',
-        'no_students_found' => 'لا يوجد طالب مطابق — اكتب الاسم يدويًا بالأسفل',
+        'no_students_found' => 'ما لقينا طالب مطابق. جرّب الاسم الأول مع الكنية أو ابحث برقم الهاتف.',
+        'select_student' => 'اختَر طالباً من نتائج البحث.',
+        'refine_student_search' => 'أضف الكنية لتضييق نتائج البحث.',
     ],
 
     'unpaid' => [
