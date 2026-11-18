@@ -9,6 +9,7 @@ use Carbon\Carbon;
 use Filament\Schemas\Components\Grid;
 use Filament\Actions\Action;
 use App\Enums\Roles;
+use App\Filament\Resources\EntryResource;
 use App\Filament\Resources\StudentResource;
 use App\Helpers\ServiceHelper;
 use App\Models\Center;
@@ -18,6 +19,7 @@ use App\Models\Service;
 use App\Models\ServiceCategory;
 use App\Models\ServicePrice;
 use App\Models\StudentEntry;
+use App\Services\EntryInvoiceService;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Hidden;
@@ -62,11 +64,12 @@ class CreateStudentEntry extends Page
         $entry = $args['entry'] ?? $args[1] ?? null;
 
         $this->record = $this->resolveRecord($record);
+        abort_unless(StudentResource::canEdit($this->record), 403);
 
         abort_if(! $this->record->completed_data, 403, 'بيانات الطالب غير مكتملة');
 
         if ($entry) {
-            $this->entryInstance = StudentEntry::where('student_id', $this->record->id)
+            $this->entryInstance = EntryResource::getEloquentQuery()->where('student_id', $this->record->id)
                 ->findOrFail($entry);
             $this->fillFormForEdit();
         } else {
@@ -84,6 +87,10 @@ class CreateStudentEntry extends Page
     protected function fillFormForEdit(): void
     {
         $entry = $this->entryInstance;
+
+        // Services paid at the point of sale are not edited here (see save).
+        $entry->setRelation('services', $entry->services()->notFromPointOfSale()
+            ->where('pre_finance', false)->with('service.category')->get());
 
         // Separate day services from regular services
         $dayServiceIds = $entry->services
@@ -464,6 +471,8 @@ class CreateStudentEntry extends Page
 
     public function save(): void
     {
+        abort_unless(StudentResource::canEdit($this->record), 403);
+
         if ($this->saved) {
             return;
         }
@@ -501,7 +510,14 @@ class CreateStudentEntry extends Page
             return;
         }
 
-        $centerId = (int) ($data['center_id'] ?? auth()->user()->center_id);
+        $user = Auth::user();
+        $centerId = (int) ($user->role === Roles::CenterAdmin()
+            ? $user->center_id
+            : ($data['center_id'] ?? $user->center_id));
+
+        if ($user->role === Roles::CityAdmin()) {
+            abort_unless(Center::query()->whereKey($centerId)->where('city_id', $user->city_id)->exists(), 403);
+        }
 
         $services = array_values(array_filter($data['services'] ?? [], fn ($s) => ! empty($s['service_id'])));
         $dayServices = $data['day_services'] ?? [];
@@ -553,8 +569,12 @@ class CreateStudentEntry extends Page
 
             $entry = $this->entryInstance;
 
-            // Delete old services to re-sync them cleanly
-            $entry->services()->delete();
+            // Delete old services to re-sync them cleanly. Services paid at the
+            // point of sale stay: they belong to their POS invoice.
+            $entry->services()->notFromPointOfSale()->where('pre_finance', false)->delete();
+
+            // A daily service already paid at the point of sale is not added twice.
+            $dayServices = array_values(array_diff($dayServices, $entry->services()->pluck('service_id')->all()));
         } else {
             $entry = StudentEntry::create([
                 'student_id' => $this->record->id,
@@ -592,10 +612,13 @@ class CreateStudentEntry extends Page
             ]);
         }
 
+        // The query delete above skips the observer: rebuild the entry invoice.
+        app(EntryInvoiceService::class)->sync($entry);
+
         // ─── NEW: Sync reference_column_name to student_entries ───
 
         // 1. Collect all service IDs that were just saved
-        $allSavedServiceIds = array_unique(array_merge(array_column($services, 'service_id'), $dayServices));
+        $allSavedServiceIds = $entry->services()->pluck('service_id')->unique()->all();
 
         // 2. Fetch all possible reference columns to reset removed ones to false (handles edit scenario)
         $allPossibleColumns = Service::whereNotNull('reference_column_name')

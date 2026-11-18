@@ -7,6 +7,7 @@ use Filament\Schemas\Components\Fieldset;
 use Carbon\Carbon;
 use App\Enums\EntryPurpose;
 use Illuminate\Database\Eloquent\Model;
+use App\Services\EntryInvoiceService;
 use Filament\Actions\DeleteAction;
 use App\Enums\Roles;
 use App\Filament\Resources\EntryResource;
@@ -27,6 +28,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\On;
 
 class EditEntry extends EditRecord
@@ -148,12 +150,16 @@ class EditEntry extends EditRecord
     {
         $centerId = $data['center_id'] ?? auth()->user()->center_id;
 
-        $record->update([
-            'center_id' => $centerId,
-            'entry_type' => $data['entry_type'],
-            'purpose' => $data['purpose'],
-            'entry_time' => $data['entry_time'],
-        ]);
+        DB::transaction(function () use ($record, $data, $centerId): void {
+            $record->update([
+                'center_id' => $centerId,
+                'entry_type' => $data['entry_type'],
+                'purpose' => $data['purpose'],
+                'entry_time' => $data['entry_time'],
+            ]);
+
+            app(EntryInvoiceService::class)->sync($record);
+        }, 3);
 
         // ⚠️ IMPORTANT: We removed the services saving logic from here because
         // the form schema no longer contains the 'services' repeater and 'day_services' checkbox list.

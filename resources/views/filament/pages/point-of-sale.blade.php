@@ -202,6 +202,11 @@
                                         &times;
                                     </button>
                                 </div>
+                                @if ($this->cart !== [])
+                                    <p class="mt-1 text-sm text-gray-600 dark:text-gray-300" role="status">
+                                        {{ $this->todayEntry ? __('pos.entry.has_entry_today') : __('pos.entry.no_entry_today') }}
+                                    </p>
+                                @endif
                             @else
                                 <x-filament::input.wrapper prefix-icon="heroicon-m-user">
                                     <x-filament::input
@@ -244,7 +249,7 @@
                                     id="pos-beneficiary"
                                     type="text"
                                     wire:model="beneficiaryName"
-                                    @disabled($studentId)
+                                    :disabled="filled($studentId)"
                                 />
                             </x-filament::input.wrapper>
                         </div>
