@@ -782,7 +782,7 @@ class StudentResource extends Resource
 
                     return 'إضافة دخولية جديدة';
                 })
-                ->hidden($isObserver),
+                ->hidden(fn (Student $record): bool => ! static::canEdit($record)),
 
             ActionGroup::make([ViewAction::make(), EditAction::make()->hidden($isObserver), DeleteAction::make()->hidden($isObserver)])->icon('heroicon-m-ellipsis-horizontal'),
         ];

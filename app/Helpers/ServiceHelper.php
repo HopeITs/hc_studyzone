@@ -7,6 +7,7 @@ use App\Models\LockedMonth;
 use App\Models\Service;
 use App\Models\ServiceCategory;
 use App\Models\StudentEntry;
+use App\Services\EntryInvoiceService;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Auth;
 
@@ -58,7 +59,15 @@ class ServiceHelper
                 ]);
             }
         } else {
+            // Internet paid at the point of sale is cancelled there, not here.
+            if ($entry->services()->where('service_id', $service->id)->whereNotNull('invoice_item_id')->get()->contains->isBilledAtPointOfSale()) {
+                Notification::make()->title(__('pos.errors.entry_service_from_pos'))->danger()->send();
+
+                return $entry->use_internet;
+            }
+
             $entry->services()->where('service_id', $service->id)->delete();
+            app(EntryInvoiceService::class)->sync($entry);
         }
 
         $entry->update(['use_internet' => $enable]);

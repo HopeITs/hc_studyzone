@@ -57,7 +57,9 @@ it('finds names across the registered name fields independently of visits', func
         ->call('selectStudent', (string) $walkInStudent->id)
         ->assertSet('beneficiaryName', $walkInStudent->getFilamentName())
         ->call('addToCart', 'i-'.$this->item->id)
-        ->call('saveUnpaid');
+        ->call('saveUnpaid')
+        ->assertActionMounted('confirmNoEntry')
+        ->callMountedAction();
 
     expect(Invoice::sole()->student_id)->toBe((string) $walkInStudent->id);
 });
@@ -71,7 +73,10 @@ it('requires a choice for registered students and saves unnamed walk-in sales wi
 
     expect(Invoice::count())->toBe(0);
 
-    $pos->call('chooseBeneficiaryType', 'walk_in')->call('saveUnpaid');
+    $pos->call('chooseBeneficiaryType', 'walk_in')
+        ->call('saveUnpaid')
+        ->assertActionMounted('confirmNoEntry')
+        ->callMountedAction();
 
     $invoice = Invoice::sole();
     expect($invoice->student_id)->toBeNull()
