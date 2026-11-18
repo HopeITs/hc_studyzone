@@ -11,6 +11,7 @@ use App\Models\Invoice;
 use App\Models\Service;
 use App\Models\ServicePrice;
 use App\Models\Student;
+use App\Models\StudentEntry;
 use App\Services\PosService;
 use App\Support\FinanceAccess;
 use Filament\Actions\Action;
@@ -329,6 +330,39 @@ class PointOfSale extends Page
         $this->reset(['studentId', 'studentSearch', 'beneficiaryName']);
     }
 
+    /** The selected student's entry today at this center, if any. */
+    public function getTodayEntryProperty(): ?StudentEntry
+    {
+        $centerId = $this->effectiveCenterId();
+
+        if ($this->studentId === null || ! $centerId) {
+            return null;
+        }
+
+        return StudentEntry::todayFor($this->studentId, $centerId);
+    }
+
+    /** Shown when the cart needs an entry and the buyer has none today; the cashier may still continue. */
+    public function confirmNoEntryAction(): Action
+    {
+        return Action::make('confirmNoEntry')
+            ->requiresConfirmation()
+            ->icon('heroicon-o-exclamation-triangle')
+            ->color('warning')
+            ->modalHeading(__('pos.entry.confirm_heading'))
+            ->modalDescription(__('pos.entry.confirm_no_entry'))
+            ->modalSubmitActionLabel(__('pos.entry.confirm_submit'))
+            ->action(function (array $arguments): void {
+                if (isset($arguments['invoiceId'])) {
+                    $this->collectExistingInvoice((int) $arguments['invoiceId'], confirmedWithoutEntry: true);
+
+                    return;
+                }
+
+                $this->submit((bool) ($arguments['collect'] ?? false), confirmedWithoutEntry: true);
+            });
+    }
+
     public function getSubtotalProperty(): int
     {
         return (int) collect($this->cart)
@@ -358,7 +392,7 @@ class PointOfSale extends Page
         $this->submit(collect: false);
     }
 
-    protected function submit(bool $collect): void
+    protected function submit(bool $collect, bool $confirmedWithoutEntry = false): void
     {
         $centerId = $this->effectiveCenterId();
 
@@ -376,6 +410,12 @@ class PointOfSale extends Page
 
         if (trim($this->beneficiaryName) === '') {
             $this->notifyDanger(__('pos.messages.beneficiary_required'));
+
+            return;
+        }
+
+        if (! $confirmedWithoutEntry && $this->todayEntry === null) {
+            $this->mountAction('confirmNoEntry', ['collect' => $collect]);
 
             return;
         }
@@ -446,9 +486,25 @@ class PointOfSale extends Page
 
     public function collectInvoice(int $invoiceId): void
     {
+        $this->collectExistingInvoice($invoiceId);
+    }
+
+    protected function collectExistingInvoice(int $invoiceId, bool $confirmedWithoutEntry = false): void
+    {
         $invoice = $this->findAuthorizedInvoice($invoiceId);
 
         if (! $invoice) {
+            return;
+        }
+
+        if (! $confirmedWithoutEntry
+            && ($invoice->student_id === null || StudentEntry::todayFor($invoice->student_id, $invoice->center_id) === null)) {
+            if ($this->getMountedAction()?->getName() === 'unpaidInvoices') {
+                $this->unmountAction();
+            }
+
+            $this->mountAction('confirmNoEntry', ['invoiceId' => $invoiceId]);
+
             return;
         }
 

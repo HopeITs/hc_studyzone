@@ -5,12 +5,14 @@ namespace App\Http\Controllers;
 use Carbon\Carbon;
 use App\Helpers\ServiceHelper;
 use App\Models\Center;
-use App\Models\EntryService;
+use App\Enums\Roles;
+use App\Models\LockedMonth;
+use App\Models\ServicePrice;
 use App\Models\Service;
 use App\Models\Student;
 use App\Models\StudentEntry;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class StudentEntryController extends Controller
@@ -28,114 +30,78 @@ class StudentEntryController extends Controller
         return view('students.entry-form', compact('student', 'entryTypes', 'centers'));
     }
 
-    public function store(Request $request, $studentId)
+    public function store(Request $request, string $studentId)
     {
+        $user = $request->user();
+        abort_unless($user->is_active && in_array($user->role, [
+            Roles::GeneralAdmin(),
+            Roles::CityAdmin(),
+            Roles::CenterAdmin(),
+        ], true), 403);
+
         $data = $request->validate([
-            'user_id' => 'required',
-            'center_id' => 'required|exists:centers,id',
-            'entry_type' => 'required',
+            'center_id' => 'required|integer|exists:centers,id',
+            'entry_type' => 'required|integer',
             'entry_time' => 'required|date',
             'services' => 'nullable|array',
-            'services.*.service_id' => 'required_with:services|exists:services,id',
-            'services.*.price' => 'nullable|numeric',
+            'services.*.service_id' => 'required|integer|exists:services,id',
             'services.*.quantity' => 'nullable|integer|min:1',
-            'services.*.subtotal' => 'nullable|numeric',
         ]);
 
-        if (Carbon::parse($data['entry_time'])->isAfter(today()->endOfDay())) {
+        $centerId = (int) $data['center_id'];
+        $allowed = match ($user->role) {
+            Roles::GeneralAdmin() => true,
+            Roles::CityAdmin() => Center::query()->whereKey($centerId)->where('city_id', $user->city_id)->exists(),
+            Roles::CenterAdmin() => (int) $user->center_id === $centerId,
+            default => false,
+        };
+        abort_unless($allowed, 403);
+
+        $date = Carbon::parse($data['entry_time']);
+        if ($date->isAfter(today()->endOfDay()) || LockedMonth::isLocked($date)) {
             throw ValidationException::withMessages([
-                'entry_time' => __('general.messages.future_entry_date_body'),
+                'entry_time' => $date->isAfter(today()->endOfDay())
+                    ? __('general.messages.future_entry_date_body')
+                    : __('general.messages.month_locked_body'),
             ]);
         }
 
         $student = Student::findOrFail($studentId);
-
-        // Calculate total from submitted array
-        $totalAmount = 0;
-        foreach ($data['services'] ?? [] as $service) {
-            $totalAmount += ($service['price'] ?? 0) * ($service['quantity'] ?? 1);
-        }
-
-        // Add default service total if applicable
+        $services = collect($data['services'] ?? [])->keyBy('service_id');
         $defaultService = ServiceHelper::getDefaultEntryService();
-        if ($defaultService) {
-            $totalAmount += $defaultService['price'];
+
+        if ($defaultService && ! $services->has($defaultService['id'])) {
+            $services->put($defaultService['id'], ['quantity' => 1]);
         }
 
-        $entry = StudentEntry::create([
-            'student_id' => $student->id,
-            'user_id' => $data['user_id'],
-            'center_id' => $data['center_id'],
-            'entry_type' => $data['entry_type'],
-            'entry_time' => $data['entry_time'],
-            'total_amount' => $totalAmount,
-        ]);
-
-        // Insert submitted services
-        if (!empty($data['services'])) {
-            $entryServicesData = [];
-            foreach ($data['services'] as $service) {
-                $price = (float) ($service['price'] ?? 0);
-                $quantity = (int) ($service['quantity'] ?? 1);
-
-                $entryServicesData[] = [
-                    'entry_id' => $entry->id,
-                    'service_id' => $service['service_id'],
-                    'price_at_time' => $price,
-                    'quantity' => $quantity,
-                    'subtotal' => $price * $quantity,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ];
-            }
-            EntryService::insert($entryServicesData);
+        $prices = ServicePrice::activePricesFor($centerId, $services->keys()->all());
+        if (! ServiceHelper::ensureServicesPriced($services->keys()->all(), $prices)) {
+            return redirect()->back();
         }
 
-        // Insert default service
-        if ($defaultService) {
-            $exists = collect($data['services'] ?? [])->pluck('service_id')->contains($defaultService['id']);
-            if (!$exists) {
-                EntryService::create([
-                    'entry_id' => $entry->id,
-                    'service_id' => $defaultService['id'],
-                    'price_at_time' => $defaultService['price'],
-                    'quantity' => 1,
-                    'subtotal' => $defaultService['price'],
+        DB::transaction(function () use ($student, $user, $centerId, $data, $services, $prices): void {
+            $entry = StudentEntry::create([
+                'student_id' => $student->id,
+                'user_id' => $user->id,
+                'center_id' => $centerId,
+                'entry_type' => $data['entry_type'],
+                'entry_time' => $data['entry_time'],
+            ]);
+
+            foreach ($services as $id => $service) {
+                $amount = (int) ($service['quantity'] ?? 1);
+                $entry->services()->create([
+                    'service_id' => $id,
+                    'amount' => $amount,
+                    'price_at_time' => $prices[$id],
+                    'total' => $prices[$id] * $amount,
                 ]);
             }
-        }
 
-        // ─── NEW: Sync reference_column_name to student_entries ───
+            $references = Service::whereIn('id', $services->keys())->pluck('reference_column_name')->filter();
+            $entry->update(array_fill_keys($references->all(), true));
+        }, 3);
 
-        // 1. Collect all attached service IDs
-        $allServiceIds = collect($data['services'] ?? [])->pluck('service_id')->toArray();
-
-        if ($defaultService && !in_array($defaultService['id'], $allServiceIds)) {
-            $allServiceIds[] = $defaultService['id'];
-        }
-
-        // 2. Fetch the reference_column_name(s) for the attached services
-        if (!empty($allServiceIds)) {
-            $referenceColumns = Service::whereIn('id', $allServiceIds)
-                ->whereNotNull('reference_column_name')
-                ->pluck('reference_column_name')
-                ->unique()
-                ->filter()
-                ->toArray();
-
-            // 3. Prepare update array and update the entry
-            $entryUpdates = [];
-            foreach ($referenceColumns as $column) {
-                $entryUpdates[$column] = true;
-            }
-
-            if (!empty($entryUpdates)) {
-                $entry->update($entryUpdates);
-            }
-        }
-
-        // ─── END NEW ───
-
-        return redirect()->back()->with('success', 'تم تسجيل الدخولية بنجاح');
+        return redirect()->back()->with('success', __('general.labels.entry_recorded_successfully'));
     }
 }

@@ -59,7 +59,20 @@ return [
         'empty' => 'No unpaid invoices',
     ],
 
+    'entry' => [
+        'drinks' => 'Purchased drinks',
+        'has_entry_today' => 'Has an entry today — services are added to it automatically',
+        'no_entry_today' => 'No entry today',
+        'confirm_heading' => 'Warning: This transaction is not linked to a visit',
+        'confirm_no_entry' => 'There is no visit for this customer today at this center. Continue without linking this transaction to a visit?',
+        'confirm_submit' => 'Continue without an entry',
+    ],
+
     'errors' => [
+        'daily_service_quantity' => 'A daily service is recorded once with a quantity of one.',
+        'entry_has_sales' => 'This entry has paid sales. Cancel the linked invoices before deleting it or changing its date or center.',
+        'already_on_entry' => '":service" is already on the student\'s entry today — nothing was done.',
+        'entry_service_from_pos' => 'This service was paid at the point of sale — cancel its invoice there to change it.',
         'month_locked' => 'This month is locked for accounting; no sales or hand-outs are allowed in it.',
         'empty_lines' => 'The operation cannot be completed without any lines.',
         'invalid_line' => 'One of the lines is invalid — each line must reference exactly one item or service.',

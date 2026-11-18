@@ -44,6 +44,7 @@ class AddEntryServices extends Page implements HasForms
 
     public function mount(StudentEntry $record): void
     {
+        abort_unless(EntryResource::canEdit($record) && EntryResource::getEloquentQuery()->whereKey($record)->exists(), 403);
         $this->record = $record;
 
         $this->form->fill([
@@ -62,7 +63,7 @@ class AddEntryServices extends Page implements HasForms
     protected function getFormSchema(): array
     {
         $centerId = (int) $this->record->center_id;
-        $entryId  = (int) $this->record->id;
+        $entryId = $this->record->id;
 
         return [
             // ── Daily Services ──────────────────────────────────────────
@@ -301,6 +302,8 @@ class AddEntryServices extends Page implements HasForms
 
 protected function persistServices(): void
 {
+    abort_unless(EntryResource::canEdit($this->record) && EntryResource::getEloquentQuery()->whereKey($this->record)->exists(), 403);
+
     // The bulk insert below skips EntryServiceObserver, so the month lock is checked here.
     if (LockedMonth::isLocked($this->record->entry_time)) {
         Notification::make()
@@ -356,10 +359,6 @@ protected function persistServices(): void
         ];
     }
 
-    if (!empty($rows)) {
-        DB::table('entry_services')->insert($rows);
-    }
-
     // ── NEW: Update reference columns in student_entries ──────────────────
 
     // 1. All service IDs that were just saved are in $selectedServiceIds
@@ -378,9 +377,15 @@ protected function persistServices(): void
     }
 
     // 4. Apply the updates to the StudentEntry record
-    if (!empty($entryUpdates)) {
-        $record->update($entryUpdates);
-    }
+    DB::transaction(function () use ($record, $rows, $entryUpdates): void {
+        foreach ($rows as $row) {
+            EntryService::create($row);
+        }
+
+        if ($entryUpdates !== []) {
+            $record->update($entryUpdates);
+        }
+    }, 3);
 
     // ── END NEW ──────────────────────────────────────────────────────────
 

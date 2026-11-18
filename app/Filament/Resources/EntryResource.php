@@ -11,6 +11,7 @@ use App\Filament\Resources\EntryResource\Pages\AddEntryServices;
 use App\Filament\Resources\EntryResource\Pages\EditEntry;
 use App\Filament\Resources\EntryResource\Pages\ListEntries;
 use App\Filament\Resources\EntryResource\Pages\ViewEntry;
+use App\Filament\Resources\EntryResource\RelationManagers\PurchasedDrinksRelationManager;
 use App\Filament\Resources\EntryResource\RelationManagers\ServicesRelationManager;
 use App\Filament\Resources\EntryResource\Widgets\EntryStats;
 use App\Filament\Resources\EntryResource\Widgets\EntryTypeChart;
@@ -491,6 +492,7 @@ class EntryResource extends Resource
     {
         return [
             ServicesRelationManager::class,
+            PurchasedDrinksRelationManager::class,
         ];
     }
 

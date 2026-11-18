@@ -90,6 +90,7 @@ return [
     'notes' => [
         'sale' => 'Sale - invoice #:number',
         'cancellation' => 'Cancellation of invoice #:number - returned to stock',
+        'entry_invoice' => 'Entry invoice — updated automatically from the entry\'s services',
     ],
 
 ];

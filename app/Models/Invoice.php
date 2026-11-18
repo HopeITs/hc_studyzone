@@ -8,6 +8,7 @@ use App\Enums\CashShiftStatus;
 use App\Enums\InvoiceStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\StockMovementType;
+use App\Services\EntryInvoiceService;
 use App\Traits\ActivityLog;
 use App\Traits\GuardsLockedMonth;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -60,6 +61,12 @@ class Invoice extends Model
     public function shift(): BelongsTo
     {
         return $this->belongsTo(CashShift::class, 'shift_id');
+    }
+
+    /** Set only on invoices generated from an entry's services. */
+    public function entry(): BelongsTo
+    {
+        return $this->belongsTo(StudentEntry::class, 'entry_id');
     }
 
     public function student(): BelongsTo
@@ -161,6 +168,10 @@ class Invoice extends Model
             $invoice->status = InvoiceStatus::Paid;
             $invoice->save();
 
+            // A service paid by a student who has an entry today is shown on
+            // that entry too (and refused if the entry already has it).
+            app(EntryInvoiceService::class)->linkPaidInvoice($invoice);
+
             // Keep the in-memory instance in sync with what was persisted.
             $this->setRawAttributes($invoice->getAttributes(), true);
         });
@@ -206,6 +217,8 @@ class Invoice extends Model
 
             $invoice->status = InvoiceStatus::Cancelled;
             $invoice->save();
+
+            app(EntryInvoiceService::class)->removeCancelledSale($invoice);
 
             $this->setRawAttributes($invoice->getAttributes(), true);
         });
