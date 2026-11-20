@@ -7,7 +7,6 @@ use App\Enums\Roles;
 use App\Filament\Resources\ExpenseResource\Pages\CreateExpense;
 use App\Filament\Resources\ExpenseResource\Pages\EditExpense;
 use App\Filament\Resources\ExpenseResource\Pages\ListExpenses;
-use App\Models\Center;
 use App\Models\Expense;
 use App\Models\InventoryItem;
 use App\Models\LockedMonth;
@@ -27,6 +26,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -88,7 +88,7 @@ class ExpenseResource extends Resource
     public static function form(Schema $schema): Schema
     {
         $user = Auth::user();
-        $isGeneralAdmin = $user->role === Roles::GeneralAdmin();
+        $canSelectCenter = in_array($user->role, [Roles::GeneralAdmin(), Roles::CityAdmin()], true);
 
         return $schema
             ->components([
@@ -125,15 +125,16 @@ class ExpenseResource extends Resource
 
                         Select::make('center_id')
                             ->label(__('finance.labels.center'))
-                            ->options(fn () => Center::query()->where('is_active', true)->pluck('name', 'id'))
+                            ->options(fn () => FinanceAccess::centerQuery($user)->where('is_active', true)->pluck('name', 'id'))
                             ->searchable()
                             ->preload()
-                            ->required($isGeneralAdmin)
-                            ->visible($isGeneralAdmin)
+                            ->required($canSelectCenter)
+                            ->visible($canSelectCenter)
                             // Changing a recorded expense's center would desync
                             // the shift totals it was captured into.
                             ->disabledOn('edit')
-                            ->live(),
+                            ->live()
+                            ->afterStateUpdated(fn (Set $set) => $set('warehouse_items', [])),
 
                         Textarea::make('note')
                             ->label(__('finance.labels.note'))
@@ -165,8 +166,8 @@ class ExpenseResource extends Resource
                             ->schema([
                                 Select::make('inventory_item_id')
                                     ->label(__('finance.labels.item'))
-                                    ->options(function (Get $get) use ($user, $isGeneralAdmin): array {
-                                        $centerId = $isGeneralAdmin
+                                    ->options(function (Get $get) use ($user, $canSelectCenter): array {
+                                        $centerId = $canSelectCenter
                                             ? $get('../../center_id')
                                             : $user->center_id;
 
@@ -175,7 +176,7 @@ class ExpenseResource extends Resource
                                         }
 
                                         return InventoryItem::query()
-                                            ->where('center_id', $centerId)
+                                            ->whereIn('center_id', FinanceAccess::centerQuery($user)->whereKey($centerId)->select('id'))
                                             ->where('is_active', true)
                                             ->orderBy('name')
                                             ->pluck('name', 'id')
@@ -284,7 +285,7 @@ class ExpenseResource extends Resource
 
                 SelectFilter::make('center_id')
                     ->label(__('finance.labels.center'))
-                    ->options(fn () => Center::query()->pluck('name', 'id'))
+                    ->options(fn () => FinanceAccess::centerQuery($user)->pluck('name', 'id'))
                     ->searchable()
                     ->multiple()
                     ->hidden($isCenterAdmin)
@@ -359,6 +360,7 @@ class ExpenseResource extends Resource
     {
         return FinanceAccess::allowed() && in_array(Auth::user()->role, [
             Roles::GeneralAdmin(),
+            Roles::CityAdmin(),
             Roles::CenterAdmin(),
             Roles::Cashier(),
         ], true);
