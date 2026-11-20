@@ -9,7 +9,6 @@ use App\Filament\Resources\InvoiceResource\Pages\CreateInvoice;
 use App\Filament\Resources\InvoiceResource\Pages\EditInvoice;
 use App\Filament\Resources\InvoiceResource\Pages\ListInvoices;
 use App\Filament\Resources\InvoiceResource\Pages\ViewInvoice;
-use App\Models\Center;
 use App\Models\InventoryItem;
 use App\Models\Invoice;
 use App\Models\LockedMonth;
@@ -98,16 +97,16 @@ class InvoiceResource extends Resource
     public static function form(Schema $schema): Schema
     {
         $user = Auth::user();
-        $isGeneralAdmin = $user->role === Roles::GeneralAdmin();
+        $canSelectCenter = in_array($user->role, [Roles::GeneralAdmin(), Roles::CityAdmin()], true);
 
         return $schema
             ->components([
                 Section::make(__('invoices.sections.details'))
                     ->schema([
-                        $isGeneralAdmin
+                        $canSelectCenter
                             ? Select::make('center_id')
                                 ->label(__('invoices.fields.center'))
-                                ->options(fn () => Center::where('is_active', true)->orderBy('order')->pluck('name', 'id'))
+                                ->options(fn () => FinanceAccess::centerQuery($user)->where('is_active', true)->orderBy('order')->pluck('name', 'id'))
                                 ->searchable()
                                 ->preload()
                                 ->required()
@@ -124,7 +123,7 @@ class InvoiceResource extends Resource
                             ->label(__('invoices.fields.student'))
                             ->searchable()
                             // Search server-side: students are too many to preload.
-                            ->getSearchResultsUsing(fn (string $search): array => Student::query()
+                            ->getSearchResultsUsing(fn (string $search): array => self::studentQuery()
                                 ->where(function ($query) use ($search): void {
                                     $query->where('firstname', 'like', "%{$search}%")
                                         ->orWhere('lastname', 'like', "%{$search}%")
@@ -137,10 +136,10 @@ class InvoiceResource extends Resource
                                     $student->id => $student->getFilamentName(),
                                 ])
                                 ->all())
-                            ->getOptionLabelUsing(fn ($value): ?string => Student::find($value)?->getFilamentName())
+                            ->getOptionLabelUsing(fn ($value): ?string => self::studentQuery()->find($value)?->getFilamentName())
                             ->live()
                             ->afterStateUpdated(function (Set $set, ?string $state): void {
-                                if ($state && ($student = Student::find($state))) {
+                                if ($state && ($student = self::studentQuery()->find($state))) {
                                     $set('beneficiary_name', $student->getFilamentName());
                                 }
                             }),
@@ -363,6 +362,17 @@ class InvoiceResource extends Resource
             ])->columns(1);
     }
 
+    /** @return Builder<Student> */
+    public static function studentQuery(): Builder
+    {
+        $user = Auth::user();
+
+        return Student::query()->when($user->role === Roles::CityAdmin(), fn (Builder $query) => $query
+            ->where(fn (Builder $query) => $query
+                ->whereHas('street', fn (Builder $street) => $street->where('city_id', $user->city_id))
+                ->orWhereHas('entries.center', fn (Builder $center) => $center->where('city_id', $user->city_id))));
+    }
+
     public static function table(Table $table): Table
     {
         $user = Auth::user();
@@ -440,7 +450,7 @@ class InvoiceResource extends Resource
 
                 SelectFilter::make('center_id')
                     ->label(__('invoices.fields.center'))
-                    ->options(fn () => Center::orderBy('order')->pluck('name', 'id'))
+                    ->options(fn () => FinanceAccess::centerQuery($user)->orderBy('order')->pluck('name', 'id'))
                     ->multiple()
                     ->hidden($isCenterAdmin),
 
@@ -548,6 +558,7 @@ class InvoiceResource extends Resource
     {
         return FinanceAccess::allowed() && in_array(Auth::user()->role, [
             Roles::GeneralAdmin(),
+            Roles::CityAdmin(),
             Roles::CenterAdmin(),
         ], true) && ! LockedMonth::isLocked(now());
     }
@@ -582,7 +593,7 @@ class InvoiceResource extends Resource
      */
     public static function inventoryOptionsFor(int|string|null $centerId): array
     {
-        if (! $centerId) {
+        if (! $centerId || ! FinanceAccess::canUseCenter(Auth::user(), (int) $centerId)) {
             return [];
         }
 
@@ -605,7 +616,7 @@ class InvoiceResource extends Resource
      */
     public static function serviceOptionsFor(int|string|null $centerId): array
     {
-        if (! $centerId) {
+        if (! $centerId || ! FinanceAccess::canUseCenter(Auth::user(), (int) $centerId)) {
             return [];
         }
 
@@ -623,7 +634,7 @@ class InvoiceResource extends Resource
     /** Snapshot unit price for one line, or null when it cannot be resolved. */
     public static function unitPriceFor(string $kind, int|string|null $id, int|string|null $centerId): ?int
     {
-        if (! $id || ! $centerId) {
+        if (! $id || ! $centerId || ! FinanceAccess::canUseCenter(Auth::user(), (int) $centerId)) {
             return null;
         }
 

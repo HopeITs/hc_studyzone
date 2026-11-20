@@ -8,7 +8,6 @@ use App\Enums\Roles;
 use App\Filament\Resources\CashShiftResource\Pages\ListCashShifts;
 use App\Filament\Resources\CashShiftResource\Pages\ViewCashShift;
 use App\Models\CashShift;
-use App\Models\Center;
 use App\Support\FinanceAccess;
 use Filament\Actions\Action;
 use Filament\Actions\ViewAction;
@@ -265,7 +264,7 @@ class CashShiftResource extends Resource
 
                 SelectFilter::make('center_id')
                     ->label(__('finance.labels.center'))
-                    ->options(fn () => Center::query()->pluck('name', 'id'))
+                    ->options(fn () => FinanceAccess::centerQuery($user)->pluck('name', 'id'))
                     ->searchable()
                     ->multiple()
                     ->hidden($isCenterAdmin),

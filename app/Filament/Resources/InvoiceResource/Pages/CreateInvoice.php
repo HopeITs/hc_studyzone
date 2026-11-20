@@ -8,7 +8,7 @@ use App\Enums\Roles;
 use App\Filament\Resources\InvoiceResource;
 use App\Models\Invoice;
 use App\Models\LockedMonth;
-use App\Models\Student;
+use App\Support\FinanceAccess;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Database\Eloquent\Model;
@@ -31,6 +31,8 @@ class CreateInvoice extends CreateRecord
             : (int) ($data['center_id'] ?? 0);
 
         try {
+            FinanceAccess::validateCityCenter($user, $centerId);
+
             // The model guard would also refuse, but failing here keeps the
             // whole transaction from starting on a locked current month.
             if (LockedMonth::isLocked(now())) {
@@ -49,8 +51,14 @@ class CreateInvoice extends CreateRecord
 
                 // A linked student always names the invoice server-side.
                 $student = isset($data['student_id'])
-                    ? Student::query()->find($data['student_id'])
+                    ? InvoiceResource::studentQuery()->find($data['student_id'])
                     : null;
+
+                if (Auth::user()->role === Roles::CityAdmin() && isset($data['student_id']) && ! $student) {
+                    throw ValidationException::withMessages([
+                        'data.student_id' => __('finance.messages.not_allowed'),
+                    ]);
+                }
 
                 $invoice = Invoice::create([
                     'center_id' => $centerId,
