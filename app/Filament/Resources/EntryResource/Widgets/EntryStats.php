@@ -14,10 +14,14 @@ use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\HtmlString;
+use Livewire\Attributes\Reactive;
 
 class EntryStats extends BaseWidget
 {
     use InteractsWithPageTable;
+
+    #[Reactive]
+    public array $hiddenCards = [];
 
     protected ?string $pollingInterval = null;
 
@@ -31,21 +35,68 @@ class EntryStats extends BaseWidget
         return 4;
     }
 
+    public static function cardOptions(): array
+    {
+        $options = [
+            'total_entries' => __('general.labels.total_entries'),
+            'active_days' => __('general.labels.active_days_per_center'),
+            'work' => __('general.labels.working_entries'),
+            'study' => __('general.labels.studying_entries'),
+            'free' => __('general.entry-types.'.EntryType::Free()),
+            'daily' => __('general.entry-types.'.EntryType::Daily()),
+            'monthly' => __('general.entry-types.'.EntryType::Monthly()),
+            'course' => __('general.entry-types.'.EntryType::Course()),
+            'hall' => __('general.entry-types.'.EntryType::Hall()),
+            'event' => __('general.entry-types.'.EntryType::Event()),
+            'fgd' => __('general.entry-types.'.EntryType::FGD()),
+            'architecture' => __('general.labels.architecture_student_entries'),
+            'dentistry' => __('general.labels.dentistry_student_entries'),
+        ];
+
+        foreach (self::referenceColumns() as $column) {
+            $options['service:'.$column] = self::serviceLabel($column);
+        }
+
+        return $options;
+    }
+
+    private static function referenceColumns(): array
+    {
+        return Service::whereNotNull('reference_column_name')
+            ->pluck('reference_column_name')
+            ->unique()
+            ->filter()
+            ->all();
+    }
+
+    private static function serviceLabel(string $column): string
+    {
+        return match ($column) {
+            'use_drawer' => __('general.labels.drawer'),
+            'use_mecrator' => __('general.labels.mecrator'),
+            'use_printer', 'use_pinter' => __('general.labels.printer'),
+            'use_plotter' => __('general.labels.plotter'),
+            'stationary' => __('general.labels.stationery'),
+            'use_internet' => __('general.labels.internet'),
+            'reservation' => __('general.labels.reservation_short'),
+            default => ucfirst(str_replace(['use_', '_'], ['', ' '], $column)),
+        };
+    }
+
     protected function getStats(): array
     {
         // Get base query for entries to fetch IDs
         $entryIdsQuery = $this->getPageTableQuery()->select('id');
 
         // 1. Get all unique reference columns from services
-        $referenceColumns = Service::whereNotNull('reference_column_name')
-            ->pluck('reference_column_name')
-            ->unique()
-            ->filter()
-            ->toArray();
+        $referenceColumns = array_filter(
+            self::referenceColumns(),
+            fn (string $column): bool => ! in_array('service:'.$column, $this->hiddenCards, true),
+        );
 
         // 2. Calculate entry counts for each reference column using a single efficient query
         $counts = null;
-        if (!empty($referenceColumns)) {
+        if (! empty($referenceColumns)) {
             $selects = [];
             foreach ($referenceColumns as $col) {
                 $selects[] = "SUM(CASE WHEN `{$col}` = 1 THEN 1 ELSE 0 END) as `{$col}_count`";
@@ -76,23 +127,12 @@ class EntryStats extends BaseWidget
             $quantity = (int) ($serviceStats[$col]->total_quantity ?? 0);
             $amount = (int) ($serviceStats[$col]->total_amount ?? 0);
 
-            $label = match($col) {
-                'use_drawer' => __('general.labels.drawer'),
-                'use_mecrator' => __('general.labels.mecrator'),
-                'use_printer', 'use_pinter' => __('general.labels.printer'),
-                'use_plotter' => __('general.labels.plotter'),
-                'stationary' => __('general.labels.stationery'),
-                'use_internet' => __('general.labels.internet'),
-                'reservation' => __('general.labels.reservation_short'),
-                default => ucfirst(str_replace(['use_', '_'], ['', ' '], $col)),
-            };
-
-            $referenceStatArray[] = Stat::make($label, $entriesCount)
+            $referenceStatArray['service:'.$col] = Stat::make(self::serviceLabel($col), $entriesCount)
                 ->description(new HtmlString(
-                    '<span class="donor-hide">' . e(__('general.labels.quantity_total_description', [
+                    '<span class="donor-hide">'.e(__('general.labels.quantity_total_description', [
                         'quantity' => $quantity,
                         'total' => number_format($amount),
-                    ])) . '</span>'
+                    ])).'</span>'
                 ));
         }
 
@@ -141,7 +181,7 @@ class EntryStats extends BaseWidget
             ->groupBy('purpose')
             ->pluck('total', 'purpose');
 
-        $architectureEducationIds =[65, 176, 242];
+        $architectureEducationIds = [65, 176, 242];
         $dentistryEducationIds = [25, 77, 111, 136, 221, 223, 224, 225, 226, 227, 228];
 
         $educationCohortQuery = function (array $educationIds) {
@@ -158,34 +198,35 @@ class EntryStats extends BaseWidget
                 ->count();
         };
 
-        return [
-            Stat::make(__('general.labels.total_entries'), $totals->total ?? 0)
-                 ->description(__('general.labels.total_students_description', [
-                     'count' => $totals->students ?? 0,
-                 ])),
+        $stats = [
+            'total_entries' => Stat::make(__('general.labels.total_entries'), $totals->total ?? 0)
+                ->description(__('general.labels.total_students_description', [
+                    'count' => $totals->students ?? 0,
+                ])),
 
-            Stat::make(__('general.labels.active_days_per_center'), (int) round($avgActiveDays))
+            'active_days' => Stat::make(__('general.labels.active_days_per_center'), (int) round($avgActiveDays))
                 ->description($activeDaysDescription),
 
-            Stat::make(__('general.labels.working_entries'), (int) ($purposeCounts[EntryPurpose::Working()] ?? 0)),
-            Stat::make(__('general.labels.studying_entries'), (int) ($purposeCounts[EntryPurpose::Studying()] ?? 0)),
+            'work' => Stat::make(__('general.labels.working_entries'), (int) ($purposeCounts[EntryPurpose::Working()] ?? 0)),
+            'study' => Stat::make(__('general.labels.studying_entries'), (int) ($purposeCounts[EntryPurpose::Studying()] ?? 0)),
 
-            Stat::make(__('general.entry-types.' . EntryType::Free()), (int) ($entryTypeCounts[EntryType::Free()] ?? 0))
+            'free' => Stat::make(__('general.entry-types.'.EntryType::Free()), (int) ($entryTypeCounts[EntryType::Free()] ?? 0))
                 ->extraAttributes(['class' => 'donor-hide']),
-            Stat::make(__('general.entry-types.' . EntryType::Daily()), (int) ($entryTypeCounts[EntryType::Daily()] ?? 0)),
-            Stat::make(__('general.entry-types.' . EntryType::Monthly()), (int) ($entryTypeCounts[EntryType::Monthly()] ?? 0)),
-            Stat::make(__('general.entry-types.' . EntryType::Course()), (int) ($entryTypeCounts[EntryType::Course()] ?? 0)),
-            Stat::make(__('general.entry-types.' . EntryType::Hall()), (int) ($entryTypeCounts[EntryType::Hall()] ?? 0)),
-            Stat::make(__('general.entry-types.' . EntryType::Event()), (int) ($entryTypeCounts[EntryType::Event()] ?? 0)),
-            Stat::make(__('general.entry-types.' . EntryType::FGD()), (int) ($entryTypeCounts[EntryType::FGD()] ?? 0)),
+            'daily' => Stat::make(__('general.entry-types.'.EntryType::Daily()), (int) ($entryTypeCounts[EntryType::Daily()] ?? 0)),
+            'monthly' => Stat::make(__('general.entry-types.'.EntryType::Monthly()), (int) ($entryTypeCounts[EntryType::Monthly()] ?? 0)),
+            'course' => Stat::make(__('general.entry-types.'.EntryType::Course()), (int) ($entryTypeCounts[EntryType::Course()] ?? 0)),
+            'hall' => Stat::make(__('general.entry-types.'.EntryType::Hall()), (int) ($entryTypeCounts[EntryType::Hall()] ?? 0)),
+            'event' => Stat::make(__('general.entry-types.'.EntryType::Event()), (int) ($entryTypeCounts[EntryType::Event()] ?? 0)),
+            'fgd' => Stat::make(__('general.entry-types.'.EntryType::FGD()), (int) ($entryTypeCounts[EntryType::FGD()] ?? 0)),
 
-            Stat::make(__('general.labels.architecture_student_entries'), $educationCohortQuery($architectureEducationIds)),
+            'architecture' => Stat::make(__('general.labels.architecture_student_entries'), $educationCohortQuery($architectureEducationIds)),
 
-            Stat::make(__('general.labels.dentistry_student_entries'), $educationCohortQuery($dentistryEducationIds)),
+            'dentistry' => Stat::make(__('general.labels.dentistry_student_entries'), $educationCohortQuery($dentistryEducationIds)),
 
             // Dynamically generated Stats for all reference columns
             ...$referenceStatArray,
         ];
+
+        return array_diff_key($stats, array_flip($this->hiddenCards));
     }
 }
-
