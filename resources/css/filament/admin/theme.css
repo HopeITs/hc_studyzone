@@ -3,3 +3,13 @@
 @source '../../../../app/Filament/**/*';
 @source '../../../../resources/views/filament/**/*';
 @source '../../../../resources/views/vendor/activitylog/**/*';
+
+@layer components {
+    .finance-surface {
+        @apply bg-white text-gray-950 dark:bg-gray-900 dark:text-white;
+    }
+
+    select.fi-select-input :is(option, optgroup) {
+        @apply bg-white text-gray-950 dark:bg-gray-900 dark:text-white;
+    }
+}
