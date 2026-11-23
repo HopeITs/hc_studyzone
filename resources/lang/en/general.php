@@ -10,6 +10,207 @@ use App\Enums\Religion;
 use App\Enums\Roles;
 
 return [
+    'user_permissions' => [
+        'roles_title' => 'Role permissions',
+        'roles_help' => 'Applies to everyone with this role. Individual permission choices take precedence.',
+        'catalog_title' => 'Additional permissions preview',
+        'catalog_description' => 'Open a card to review its actions. The choices in this preview are read-only. Save applies the student and visit permissions above.',
+        'catalog' => [
+            'students_extra' => [
+                'title' => 'Additional student actions',
+                'actions' => [
+                    'Export student data',
+                    'View QR code',
+                    'Download QR code',
+                ],
+            ],
+            'visits_extra' => [
+                'title' => 'Additional visit actions',
+                'actions' => [
+                    'Export visits',
+                    'Add a service to a visit',
+                    'Remove a service from a visit',
+                ],
+            ],
+            'education' => [
+                'title' => 'Educational qualifications',
+                'actions' => [
+                    'View qualification catalog',
+                    'Add a qualification',
+                    'Edit a qualification',
+                    'Delete a qualification',
+                    'View a student\'s qualifications',
+                    'Add a qualification to a student',
+                    'Edit a student\'s qualification',
+                    'Remove a qualification from a student',
+                ],
+            ],
+            'services' => [
+                'title' => 'Services',
+                'actions' => [
+                    'View services',
+                    'Add a service',
+                    'Edit a service',
+                    'Delete a service',
+                    'Activate or deactivate a service',
+                ],
+            ],
+            'service_categories' => [
+                'title' => 'Service categories',
+                'actions' => [
+                    'View categories',
+                    'Add a category',
+                    'Edit a category',
+                    'Delete a category',
+                ],
+            ],
+            'service_prices' => [
+                'title' => 'Service pricing',
+                'actions' => [
+                    'View prices',
+                    'Add a center price',
+                    'Edit a center price',
+                    'Delete a center price',
+                ],
+            ],
+            'cities' => [
+                'title' => 'Governorates',
+                'actions' => [
+                    'View governorates',
+                    'Add a governorate',
+                    'Edit a governorate',
+                    'Delete a governorate',
+                    'Update governorate links',
+                ],
+            ],
+            'centers' => [
+                'title' => 'Centers',
+                'actions' => [
+                    'View centers',
+                    'Add a center',
+                    'Edit a center',
+                    'Delete a center',
+                ],
+            ],
+            'streets' => [
+                'title' => 'Streets',
+                'actions' => [
+                    'View streets',
+                    'Add a street',
+                    'Edit a street',
+                    'Delete a street',
+                ],
+            ],
+            'users' => [
+                'title' => 'Users',
+                'actions' => [
+                    'View users',
+                    'Add a user',
+                    'Edit a user',
+                    'Activate or deactivate an account',
+                    'Delete a user',
+                    'Assign a governorate or center',
+                    'Change a user\'s role',
+                ],
+            ],
+            'expenses' => [
+                'title' => 'Expenses',
+                'actions' => [
+                    'View expenses',
+                    'Add an expense',
+                    'Edit an expense',
+                    'Delete an expense',
+                    'Download an expense receipt',
+                ],
+            ],
+            'invoices' => [
+                'title' => 'Invoices and point of sale',
+                'actions' => [
+                    'View invoices',
+                    'Create an invoice',
+                    'Edit an invoice',
+                    'Open point of sale',
+                    'Save an unpaid invoice',
+                    'Collect payment',
+                    'Cancel an invoice',
+                    'Print an invoice',
+                    'Record team allocations',
+                ],
+            ],
+            'inventory' => [
+                'title' => 'Inventory',
+                'actions' => [
+                    'View inventory',
+                    'Add an item',
+                    'Edit an item',
+                    'Delete an item',
+                    'Record a purchase',
+                    'Adjust stock quantities',
+                    'Import items',
+                    'Export items',
+                ],
+            ],
+            'shifts' => [
+                'title' => 'Cash shifts',
+                'actions' => [
+                    'View shifts',
+                    'Open a shift',
+                    'Close a shift',
+                    'Print a shift statement',
+                ],
+            ],
+            'months' => [
+                'title' => 'Month locks',
+                'actions' => [
+                    'View month locks',
+                    'Lock a month',
+                    'Reopen a month',
+                ],
+            ],
+            'reports' => [
+                'title' => 'Reports and statistics',
+                'actions' => [
+                    'View general reports',
+                    'View financial reports',
+                    'Print financial reports',
+                    'Export student report data',
+                    'Export visit report data',
+                    'Export dashboard statistics',
+                ],
+            ],
+            'audit' => [
+                'title' => 'Activity and audit logs',
+                'actions' => [
+                    'View activity log',
+                    'View student audit',
+                    'View visit audit',
+                ],
+            ],
+        ],
+        'students' => 'Students',
+        'visits' => 'Visits',
+        'role_allows' => 'Allowed by role',
+        'role_denies' => 'Denied by role',
+        'allow_all' => 'Allow all',
+        'deny_all' => 'Deny all',
+        'reset_all' => 'Use role defaults',
+        'eligible_users' => 'You can customize permissions for city and center admins.',
+        'view_required' => 'Editing and deleting require access to the relevant section. Registering a visit requires access to Students.',
+        'title' => 'Manage permissions',
+        'inherit' => 'Role default',
+        'allow' => 'Allow',
+        'deny' => 'Deny',
+        'save' => 'Save permissions',
+        'saved' => 'Permissions saved',
+        'view_students' => 'View students',
+        'create_student' => 'Add students',
+        'edit_student' => 'Edit students',
+        'delete_student' => 'Delete students',
+        'view_entries' => 'View visits',
+        'create_entry' => 'Register visits',
+        'edit_entry' => 'Edit visits',
+        'delete_entry' => 'Delete visits',
+    ],
     'roles' => [
         Roles::Unknown() => 'unknown',
         Roles::GeneralAdmin() => 'General Admin',

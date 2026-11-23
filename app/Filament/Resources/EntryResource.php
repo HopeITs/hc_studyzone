@@ -6,6 +6,7 @@ use App\Enums\EntryPurpose;
 use App\Enums\Gender;
 use App\Enums\Religion;
 use App\Enums\Roles;
+use App\Enums\UserPermission;
 use App\Filament\Exports\EntryExporter;
 use App\Filament\Resources\EntryResource\Pages\AddEntryServices;
 use App\Filament\Resources\EntryResource\Pages\EditEntry;
@@ -194,9 +195,13 @@ class EntryResource extends Resource
 
                 CheckboxColumn::make('use_internet')
                     ->label(__('general.labels.internet-service'))
-                    ->disabled(fn ($record) => ! ServiceHelper::centerHasInternetService($record->center_id) || LockedMonth::isLocked($record->entry_time))
+                    ->disabled(fn ($record) => ! static::canEdit($record) || ! ServiceHelper::centerHasInternetService($record->center_id))
                     ->extraAttributes(fn ($record) => ServiceHelper::centerHasInternetService($record->center_id) ? [] : ['class' => 'hidden'])
-                    ->updateStateUsing(fn ($record, $state) => ServiceHelper::toggleInternetService($record, (bool) $state)),
+                    ->updateStateUsing(function ($record, $state) {
+                        abort_unless(static::canEdit($record), 403);
+
+                        return ServiceHelper::toggleInternetService($record, (bool) $state);
+                    }),
 
                 TextColumn::make('student.studentEducations.level')
                     ->label(__('general.labels.education_level'))
@@ -462,11 +467,11 @@ class EntryResource extends Resource
                     ->label('')
                     ->icon('heroicon-o-shopping-cart')
                     ->url(fn ($record) => EntryResource::getUrl('add-services', ['record' => $record]))
-                    ->disabled(fn ($record) => LockedMonth::isLocked($record->entry_time)),
+                    ->visible(fn (Model $record): bool => static::canEdit($record)),
 
                 EditAction::make()
                     ->label('')
-                    ->hidden(fn () => $isObserver)
+                    ->authorize(fn (Model $record): bool => static::canEdit($record))
                     ->disabled(fn ($record) => ! $record->student->completed_data)
                     ->tooltip(fn ($record) => ! $record->student->completed_data
                         ? __('general.labels.create_entry_disabled_tooltip')
@@ -474,7 +479,7 @@ class EntryResource extends Resource
 
                 DeleteAction::make()
                     ->label('')
-                    ->hidden(fn () => $isObserver),
+                    ->authorize(fn (Model $record): bool => static::canDelete($record)),
             ])
             ->toolbarActions([
                 ExportBulkAction::make()
@@ -482,7 +487,8 @@ class EntryResource extends Resource
                     ->formats([ExportFormat::Xlsx]),
                 BulkActionGroup::make([
                     DeleteBulkAction::make()
-                        ->hidden(fn () => $isObserver),
+                        ->authorize(fn (): bool => static::canDeleteAny())
+                        ->authorizeIndividualRecords(fn (Model $record): bool => static::canDelete($record)),
                 ])->hidden(fn () => $isObserver),
             ])
             ->paginated([20, 50, 100, 200]);
@@ -517,35 +523,33 @@ class EntryResource extends Resource
 
     public static function canViewAny(): bool
     {
-        // Explicit allow-list: new roles (e.g. Cashier) stay out unless added here.
-        return in_array(auth()->user()->role, [
-            Roles::GeneralAdmin(),
-            Roles::CityAdmin(),
-            Roles::CenterAdmin(),
-            Roles::MealAdmin(),
-            Roles::Observer(),
-        ], true);
+        return auth()->user()?->hasPermission(UserPermission::ViewEntries) ?? false;
+    }
+
+    public static function canView(Model $record): bool
+    {
+        return static::canViewAny();
     }
 
     public static function canEdit(Model $record): bool
     {
-        $role = auth()->user()->role;
-
-        if (! in_array($role, [Roles::GeneralAdmin(), Roles::CityAdmin(), Roles::CenterAdmin()], true)) {
-            return false;
-        }
-
-        return ! LockedMonth::isLocked($record->entry_time);
+        return static::canView($record) && auth()->user()->hasPermission(UserPermission::EditEntry)
+            && ! LockedMonth::isLocked($record->entry_time);
     }
 
     public static function canDelete(Model $record): bool
     {
-        $role = auth()->user()->role;
+        return static::canView($record) && auth()->user()->hasPermission(UserPermission::DeleteEntry)
+            && ! LockedMonth::isLocked($record->entry_time);
+    }
 
-        if (! in_array($role, [Roles::GeneralAdmin(), Roles::CityAdmin(), Roles::CenterAdmin()], true)) {
-            return false;
-        }
+    public static function canDeleteAny(): bool
+    {
+        return static::canViewAny() && auth()->user()->hasPermission(UserPermission::DeleteEntry);
+    }
 
-        return ! LockedMonth::isLocked($record->entry_time);
+    public static function canCreateForStudent(Model $student): bool
+    {
+        return StudentResource::canView($student) && auth()->user()->hasPermission(UserPermission::CreateEntry);
     }
 }

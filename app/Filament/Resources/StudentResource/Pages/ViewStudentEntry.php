@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\StudentResource\Pages;
 
 use App\Filament\Resources\StudentResource;
+use App\Filament\Resources\EntryResource;
 use App\Models\StudentEntry;
 use Filament\Resources\Pages\Page;
 use Filament\Resources\Pages\Concerns\InteractsWithRecord;
@@ -21,9 +22,10 @@ class ViewStudentEntry extends Page
     {
         // Resolve the Student record
         $this->record = $this->resolveRecord($record);
+        abort_unless(StudentResource::canView($this->record) && EntryResource::canViewAny(), 403);
 
         // Resolve the Entry record
-        $this->entry = StudentEntry::with(['services.service', 'center', 'user'])->findOrFail($entry);
+        $this->entry = EntryResource::getEloquentQuery()->with(['services.service', 'center', 'user'])->findOrFail($entry);
 
         // Security: Ensure the entry belongs to this student
         abort_if($this->entry->student_id !== $this->record->id, 404);

@@ -10,6 +10,7 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use App\Helpers\ServiceHelper;
+use App\Filament\Resources\EntryResource;
 use App\Models\EntryService;
 use App\Models\Service;
 use App\Models\ServiceCategory;
@@ -32,6 +33,11 @@ class ServicesRelationManager extends RelationManager
     protected static string $relationship = 'services';
 
     protected static ?string $recordTitleAttribute = 'service.name';
+
+    public function isReadOnly(): bool
+    {
+        return parent::isReadOnly() || ! EntryResource::canEdit($this->getOwnerRecord());
+    }
 
     public function form(Schema $schema): Schema
     {
@@ -288,6 +294,7 @@ class ServicesRelationManager extends RelationManager
                         ];
                     })
                     ->action(function (array $data, Action $action) {
+                        abort_if($this->isReadOnly(), 403);
                         $record = $this->getOwnerRecord();
                         $centerId = (int) $record->center_id;
 

@@ -6,6 +6,8 @@ use Carbon\Carbon;
 use App\Helpers\ServiceHelper;
 use App\Models\Center;
 use App\Enums\Roles;
+use App\Enums\UserPermission;
+use App\Filament\Resources\StudentResource;
 use App\Models\LockedMonth;
 use App\Models\ServicePrice;
 use App\Models\Service;
@@ -33,11 +35,8 @@ class StudentEntryController extends Controller
     public function store(Request $request, string $studentId)
     {
         $user = $request->user();
-        abort_unless($user->is_active && in_array($user->role, [
-            Roles::GeneralAdmin(),
-            Roles::CityAdmin(),
-            Roles::CenterAdmin(),
-        ], true), 403);
+        abort_unless($user->is_active && $user->hasPermission(UserPermission::CreateEntry)
+            && $user->hasPermission(UserPermission::ViewStudents), 403);
 
         $data = $request->validate([
             'center_id' => 'required|integer|exists:centers,id',
@@ -66,7 +65,7 @@ class StudentEntryController extends Controller
             ]);
         }
 
-        $student = Student::findOrFail($studentId);
+        $student = StudentResource::getEloquentQuery()->findOrFail($studentId);
         $services = collect($data['services'] ?? [])->keyBy('service_id');
         $defaultService = ServiceHelper::getDefaultEntryService();
 

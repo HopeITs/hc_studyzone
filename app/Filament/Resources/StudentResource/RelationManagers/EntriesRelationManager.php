@@ -39,6 +39,11 @@ class EntriesRelationManager extends RelationManager
 
     protected static ?string $title = null;
 
+    public static function canViewForRecord(Model $ownerRecord, string $pageClass): bool
+    {
+        return EntryResource::canViewAny() && parent::canViewForRecord($ownerRecord, $pageClass);
+    }
+
     public static function getTitle(Model $ownerRecord, string $pageClass): string
     {
         return __('general.labels.entries');
@@ -165,6 +170,7 @@ class EntriesRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn ($query) => $query->whereIn('student_entries.id', EntryResource::getEloquentQuery()->select('student_entries.id')))
             ->recordTitleAttribute('entry_time')
             ->defaultSort('entry_time','desc')
             ->columns([
@@ -187,9 +193,13 @@ class EntriesRelationManager extends RelationManager
                 TextColumn::make('entry_time')->label(__('general.labels.date'))->dateTime('Y-m-d H:i')->sortable(),
                 CheckboxColumn::make('use_internet')
                     ->label(__('general.labels.internet-service'))
-                    ->disabled(fn ($record) => ! ServiceHelper::centerHasInternetService($record->center_id) || LockedMonth::isLocked($record->entry_time))
+                    ->disabled(fn ($record) => ! EntryResource::canEdit($record) || ! ServiceHelper::centerHasInternetService($record->center_id))
                     ->extraAttributes(fn ($record) => ServiceHelper::centerHasInternetService($record->center_id) ? [] : ['class' => 'hidden'])
-                    ->updateStateUsing(fn ($record, $state) => ServiceHelper::toggleInternetService($record, (bool) $state)),
+                    ->updateStateUsing(function ($record, $state) {
+                        abort_unless(EntryResource::canEdit($record), 403);
+
+                        return ServiceHelper::toggleInternetService($record, (bool) $state);
+                    }),
                 TextColumn::make('services_list')
                     ->label(__('general.labels.provided_services'))
                     ->formatStateUsing(fn ($record) => $record->services_list ?: '-')
@@ -209,48 +219,11 @@ class EntriesRelationManager extends RelationManager
                     ->url(fn () => StudentResource::getUrl('create-entry', [
                         'record' => $this->ownerRecord->id,
                     ]))
+                    ->visible(fn (): bool => EntryResource::canCreateForStudent($this->ownerRecord))
                     ->disabled(fn () => ! $this->ownerRecord->completed_data)
                     ->tooltip(fn () => ! $this->ownerRecord->completed_data
                         ? '❌ '.__('general.labels.create_entry_disabled_tooltip')
-                        : __('general.labels.add_entry'))
-                    ->action(function (array $data, $livewire) {
-                        if (!$livewire->ownerRecord->completed_data) {
-                            Notification::make()
-                                ->title('❌ لا يمكن إدخال بيانات الطالب')
-                                ->danger()
-                                ->body('بيانات الطالب غير مكتملة. الرجاء مراجعة البيانات المطلوبة أولاً.')
-                                ->send();
-                            return;
-                        }
-
-                        $entry = $livewire->ownerRecord->entries()->create([
-                            'student_id' => $livewire->ownerRecord->id,
-                            'user_id' => Auth::id(),
-                            'center_id' => $data['center_id'] ?? auth()->user()->center_id,
-                            'entry_type' => $data['entry_type'],
-                            'entry_time' => $data['entry_time'],
-                        ]);
-
-                        $defaultService = ServiceHelper::getDefaultEntryService();
-                        $servicesToAdd = !empty($data['selected_services']) ? $data['selected_services'] : [];
-
-                        if ($defaultService && !in_array($defaultService['id'], $servicesToAdd)) {
-                            $servicesToAdd[] = $defaultService['id'];
-                        }
-
-                        if (!empty($servicesToAdd)) {
-                            $services = ServiceHelper::getServicesWithPrices();
-                            foreach ($services as $service) {
-                                if (in_array($service['id'], $servicesToAdd)) {
-                                    EntryService::create([
-                                        'entry_id' => $entry->id,
-                                        'service_id' => $service['id'],
-                                        'price_at_time' => $service['price'],
-                                    ]);
-                                }
-                            }
-                        }
-                    }),
+                        : __('general.labels.add_entry')),
             ])
             ->recordActions([
                 Action::make('view_bill')
@@ -272,15 +245,15 @@ class EntriesRelationManager extends RelationManager
                         'record' => $record->id, // Entry ID
 
                     ]))
-                    ->disabled(fn ($record) => ! $record->student->completed_data || LockedMonth::isLocked($record->entry_time)),
+                    ->disabled(fn ($record) => ! $record->student->completed_data || ! EntryResource::canEdit($record)),
 
                 DeleteAction::make()
-                    ->disabled(fn ($record) => LockedMonth::isLocked($record->entry_time)),
+                    ->authorize(fn (Model $record): bool => EntryResource::canDelete($record)),
             ])
 
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()->authorize(fn (): bool => EntryResource::canDeleteAny())->authorizeIndividualRecords(fn (Model $record): bool => EntryResource::canDelete($record)),
                 ]),
             ])
             ->checkIfRecordIsSelectableUsing(fn ($record) => ! LockedMonth::isLocked($record->entry_time));

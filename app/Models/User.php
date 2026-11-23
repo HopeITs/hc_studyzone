@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
+use App\Enums\UserPermission;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -17,6 +18,15 @@ class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable,LogsActivity;
+
+    protected static function booted(): void
+    {
+        static::updating(function (User $user): void {
+            if ($user->isDirty('role')) {
+                $user->permission_overrides = null;
+            }
+        });
+    }
 
     public function getActivitylogOptions(): LogOptions
     {
@@ -67,7 +77,26 @@ class User extends Authenticatable implements FilamentUser
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'permission_overrides' => 'array',
         ];
+    }
+
+    public function hasPermission(UserPermission $permission): bool
+    {
+        $role = (int) $this->role;
+        $overrides = $this->permission_overrides ?? [];
+
+        if (UserPermission::supportsOverrides($role) && ($overrides['role'] ?? null) === $role) {
+            $individual = $overrides['permissions'][$permission->value] ?? null;
+
+            if (is_bool($individual)) {
+                return $individual;
+            }
+        }
+
+        $rolePermissions = once(fn (): array => RolePermission::overridesFor((int) $this->role));
+
+        return $rolePermissions[$permission->value] ?? $permission->defaultFor($role);
     }
 
     public function city(): BelongsTo
