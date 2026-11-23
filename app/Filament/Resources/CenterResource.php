@@ -16,6 +16,8 @@ use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\CheckboxColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -71,7 +73,64 @@ class CenterResource extends Resource
                 ->relationship('city', 'name')
                 ->required(),
             TextInput::make('address')->required()->columnSpanFull(),
+            Section::make(__('general.labels.center_equipment'))
+                ->schema([
+                    TextInput::make('seat_capacity')
+                        ->label(__('general.labels.seat_capacity'))
+                        ->placeholder(__('general.labels.equipment_unknown'))
+                        ->integer()
+                        ->minValue(0)
+                        ->maxValue(65535),
+                    Select::make('internet_available')
+                        ->label(__('general.labels.center_internet'))
+                        ->placeholder(__('general.labels.equipment_unknown'))
+                        ->options(self::availabilityOptions()),
+                    ...self::equipmentFields('micromotor_count', 'mecrator'),
+                    ...self::equipmentFields('drafting_table_count', 'drawer'),
+                    ...self::equipmentFields('hama_count', 'hama_equipment'),
+                ])
+                ->columns(2)
+                ->columnSpanFull(),
         ]);
+    }
+
+    private static function equipmentFields(string $field, string $label): array
+    {
+        $availability = $field.'_available';
+
+        return [
+            Select::make($availability)
+                ->label(__('general.labels.'.$label))
+                ->placeholder(__('general.labels.equipment_unknown'))
+                ->options(self::availabilityOptions())
+                ->afterStateHydrated(function (Select $component, ?Center $record) use ($field): void {
+                    $count = $record?->getAttribute($field);
+                    $component->state($count === null ? null : ((int) $count > 0 ? '1' : '0'));
+                })
+                ->live()
+                ->dehydrated(false),
+            TextInput::make($field)
+                ->label(__('general.labels.equipment_count'))
+                ->integer()
+                ->minValue(fn (Get $get): int => (string) $get($availability) === '1' ? 1 : 0)
+                ->maxValue(65535)
+                ->visible(fn (Get $get): bool => (string) $get($availability) === '1')
+                ->required(fn (Get $get): bool => (string) $get($availability) === '1')
+                ->dehydratedWhenHidden()
+                ->dehydrateStateUsing(fn (Get $get, mixed $state): ?int => match ((string) $get($availability)) {
+                    '1' => (int) $state,
+                    '0' => 0,
+                    default => null,
+                }),
+        ];
+    }
+
+    private static function availabilityOptions(): array
+    {
+        return [
+            '1' => __('general.labels.equipment_available'),
+            '0' => __('general.labels.equipment_unavailable'),
+        ];
     }
 
     public static function table(Table $table): Table
