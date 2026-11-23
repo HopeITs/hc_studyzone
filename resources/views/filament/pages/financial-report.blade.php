@@ -35,6 +35,7 @@
             }
 
             .fr-table-card {
+                background: #fff !important;
                 box-shadow: none !important;
                 border: none !important;
                 padding: 0 !important;
@@ -83,7 +84,7 @@
 
         {{-- Stat cards --}}
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div class="rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10">
+            <div class="finance-surface rounded-xl p-4 shadow-sm ring-1 ring-gray-950/5 dark:ring-white/10">
                 <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
                     {{ __('reports.totals.income') }}
                 </p>
@@ -92,7 +93,7 @@
                 </p>
             </div>
 
-            <div class="rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10">
+            <div class="finance-surface rounded-xl p-4 shadow-sm ring-1 ring-gray-950/5 dark:ring-white/10">
                 <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
                     {{ __('reports.totals.expenses') }}
                 </p>
@@ -101,7 +102,7 @@
                 </p>
             </div>
 
-            <div class="rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10">
+            <div class="finance-surface rounded-xl p-4 shadow-sm ring-1 ring-gray-950/5 dark:ring-white/10">
                 <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
                     {{ __('reports.totals.net') }}
                 </p>
@@ -120,7 +121,7 @@
         @endif
 
         {{-- Movements table --}}
-        <div class="fr-table-card rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10">
+        <div class="finance-surface fr-table-card rounded-xl p-4 shadow-sm ring-1 ring-gray-950/5 dark:ring-white/10">
             @if ($this->rows->isEmpty())
                 <p class="py-8 text-center text-sm text-gray-500 dark:text-gray-400">
                     {{ __('reports.table.empty') }}

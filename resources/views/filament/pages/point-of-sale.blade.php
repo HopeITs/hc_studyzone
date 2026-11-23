@@ -273,7 +273,7 @@
                                     @php($studentResults = $this->studentResults)
 
                                     @if ($studentResults->isNotEmpty())
-                                        <ul class="mt-2 divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white dark:divide-white/10 dark:border-white/10 dark:bg-gray-900">
+                                        <ul class="finance-surface mt-2 divide-y divide-gray-100 rounded-lg border border-gray-200 dark:divide-white/10 dark:border-white/10">
                                             @foreach ($studentResults as $result)
                                                 <li>
                                                     <button
@@ -281,7 +281,7 @@
                                                         wire:click="selectStudent('{{ $result['id'] }}')"
                                                         class="sz-pos-student-result w-full px-3 py-2 text-start text-sm hover:bg-gray-50 dark:hover:bg-white/5"
                                                     >
-                                                        <span class="sz-pos-wrap min-w-0 text-gray-950 dark:text-white">{{ $result['name'] }}</span>
+                                                        <span class="sz-pos-wrap min-w-0">{{ $result['name'] }}</span>
                                                         @if ($result['phone'])
                                                             <span class="text-xs text-gray-400">{{ $result['phone'] }}</span>
                                                         @endif
