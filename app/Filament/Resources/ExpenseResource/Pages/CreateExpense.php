@@ -5,6 +5,7 @@ namespace App\Filament\Resources\ExpenseResource\Pages;
 use App\Enums\Roles;
 use App\Filament\Resources\ExpenseResource;
 use App\Services\ExpenseService;
+use App\Support\FinanceAccess;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
@@ -22,8 +23,9 @@ class CreateExpense extends CreateRecord
 
         $data['user_id'] = $user->id;
 
-        // CenterAdmin is always forced to their own center, whatever was submitted.
-        if ($user->role !== Roles::GeneralAdmin()) {
+        if ($user->role === Roles::CityAdmin()) {
+            FinanceAccess::validateCityCenter($user, (int) ($data['center_id'] ?? 0));
+        } elseif ($user->role !== Roles::GeneralAdmin()) {
             $data['center_id'] = $user->center_id;
         }
 
