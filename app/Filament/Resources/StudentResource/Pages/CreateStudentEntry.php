@@ -64,15 +64,17 @@ class CreateStudentEntry extends Page
         $entry = $args['entry'] ?? $args[1] ?? null;
 
         $this->record = $this->resolveRecord($record);
-        abort_unless(StudentResource::canEdit($this->record), 403);
+        abort_unless(StudentResource::canView($this->record), 403);
 
         abort_if(! $this->record->completed_data, 403, 'بيانات الطالب غير مكتملة');
 
         if ($entry) {
             $this->entryInstance = EntryResource::getEloquentQuery()->where('student_id', $this->record->id)
                 ->findOrFail($entry);
+            abort_unless(EntryResource::canEdit($this->entryInstance), 403);
             $this->fillFormForEdit();
         } else {
+            abort_unless(EntryResource::canCreateForStudent($this->record), 403);
             $this->form->fill([
                 'center_id' => $this->initialCenterId(),
                 'entry_type' => 1,
@@ -484,7 +486,16 @@ class CreateStudentEntry extends Page
 
     public function save(): void
     {
-        abort_unless(StudentResource::canEdit($this->record), 403);
+        abort_unless(StudentResource::canView($this->record)
+            && StudentResource::getEloquentQuery()->whereKey($this->record)->exists(), 403);
+
+        if ($this->entryInstance) {
+            abort_unless(EntryResource::canEdit($this->entryInstance)
+                && EntryResource::getEloquentQuery()->whereKey($this->entryInstance)
+                    ->where('student_id', $this->record->getKey())->exists(), 403);
+        } else {
+            abort_unless(EntryResource::canCreateForStudent($this->record), 403);
+        }
 
         if ($this->saved) {
             return;

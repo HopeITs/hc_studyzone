@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Enums\Roles;
+use App\Enums\UserPermission;
 use App\Filament\Exports\StudentExporter;
 use App\Filament\Resources\StudentResource\Pages\CreateStudent;
 use App\Filament\Resources\StudentResource\Pages\CreateStudentEntry;
@@ -483,7 +484,7 @@ class StudentResource extends Resource
             ->filtersFormColumns(2)
             ->filters(self::tableFilters())
             ->recordUrl(function (Student $record): string {
-                if (auth()->user()->role === Roles::CenterAdmin()) {
+                if (auth()->user()->role === Roles::CenterAdmin() && static::canEdit($record)) {
                     return static::getUrl('edit', ['record' => $record]);
                 }
 
@@ -496,7 +497,7 @@ class StudentResource extends Resource
                 ExportBulkAction::make()
                     ->exporter(StudentExporter::class)
                     ->formats([ExportFormat::Xlsx]),
-                BulkActionGroup::make([DeleteBulkAction::make()->hidden(fn () => auth()->user()->role === Roles::Observer())])->hidden(fn () => auth()->user()->role === Roles::Observer()),
+                BulkActionGroup::make([DeleteBulkAction::make()->authorize(fn (): bool => static::canDeleteAny())->authorizeIndividualRecords(fn (Student $record): bool => static::canDelete($record))])->hidden(fn () => auth()->user()->role === Roles::Observer()),
             ])
             ->paginated([20, 50, 100, 200]);
     }
@@ -782,9 +783,9 @@ class StudentResource extends Resource
 
                     return 'إضافة دخولية جديدة';
                 })
-                ->hidden(fn (Student $record): bool => ! static::canEdit($record)),
+                ->hidden(fn (Student $record): bool => ! EntryResource::canCreateForStudent($record)),
 
-            ActionGroup::make([ViewAction::make(), EditAction::make()->hidden($isObserver), DeleteAction::make()->hidden($isObserver)])->icon('heroicon-m-ellipsis-horizontal'),
+            ActionGroup::make([ViewAction::make(), EditAction::make()->authorize(fn (Student $record): bool => static::canEdit($record)), DeleteAction::make()->authorize(fn (Student $record): bool => static::canDelete($record))])->icon('heroicon-m-ellipsis-horizontal'),
         ];
     }
 
@@ -818,35 +819,32 @@ class StudentResource extends Resource
 
     public static function canViewAny(): bool
     {
-        // Explicit allow-list: new roles (e.g. Cashier) stay out unless added here.
-        return in_array(auth()->user()->role, [
-            Roles::GeneralAdmin(),
-            Roles::CityAdmin(),
-            Roles::CenterAdmin(),
-            Roles::MealAdmin(),
-            Roles::Observer(),
-        ], true);
+        return auth()->user()?->hasPermission(UserPermission::ViewStudents) ?? false;
+    }
+
+    public static function canView(Model $record): bool
+    {
+        return static::canViewAny();
     }
 
     public static function canCreate(): bool
     {
-        return (auth()->user()->role === Roles::CenterAdmin() || auth()->user()->role === Roles::GeneralAdmin()) && auth()->user()->role !== Roles::Observer();
+        return static::canViewAny() && auth()->user()->hasPermission(UserPermission::CreateStudent);
     }
 
     public static function canEdit(Model $record): bool
     {
-        // Allow-list instead of the old deny-list, so Cashier (and any future
-        // role) is excluded by default.
-        return in_array(auth()->user()->role, [
-            Roles::GeneralAdmin(),
-            Roles::CityAdmin(),
-            Roles::CenterAdmin(),
-        ], true);
+        return static::canView($record) && auth()->user()->hasPermission(UserPermission::EditStudent);
     }
 
     public static function canDelete(Model $record): bool
     {
-        return (auth()->user()->role === Roles::CenterAdmin() || auth()->user()->role === Roles::GeneralAdmin()) && auth()->user()->role !== Roles::Observer();
+        return static::canView($record) && auth()->user()->hasPermission(UserPermission::DeleteStudent);
+    }
+
+    public static function canDeleteAny(): bool
+    {
+        return static::canViewAny() && auth()->user()->hasPermission(UserPermission::DeleteStudent);
     }
 
     protected static function getCenterId(callable $get): ?int

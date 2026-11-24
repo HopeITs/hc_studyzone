@@ -148,7 +148,18 @@ class EditEntry extends EditRecord
     // التعامل مع عملية الحفظ في قاعدة البيانات
     protected function handleRecordUpdate(Model $record, array $data): Model
     {
-        $centerId = $data['center_id'] ?? auth()->user()->center_id;
+        $user = auth()->user();
+        $centerId = $user->role === Roles::CenterAdmin() ? $user->center_id : ($data['center_id'] ?? $user->center_id);
+
+        if ($user->role === Roles::CityAdmin()) {
+            abort_unless($user->city_id && Center::query()->whereKey($centerId)->where('city_id', $user->city_id)->exists(), 403);
+        }
+
+        if (\App\Models\LockedMonth::isLocked($data['entry_time'])) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'data.entry_time' => __('general.messages.month_locked_body'),
+            ]);
+        }
 
         DB::transaction(function () use ($record, $data, $centerId): void {
             $record->update([
@@ -172,7 +183,7 @@ class EditEntry extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            DeleteAction::make(),
+            DeleteAction::make()->authorize(fn (): bool => EntryResource::canDelete($this->getRecord())),
         ];
     }
 

@@ -16,7 +16,7 @@ class ListStudents extends ListRecords
 
     protected function getHeaderActions(): array
     {
-        return array_merge(parent::getHeaderActions(), [CreateAction::make(),
+        return array_merge(parent::getHeaderActions(), [CreateAction::make()->authorize(fn (): bool => StudentResource::canCreate()),
             Action::make('scan_qr_code')
                 ->label(__('general.labels.qr_scan'))
                 ->icon('heroicon-o-qr-code')

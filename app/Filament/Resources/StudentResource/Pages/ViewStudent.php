@@ -13,7 +13,7 @@ class ViewStudent extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            EditAction::make(),
+            EditAction::make()->authorize(fn (): bool => StudentResource::canEdit($this->getRecord())),
         ];
     }
 }

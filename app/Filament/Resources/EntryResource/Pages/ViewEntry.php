@@ -167,7 +167,7 @@ class ViewEntry extends ViewRecord
     {
         return [
             EditAction::make(),
-            DeleteAction::make(),
+            DeleteAction::make()->authorize(fn (): bool => EntryResource::canDelete($this->getRecord())),
         ];
     }
 }
