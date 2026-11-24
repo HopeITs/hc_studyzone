@@ -10,6 +10,7 @@ use App\Enums\Religion;
 use App\Enums\Roles;
 
 return [
+    'unclassified_income' => 'Unclassified',
     'user_permissions' => [
         'roles_title' => 'Role permissions',
         'roles_help' => 'Applies to everyone with this role. Individual permission choices take precedence.',

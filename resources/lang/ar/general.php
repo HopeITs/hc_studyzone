@@ -10,6 +10,7 @@ use App\Enums\Religion;
 use App\Enums\Roles;
 
 return [
+    'unclassified_income' => 'غير مصنّف',
     'user_permissions' => [
         'roles_title' => 'صلاحيات الأدوار',
         'roles_help' => 'يطبّق الإعداد على أصحاب هذا الدور. إعداد الصلاحية الخاص بالمستخدم له الأولوية.',
