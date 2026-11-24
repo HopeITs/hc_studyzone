@@ -10,6 +10,7 @@ use App\Enums\Religion;
 use App\Enums\Roles;
 
 return [
+    'unclassified_income' => 'Unclassified',
     'user_permissions' => [
         'edit_by_name' => 'By name',
         'edit_by_role' => 'By role',

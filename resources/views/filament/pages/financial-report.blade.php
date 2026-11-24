@@ -167,7 +167,9 @@
                                         @if ($row->category)
                                             {{ $row->kind === 'expense'
                                                 ? __('finance.expense_types.'.$row->category)
-                                                : $row->category }}
+                                                : ($row->category === \App\Services\FinanceReportService::UNCLASSIFIED_INCOME
+                                                    ? __('general.unclassified_income')
+                                                    : $row->category) }}
                                         @else
                                             —
                                         @endif

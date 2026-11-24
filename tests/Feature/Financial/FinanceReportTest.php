@@ -2,7 +2,6 @@
 
 use App\Enums\ExpenseType;
 use App\Enums\InvoiceStatus;
-use App\Filament\Pages\PointOfSale;
 use App\Models\Center;
 use App\Models\Expense;
 use App\Models\InventoryItem;
@@ -75,8 +74,8 @@ function frReports(): FinanceReportService
     return app(FinanceReportService::class);
 }
 
-it('mirrors the POS category tabs', function () {
-    expect(FinanceReportService::SALES_CATEGORIES)->toBe(PointOfSale::CATEGORY_TABS);
+it('uses the default service category names for report filters', function () {
+    expect(FinanceReportService::SALES_CATEGORIES)->toBe(['خدمة يومية', 'خدمة ساعية', 'خدمة ورقية']);
 });
 
 /*
@@ -165,29 +164,44 @@ it('honours the movement filter', function () {
 it('reports gross line totals for a sales-category filter and excludes expenses', function () {
     $center = testCenter();
 
-    // Mixed invoice: only the قرطاسية line counts, gross of the discount.
+    // Mixed invoice: only the paper service line counts, gross of the discount.
     $mixed = frInvoice($center, attrs: ['discount' => 50, 'total' => 450]);
-    frItemLine($mixed, 'قرطاسية', 300);
+    frServiceLine($mixed, 'خدمة ورقية', 300);
     frItemLine($mixed, 'مشروبات', 200);
 
     $other = frInvoice($center, attrs: ['total' => 150]);
-    frItemLine($other, 'قرطاسية', 150);
+    frServiceLine($other, 'خدمة ورقية', 150);
 
     // Unpaid invoice of the same category never counts.
-    frItemLine(frInvoice($center, InvoiceStatus::Unpaid, ['total' => 999]), 'قرطاسية', 999);
+    frServiceLine(frInvoice($center, InvoiceStatus::Unpaid, ['total' => 999]), 'خدمة ورقية', 999);
 
     frExpense($center, ExpenseType::Operations, 1000, today()->toDateString());
 
-    $totals = frReports()->unifiedTotals(['category' => 'قرطاسية']);
+    $totals = frReports()->unifiedTotals(['category' => 'خدمة ورقية']);
 
     expect($totals)->toBe(['income' => 450, 'expenses' => 0, 'net' => 450]);
 
-    $rows = frReports()->unifiedRows(['category' => 'قرطاسية']);
+    $rows = frReports()->unifiedRows(['category' => 'خدمة ورقية']);
 
     expect($rows->total())->toBe(2)
         ->and(collect($rows->items())->pluck('kind')->unique()->all())->toBe(['income'])
-        ->and(collect($rows->items())->pluck('category')->unique()->all())->toBe(['قرطاسية'])
+        ->and(collect($rows->items())->pluck('category')->unique()->all())->toBe(['خدمة ورقية'])
         ->and((int) collect($rows->items())->sum('amount'))->toBe($totals['income']);
+});
+
+it('reports only income lines without a category when filtering unclassified income', function () {
+    $center = testCenter();
+    $invoice = frInvoice($center, attrs: ['total' => 450]);
+    frItemLine($invoice, null, 100);
+    frItemLine($invoice, '   ', 50);
+    frServiceLine($invoice, 'خدمة ورقية', 300);
+    frExpense($center, ExpenseType::Other, 200, today()->toDateString());
+
+    $filters = ['category' => FinanceReportService::UNCLASSIFIED_INCOME];
+
+    expect(frReports()->unifiedTotals($filters))->toBe(['income' => 150, 'expenses' => 0, 'net' => 150])
+        ->and(frReports()->unifiedRows($filters)->items())->toHaveCount(1)
+        ->and(frReports()->unifiedRows($filters)->items()[0]->amount)->toBe(150);
 });
 
 it('reports only the chosen expense type and excludes income', function () {

@@ -10,6 +10,7 @@ use App\Enums\Religion;
 use App\Enums\Roles;
 
 return [
+    'unclassified_income' => 'غير مصنّف',
     'user_permissions' => [
         'edit_by_name' => 'بالاسم',
         'edit_by_role' => 'بالدور',
