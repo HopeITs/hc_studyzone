@@ -67,7 +67,7 @@ it('rejects invalid choices and ineligible target accounts', function (): void {
     Livewire::test(UserPermissions::class)
         ->set('data.user_id', $admin->getKey())
         ->call('save')
-        ->assertHasErrors(['data.user_id']);
+        ->assertForbidden();
 });
 
 it('stages bulk edits until save and restores role defaults', function (): void {
@@ -129,7 +129,49 @@ it('protects the role permissions page and rejects protected roles', function ()
     Livewire::test(RolePermissions::class)
         ->set('data.role_id', Roles::GeneralAdmin())
         ->call('save')
-        ->assertHasErrors(['data.role_id']);
+        ->assertForbidden();
 
     expect(RolePermission::query()->count())->toBe(0);
+});
+
+it('allows choosing a person directly and shows protected roles', function (): void {
+    $this->actingAs(User::factory()->create(['role' => Roles::GeneralAdmin()]));
+    $manager = User::factory()->create(['role' => Roles::CityAdmin()]);
+    $cashier = User::factory()->create(['role' => Roles::Cashier()]);
+
+    Livewire::test(UserPermissions::class)
+        ->set('data.user_id', $manager->getKey())
+        ->assertSet('data.user_id', $manager->getKey())
+        ->set('data.user_id', $cashier->getKey())
+        ->assertSee(__('general.user_permissions.read_only_role'));
+
+    foreach ([Roles::Unknown(), Roles::GeneralAdmin(), Roles::MealAdmin(), Roles::Observer(), Roles::Cashier()] as $role) {
+        Livewire::test(RolePermissions::class)
+            ->set('data.role_id', $role)
+            ->assertSet('data.role_id', $role)
+            ->assertSee(__('general.user_permissions.read_only_role'))
+            ->call('save')
+            ->assertForbidden();
+    }
+});
+
+it('switches between individual and role settings on one page', function (): void {
+    $this->actingAs(User::factory()->create(['role' => Roles::GeneralAdmin()]));
+    $manager = User::factory()->create(['role' => Roles::CityAdmin()]);
+
+    Livewire::test(UserPermissions::class)
+        ->set('data.user_id', $manager->getKey())
+        ->set('data.view_entries', 'deny')
+        ->call('switchTargetMode', 'role')
+        ->assertSet('data.user_id', null)
+        ->set('data.role_id', Roles::CityAdmin())
+        ->assertSet('data.view_entries', 'inherit')
+        ->set('data.create_student', 'allow')
+        ->call('save')
+        ->assertHasNoErrors()
+        ->call('switchTargetMode', 'name')
+        ->assertSet('data.role_id', null);
+
+    expect($manager->fresh()->permission_overrides)->toBeNull()
+        ->and($manager->fresh()->hasPermission(UserPermission::CreateStudent))->toBeTrue();
 });

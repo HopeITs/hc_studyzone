@@ -11,6 +11,10 @@ use App\Enums\Roles;
 
 return [
     'user_permissions' => [
+        'edit_by_name' => 'By name',
+        'edit_by_role' => 'By role',
+        'search_name' => 'Search by full name',
+        'read_only_role' => 'Permission settings for this role are read-only.',
         'roles_title' => 'Role permissions',
         'roles_help' => 'Applies to everyone with this role. Individual permission choices take precedence.',
         'catalog_title' => 'Additional permissions preview',
