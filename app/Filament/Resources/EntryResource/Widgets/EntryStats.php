@@ -8,11 +8,13 @@ use App\Filament\Resources\EntryResource\Pages\ListEntries;
 use App\Models\EntryService;
 use App\Models\Service;
 use App\Models\StudentEntry;
+use App\Support\FinanceDisplay;
 use Carbon\Carbon;
 use Filament\Widgets\Concerns\InteractsWithPageTable;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\HtmlString;
 use Livewire\Attributes\Reactive;
 
@@ -173,6 +175,29 @@ class EntryStats extends BaseWidget
             ->groupBy('entry_type')
             ->pluck('total', 'entry_type');
 
+        $dailyCount = (int) ($entryTypeCounts[EntryType::Daily()] ?? 0);
+        $daily = Stat::make(__('general.entry-types.'.EntryType::Daily()), $dailyCount);
+
+        if (! Schema::hasColumn('student_entries', 'daily_admission_fee')) {
+            $daily->description(new HtmlString('<span class="donor-hide">'.e(__('general.admission_preview.fees_pending')).'</span>'));
+        } elseif (! in_array('daily', $this->hiddenCards, true)) {
+            $fees = $this->getPageTableQuery()
+                ->where('entry_type', EntryType::Daily())
+                ->reorder()
+                ->toBase()
+                ->selectRaw('SUM(daily_admission_fee) as total, COUNT(daily_admission_fee) as priced')
+                ->first();
+
+            $description = $dailyCount > 0 && (int) $fees->priced === 0
+                ? __('general.admission_preview.no_recorded_fees')
+                : __('general.admission_preview.'.((int) $fees->priced < $dailyCount ? 'partial_total' : 'daily_total'), [
+                    'amount' => FinanceDisplay::format((int) $fees->total),
+                    'currency' => __('general.admission_preview.'.(FinanceDisplay::enabled() ? 'old' : 'new')),
+                ]);
+
+            $daily->description(new HtmlString('<span class="donor-hide">'.e($description).'</span>'));
+        }
+
         // Purpose breakdown (work / study) in one grouped query, respecting the table filters
         $purposeCounts = $this->getPageTableQuery()
             ->reorder()
@@ -212,7 +237,7 @@ class EntryStats extends BaseWidget
 
             'free' => Stat::make(__('general.entry-types.'.EntryType::Free()), (int) ($entryTypeCounts[EntryType::Free()] ?? 0))
                 ->extraAttributes(['class' => 'donor-hide']),
-            'daily' => Stat::make(__('general.entry-types.'.EntryType::Daily()), (int) ($entryTypeCounts[EntryType::Daily()] ?? 0)),
+            'daily' => $daily,
             'monthly' => Stat::make(__('general.entry-types.'.EntryType::Monthly()), (int) ($entryTypeCounts[EntryType::Monthly()] ?? 0)),
             'course' => Stat::make(__('general.entry-types.'.EntryType::Course()), (int) ($entryTypeCounts[EntryType::Course()] ?? 0)),
             'hall' => Stat::make(__('general.entry-types.'.EntryType::Hall()), (int) ($entryTypeCounts[EntryType::Hall()] ?? 0)),
