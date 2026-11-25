@@ -2,6 +2,8 @@
 
 namespace App\Observers;
 
+use App\Enums\EntryType;
+use App\Models\AdmissionPrice;
 use App\Models\LockedMonth;
 use App\Models\StudentEntry;
 use Carbon\Carbon;
@@ -9,6 +11,7 @@ use Filament\Notifications\Notification;
 use Filament\Support\Exceptions\Halt;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Schema;
 
 class StudentEntryObserver
 {
@@ -53,6 +56,16 @@ class StudentEntryObserver
             if (LockedMonth::isLocked($date)) {
                 $this->haltForLockedMonth($date);
             }
+        }
+
+        $visitDate = $entry->entry_time?->toDateString();
+        $pricingChanged = ! $entry->exists || $entry->isDirty(['center_id', 'entry_type'])
+            || $visitDate !== $entry->getOriginal('entry_time')?->toDateString();
+
+        if ($visitDate && $pricingChanged && Schema::hasColumn('student_entries', 'daily_admission_fee')) {
+            $entry->daily_admission_fee = (int) $entry->entry_type === EntryType::Daily()
+                ? AdmissionPrice::dailyFeeOn((int) $entry->center_id, $visitDate)
+                : null;
         }
     }
 
