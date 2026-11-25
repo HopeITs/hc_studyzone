@@ -180,7 +180,9 @@ class FinancialReport extends Page
             ->all();
 
         return [
-            __('reports.filters.income_categories') => $sales,
+            __('reports.filters.income_categories') => $sales + [
+                FinanceReportService::UNCLASSIFIED_INCOME => __('general.unclassified_income'),
+            ],
             __('reports.filters.expense_categories') => $expenses,
         ];
     }
@@ -270,7 +272,11 @@ class FinancialReport extends Page
         }
 
         $category = $state['category'] ?? null;
-        $validCategories = array_merge(FinanceReportService::SALES_CATEGORIES, ExpenseType::values());
+        $validCategories = array_merge(
+            FinanceReportService::SALES_CATEGORIES,
+            [FinanceReportService::UNCLASSIFIED_INCOME],
+            ExpenseType::values(),
+        );
 
         if (! in_array($category, $validCategories, true)) {
             $category = null;

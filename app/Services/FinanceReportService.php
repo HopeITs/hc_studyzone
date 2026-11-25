@@ -6,7 +6,6 @@ namespace App\Services;
 
 use App\Enums\ExpenseType;
 use App\Enums\InvoiceStatus;
-use App\Filament\Pages\PointOfSale;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Collection;
@@ -14,8 +13,10 @@ use Illuminate\Support\Facades\DB;
 
 class FinanceReportService
 {
-    /** Mirror of PointOfSale::CATEGORY_TABS so reports and POS agree on sales categories. */
-    public const SALES_CATEGORIES = PointOfSale::CATEGORY_TABS;
+    /** Names match the default categories in CategorySeeder. */
+    public const SALES_CATEGORIES = ['خدمة يومية', 'خدمة ساعية', 'خدمة ورقية'];
+
+    public const UNCLASSIFIED_INCOME = 'unclassified_income';
 
     /** Bucket for invoice lines whose item/service carries no category. */
     protected const UNCATEGORIZED = 'أخرى';
@@ -277,7 +278,7 @@ class FinanceReportService
 
     protected function isSalesCategory(?string $category): bool
     {
-        return $category !== null && in_array($category, self::SALES_CATEGORIES, true);
+        return $category === self::UNCLASSIFIED_INCOME || in_array($category, self::SALES_CATEGORIES, true);
     }
 
     protected function isExpenseCategory(?string $category): bool
@@ -320,8 +321,8 @@ class FinanceReportService
                 ->leftJoin('services', 'services.id', '=', 'invoice_items.service_id')
                 ->leftJoin('service_categories', 'service_categories.id', '=', 'services.category_id')
                 ->whereRaw(
-                    "COALESCE({$prefix}inventory_items.category, {$prefix}service_categories.name, ?) = ?",
-                    [self::UNCATEGORIZED, $filters['category']],
+                    "COALESCE(NULLIF(TRIM({$prefix}inventory_items.category), ''), NULLIF(TRIM({$prefix}service_categories.name), ''), ?) = ?",
+                    [self::UNCLASSIFIED_INCOME, $filters['category']],
                 );
         }
 

@@ -19,6 +19,7 @@ use Filament\Schemas\Schema;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\Locked;
 
 class UserPermissions extends Page
 {
@@ -27,6 +28,9 @@ class UserPermissions extends Page
     protected string $view = 'filament.pages.user-permissions';
 
     public ?array $data = [];
+
+    #[Locked]
+    public string $targetMode = 'name';
 
     public static function canAccess(): bool
     {
@@ -55,7 +59,11 @@ class UserPermissions extends Page
     public function form(Schema $schema): Schema
     {
         return $schema->statePath('data')->components([
-            $this->targetField(),
+            $this->targetField()->visible(fn (): bool => $this->targetMode === 'name'),
+            $this->roleField()->visible(fn (): bool => $this->targetMode === 'role'),
+            Text::make(__('general.user_permissions.read_only_role'))
+                ->color('gray')
+                ->visible(fn (): bool => $this->targetRole() !== null && ! $this->canEditTarget()),
             Text::make(__('general.user_permissions.view_required'))
                 ->color('gray')
                 ->visible(fn (): bool => $this->targetRole() !== null),
@@ -80,14 +88,44 @@ class UserPermissions extends Page
         ]);
     }
 
+    public function switchTargetMode(string $mode): void
+    {
+        abort_unless(static::canAccess(), 403);
+        abort_unless(in_array($mode, ['name', 'role'], true), 422);
+
+        if ($mode === $this->targetMode) {
+            return;
+        }
+
+        $this->targetMode = $mode;
+        unset($this->selectedUser);
+        $this->form->fill();
+    }
+
+    private function roleField(): Select
+    {
+        return Select::make('role_id')
+            ->label(__('general.labels.role'))
+            ->helperText(__('general.user_permissions.roles_help'))
+            ->options(__('general.roles'))
+            ->required()
+            ->live()
+            ->afterStateUpdated(function (): void {
+                $this->form->fill([
+                    ...$this->targetState(),
+                    ...$this->choicesFor(RolePermission::overridesFor((int) $this->targetRole())),
+                ]);
+            });
+    }
+
     protected function targetField(): Select
     {
         return Select::make('user_id')
             ->label(__('general.labels.full_name'))
-            ->helperText(__('general.user_permissions.eligible_users'))
+            ->placeholder(__('general.user_permissions.search_name'))
             ->searchable()
             ->getSearchResultsUsing(fn (string $search): array => $this->eligibleUsers()
-                ->where('name', 'like', '%'.$search.'%')
+                ->where('name', 'like', '%'.trim($search).'%')
                 ->orderBy('name')
                 ->limit(50)
                 ->get()
@@ -101,7 +139,11 @@ class UserPermissions extends Page
             ->required()
             ->live()
             ->afterStateUpdated(function (int|string|null $state): void {
-                $this->form->fill(['user_id' => $state, ...$this->formPermissions($this->eligibleUsers()->find($state))]);
+                unset($this->selectedUser);
+                $this->form->fill([
+                    'user_id' => $state,
+                    ...$this->formPermissions($this->eligibleUsers()->find($state)),
+                ]);
             });
     }
 
@@ -146,12 +188,13 @@ class UserPermissions extends Page
                         : 'role_denies')
                 ))
                 ->default('inherit')
+                ->disabled(fn (): bool => ! $this->canEditTarget())
                 ->required(), $permissions));
     }
 
     public function setAllPermissions(string $choice): void
     {
-        abort_unless(static::canAccess() && $this->targetRole() !== null, 403);
+        abort_unless(static::canAccess() && $this->canEditTarget(), 403);
         abort_unless(in_array($choice, ['inherit', 'allow', 'deny'], true), 422);
 
         $this->form->fill([
@@ -165,6 +208,7 @@ class UserPermissions extends Page
         abort_unless(static::canAccess(), 403);
 
         $data = $this->form->getState();
+        abort_unless($this->canEditTarget(), 403);
 
         $permissions = [];
 
@@ -183,8 +227,21 @@ class UserPermissions extends Page
 
     protected function persistPermissions(array $data, array $permissions): void
     {
+        if ($this->targetMode === 'role') {
+            $role = $this->targetRole();
+            abort_unless($role !== null && UserPermission::supportsOverrides($role), 403);
+
+            DB::transaction(fn () => RolePermission::query()->updateOrCreate(
+                ['role' => $role],
+                ['permissions' => $permissions],
+            ));
+
+            return;
+        }
+
         DB::transaction(function () use ($data, $permissions): void {
             $user = $this->eligibleUsers()->lockForUpdate()->findOrFail($data['user_id']);
+            abort_unless(UserPermission::supportsOverrides((int) $user->role), 403);
             $user->permission_overrides = $permissions === [] ? null : [
                 'role' => (int) $user->role,
                 'permissions' => $permissions,
@@ -195,17 +252,36 @@ class UserPermissions extends Page
 
     public function targetRole(): ?int
     {
+        if ($this->targetMode === 'role') {
+            $role = filter_var($this->data['role_id'] ?? null, FILTER_VALIDATE_INT);
+
+            return $role !== false && Roles::tryFrom($role) !== null ? $role : null;
+        }
+
         return $this->selectedUser ? (int) $this->selectedUser->role : null;
+    }
+
+    public function canEditTarget(): bool
+    {
+        $role = $this->targetRole();
+
+        return $role !== null && UserPermission::supportsOverrides($role);
     }
 
     protected function targetState(): array
     {
-        return ['user_id' => $this->selectedUser->getKey()];
+        return $this->targetMode === 'role'
+            ? ['role_id' => $this->targetRole()]
+            : ['user_id' => $this->selectedUser->getKey()];
     }
 
     protected function inheritedPermission(UserPermission $permission): bool
     {
         $role = $this->targetRole();
+        if ($this->targetMode === 'role') {
+            return $permission->defaultFor((int) $role);
+        }
+
         $overrides = once(fn (): array => RolePermission::overridesFor((int) $this->targetRole()));
 
         return $overrides[$permission->value] ?? $permission->defaultFor((int) $role);
@@ -215,7 +291,7 @@ class UserPermissions extends Page
     {
         abort_unless(static::canAccess(), 403);
 
-        return User::query()->whereIn('role', [Roles::CityAdmin(), Roles::CenterAdmin()]);
+        return User::query();
     }
 
     #[Computed]

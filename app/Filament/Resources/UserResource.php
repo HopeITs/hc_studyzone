@@ -23,6 +23,7 @@ use Filament\Tables;
 use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\CheckboxColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 
@@ -149,6 +150,16 @@ class UserResource extends Resource
 
             ])
             ->filters([
+                Filter::make('full_name')
+                    ->label(__('general.user_permissions.search_name'))
+                    ->schema([
+                        TextInput::make('name')
+                            ->label(__('general.labels.full_name')),
+                    ])
+                    ->query(fn (Builder $query, array $data): Builder => $query->when(
+                        filled(trim($data['name'] ?? '')),
+                        fn (Builder $query): Builder => $query->where('name', 'like', '%'.trim($data['name']).'%'),
+                    )),
                 SelectFilter::make('role')
                     ->options(__('general.roles'))
                     ->label(__('general.labels.filter_by_role'))
