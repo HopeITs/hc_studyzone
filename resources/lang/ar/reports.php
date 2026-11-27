@@ -41,6 +41,12 @@ return [
         'empty' => 'لا توجد حركات مطابقة للفلاتر المحددة',
     ],
 
+    'admission' => [
+        'admission_daily' => 'رسوم الدخول اليومي',
+        'admission_daily_description' => 'عدد الدخوليات اليومية: ',
+        'admission_monthly' => 'الاشتراكات الشهرية',
+        'admission_monthly_description' => 'عدد الاشتراكات الشهرية المدفوعة: ',
+    ],
     'kinds' => [
         'income' => 'إيراد',
         'expense' => 'مصروف',

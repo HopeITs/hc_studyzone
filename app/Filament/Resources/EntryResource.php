@@ -178,7 +178,8 @@ class EntryResource extends Resource
                 TextColumn::make('entry_type')
                     ->label(__('general.labels.entry_type'))
                     ->sortable()
-                    ->formatStateUsing(fn ($state) => __('general.entry-types.'.$state)),
+                    ->formatStateUsing(fn ($state, $record) => \App\Support\MonthlySubscription::typeLabel((int) $state, $record->monthly_status ?? null))
+                    ->color(fn ($record): ?string => ($record->monthly_status ?? null) === \App\Support\MonthlySubscription::COVERED ? 'info' : null),
 
                 TextColumn::make('purpose')
                     ->label(__('general.labels.purpose'))
@@ -310,6 +311,15 @@ class EntryResource extends Resource
                     ->searchable()
                     ->multiple()
                     ->preload()
+                    ->columnSpan(1),
+
+                SelectFilter::make('monthly_status')
+                    ->label(__('general.admission_categories.subscription_filter'))
+                    ->options([
+                        \App\Support\MonthlySubscription::CHARGED => __('general.admission_categories.monthly_charged'),
+                        \App\Support\MonthlySubscription::COVERED => __('general.admission_categories.monthly_covered'),
+                    ])
+                    ->visible(fn (): bool => \Illuminate\Support\Facades\Schema::hasColumn('student_entries', 'monthly_status'))
                     ->columnSpan(1),
 
                 SelectFilter::make('purpose')

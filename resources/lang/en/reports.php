@@ -41,6 +41,12 @@ return [
         'empty' => 'No movements match the selected filters',
     ],
 
+    'admission' => [
+        'admission_daily' => 'Daily admission fees',
+        'admission_daily_description' => 'Daily entries: ',
+        'admission_monthly' => 'Monthly subscriptions',
+        'admission_monthly_description' => 'Paid monthly subscriptions: ',
+    ],
     'kinds' => [
         'income' => 'Income',
         'expense' => 'Expense',

@@ -176,7 +176,8 @@ class EntriesRelationManager extends RelationManager
             ->columns([
                 TextColumn::make('entry_type')
                     ->label(__('general.labels.type'))
-                    ->formatStateUsing(fn ($state) => __('general.entry-types.'.$state))
+                    ->formatStateUsing(fn ($state, $record) => \App\Support\MonthlySubscription::typeLabel((int) $state, $record->monthly_status ?? null))
+                    ->color(fn ($record): ?string => ($record->monthly_status ?? null) === \App\Support\MonthlySubscription::COVERED ? 'info' : null)
                     ->sortable(),
                 TextColumn::make('purpose')
                     ->label(__('general.labels.purpose'))
