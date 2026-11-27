@@ -10,6 +10,38 @@ use App\Enums\Religion;
 use App\Enums\Roles;
 
 return [
+    'admission_categories' => [
+        'monthly_covered' => 'Covered monthly subscription',
+        'monthly_charged' => 'Paid monthly subscription',
+        'subscription_filter' => 'Monthly subscription',
+        'monthly_summary' => 'Paid: :charged · Covered: :covered · Total: :amount :currency',
+        'title' => 'Admission categories',
+        'price' => 'Admission price',
+        'category' => 'Category',
+        'add_price' => 'Add price',
+        'is_default' => 'Default price for all centers',
+        'is_default_help' => 'Applies to every center except those with their own price. Turn off to set a price for one center.',
+        'applies_to' => 'Applies to',
+        'all_centers' => 'All centers (default)',
+        'amount' => 'Price',
+        'starts_on' => 'Start date',
+        'starts_on_help' => 'A past date is allowed; the fees of entries recorded since then are recalculated.',
+        'ends_on' => 'End date',
+        'ends_on_help' => 'Leave empty to keep the price running until a new one is added.',
+        'added_at' => 'Added at',
+        'current_only' => 'Prices in effect today only',
+        'cancel_scheduled' => 'Cancel scheduled price',
+        'saved' => 'Price saved',
+        'not_saved' => 'Price not saved',
+        'errors' => [
+            'end_before_start' => 'The end date must be on or after the start date.',
+            'same_start' => 'Another price of this category starts on the same date.',
+            'overlap_next' => 'A price starts on :date; pick an end date before it or leave it empty.',
+            'overlap_previous' => 'This date falls in a fixed price period ending on :date; pick a start date after it.',
+            'month_locked' => ':month is locked; a new price cannot cover it.',
+            'only_scheduled' => 'Only scheduled prices can be cancelled; active and past prices stay in the history.',
+        ],
+    ],
     'admission_preview' => [
         'title' => 'Admission categories',
         'no_recorded_fees' => 'Fees were not recorded for these visits',

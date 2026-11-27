@@ -182,6 +182,8 @@ class FinancialReport extends Page
         return [
             __('reports.filters.income_categories') => $sales + [
                 FinanceReportService::UNCLASSIFIED_INCOME => __('general.unclassified_income'),
+                FinanceReportService::ADMISSION_DAILY => __('reports.admission.'.FinanceReportService::ADMISSION_DAILY),
+                FinanceReportService::ADMISSION_MONTHLY => __('reports.admission.'.FinanceReportService::ADMISSION_MONTHLY),
             ],
             __('reports.filters.expense_categories') => $expenses,
         ];
@@ -275,6 +277,7 @@ class FinancialReport extends Page
         $validCategories = array_merge(
             FinanceReportService::SALES_CATEGORIES,
             [FinanceReportService::UNCLASSIFIED_INCOME],
+            FinanceReportService::ADMISSION_CATEGORIES,
             ExpenseType::values(),
         );
 

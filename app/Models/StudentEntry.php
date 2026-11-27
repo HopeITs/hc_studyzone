@@ -23,7 +23,7 @@ class StudentEntry extends Model
     protected $casts = [
         'entry_time' => 'datetime',
     ];
-    protected $guarded = ['daily_admission_fee'];
+    protected $guarded = ['daily_admission_fee', 'monthly_status', 'monthly_admission_fee'];
 
     public function student(): BelongsTo
     {

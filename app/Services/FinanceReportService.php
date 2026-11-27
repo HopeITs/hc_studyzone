@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Enums\EntryType;
 use App\Enums\ExpenseType;
 use App\Enums\InvoiceStatus;
+use App\Support\MonthlySubscription;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class FinanceReportService
 {
@@ -17,6 +20,13 @@ class FinanceReportService
     public const SALES_CATEGORIES = ['خدمة يومية', 'خدمة ساعية', 'خدمة ورقية'];
 
     public const UNCLASSIFIED_INCOME = 'unclassified_income';
+
+    /** Admission fees recorded on the entries themselves, not on invoices. */
+    public const ADMISSION_DAILY = 'admission_daily';
+
+    public const ADMISSION_MONTHLY = 'admission_monthly';
+
+    public const ADMISSION_CATEGORIES = [self::ADMISSION_DAILY, self::ADMISSION_MONTHLY];
 
     /** Bucket for invoice lines whose item/service carries no category. */
     protected const UNCATEGORIZED = 'أخرى';
@@ -151,9 +161,15 @@ class FinanceReportService
 
             // A sales-category filter reports the gross line totals of that
             // category; otherwise income is the invoice total net of discount.
-            $income = $this->isSalesCategory($filters['category'])
-                ? (int) $query->sum('invoice_items.line_total')
-                : (int) $query->sum('invoices.total');
+            if ($this->includesInvoiceIncome($filters)) {
+                $income = $this->isSalesCategory($filters['category'])
+                    ? (int) $query->sum('invoice_items.line_total')
+                    : (int) $query->sum('invoices.total');
+            }
+
+            foreach ($this->admissionKinds($filters) as $kind => $column) {
+                $income += (int) $this->admissionQuery($filters, $kind)->sum($column);
+            }
         }
 
         $expenses = 0;
@@ -183,7 +199,7 @@ class FinanceReportService
 
         $parts = [];
 
-        if ($this->includesIncome($filters)) {
+        if ($this->includesInvoiceIncome($filters)) {
             $query = $this->incomeQuery($filters);
 
             if ($this->isSalesCategory($filters['category'])) {
@@ -213,6 +229,22 @@ class FinanceReportService
             }
 
             $parts[] = $query;
+        }
+
+        foreach ($this->admissionKinds($filters) as $kind => $column) {
+            // One row per center per day, so thousands of visits stay readable.
+            $parts[] = $this->admissionQuery($filters, $kind)
+                ->selectRaw(
+                    "DATE({$prefix}student_entries.entry_time) as date,"
+                    ." 'income' as kind,"
+                    ." '—' as reference,"
+                    .' CONCAT(?, COUNT(*)) as description,'
+                    .' ? as category,'
+                    ." {$prefix}student_entries.center_id as center_id,"
+                    ." SUM({$prefix}student_entries.{$column}) as amount",
+                    [__('reports.admission.'.$kind.'_description'), __('reports.admission.'.$kind)],
+                )
+                ->groupByRaw("DATE({$prefix}student_entries.entry_time), {$prefix}student_entries.center_id");
         }
 
         if ($this->includesExpenses($filters)) {
@@ -295,7 +327,68 @@ class FinanceReportService
     /** @param  array{movement: string, category: ?string}  $filters */
     protected function includesExpenses(array $filters): bool
     {
-        return $filters['movement'] !== 'income' && ! $this->isSalesCategory($filters['category']);
+        return $filters['movement'] !== 'income' && ! $this->isSalesCategory($filters['category'])
+            && ! $this->isAdmissionCategory($filters['category']);
+    }
+
+    protected function isAdmissionCategory(?string $category): bool
+    {
+        return in_array($category, self::ADMISSION_CATEGORIES, true);
+    }
+
+    /** @param  array{movement: string, category: ?string}  $filters */
+    protected function includesInvoiceIncome(array $filters): bool
+    {
+        return $this->includesIncome($filters) && ! $this->isAdmissionCategory($filters['category']);
+    }
+
+    /**
+     * Admission fee kinds in the report => their fee column; none while a
+     * sales category is filtered, or before the columns exist.
+     *
+     * @param  array{movement: string, category: ?string}  $filters
+     * @return array<string, string>
+     */
+    protected function admissionKinds(array $filters): array
+    {
+        if (! $this->includesIncome($filters) || $this->isSalesCategory($filters['category'])) {
+            return [];
+        }
+
+        $kinds = [];
+
+        if (Schema::hasColumn('student_entries', 'daily_admission_fee')) {
+            $kinds[self::ADMISSION_DAILY] = 'daily_admission_fee';
+        }
+
+        if (Schema::hasColumn('student_entries', 'monthly_admission_fee')) {
+            $kinds[self::ADMISSION_MONTHLY] = 'monthly_admission_fee';
+        }
+
+        return $filters['category'] === null
+            ? $kinds
+            : array_intersect_key($kinds, [$filters['category'] => true]);
+    }
+
+    /**
+     * Entries whose admission fee of $kind counts as income under the filters:
+     * daily visits with a recorded fee, and monthly visits that paid the
+     * subscription (covered visits carry no fee).
+     *
+     * @param  array{from: ?string, to: ?string, center_ids: int[], movement: string, category: ?string}  $filters
+     */
+    protected function admissionQuery(array $filters, string $kind): Builder
+    {
+        $prefix = DB::getTablePrefix();
+        $daily = $kind === self::ADMISSION_DAILY;
+
+        return DB::table('student_entries')
+            ->where('student_entries.entry_type', $daily ? EntryType::Daily() : EntryType::Monthly())
+            ->whereNotNull($daily ? 'student_entries.daily_admission_fee' : 'student_entries.monthly_admission_fee')
+            ->when(! $daily, fn (Builder $q) => $q->where('student_entries.monthly_status', MonthlySubscription::CHARGED))
+            ->when($filters['from'] !== null, fn (Builder $q) => $q->where('student_entries.entry_time', '>=', $filters['from'].' 00:00:00'))
+            ->when($filters['to'] !== null, fn (Builder $q) => $q->where('student_entries.entry_time', '<=', $filters['to'].' 23:59:59'))
+            ->when($filters['center_ids'] !== [], fn (Builder $q) => $q->whereIn('student_entries.center_id', $filters['center_ids']));
     }
 
     /**

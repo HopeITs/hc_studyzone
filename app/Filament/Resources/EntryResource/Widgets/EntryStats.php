@@ -198,6 +198,24 @@ class EntryStats extends BaseWidget
             $daily->description(new HtmlString('<span class="donor-hide">'.e($description).'</span>'));
         }
 
+        $monthly = Stat::make(__('general.entry-types.'.EntryType::Monthly()), (int) ($entryTypeCounts[EntryType::Monthly()] ?? 0));
+
+        if (Schema::hasColumn('student_entries', 'monthly_status') && ! in_array('monthly', $this->hiddenCards, true)) {
+            $subscriptions = $this->getPageTableQuery()
+                ->where('entry_type', EntryType::Monthly())
+                ->reorder()
+                ->toBase()
+                ->selectRaw("SUM(monthly_status = 'charged') as charged, SUM(monthly_status = 'covered') as covered, SUM(monthly_admission_fee) as total")
+                ->first();
+
+            $monthly->description(new HtmlString('<span class="donor-hide">'.e(__('general.admission_categories.monthly_summary', [
+                'charged' => (int) $subscriptions->charged,
+                'covered' => (int) $subscriptions->covered,
+                'amount' => FinanceDisplay::format((int) $subscriptions->total),
+                'currency' => __('general.admission_preview.'.(FinanceDisplay::enabled() ? 'old' : 'new')),
+            ])).'</span>'));
+        }
+
         // Purpose breakdown (work / study) in one grouped query, respecting the table filters
         $purposeCounts = $this->getPageTableQuery()
             ->reorder()
@@ -238,7 +256,7 @@ class EntryStats extends BaseWidget
             'free' => Stat::make(__('general.entry-types.'.EntryType::Free()), (int) ($entryTypeCounts[EntryType::Free()] ?? 0))
                 ->extraAttributes(['class' => 'donor-hide']),
             'daily' => $daily,
-            'monthly' => Stat::make(__('general.entry-types.'.EntryType::Monthly()), (int) ($entryTypeCounts[EntryType::Monthly()] ?? 0)),
+            'monthly' => $monthly,
             'course' => Stat::make(__('general.entry-types.'.EntryType::Course()), (int) ($entryTypeCounts[EntryType::Course()] ?? 0)),
             'hall' => Stat::make(__('general.entry-types.'.EntryType::Hall()), (int) ($entryTypeCounts[EntryType::Hall()] ?? 0)),
             'event' => Stat::make(__('general.entry-types.'.EntryType::Event()), (int) ($entryTypeCounts[EntryType::Event()] ?? 0)),

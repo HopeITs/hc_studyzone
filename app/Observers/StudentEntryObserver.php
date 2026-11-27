@@ -6,6 +6,7 @@ use App\Enums\EntryType;
 use App\Models\AdmissionPrice;
 use App\Models\LockedMonth;
 use App\Models\StudentEntry;
+use App\Support\MonthlySubscription;
 use Carbon\Carbon;
 use Filament\Notifications\Notification;
 use Filament\Support\Exceptions\Halt;
@@ -67,6 +68,36 @@ class StudentEntryObserver
                 ? AdmissionPrice::dailyFeeOn((int) $entry->center_id, $visitDate)
                 : null;
         }
+
+        // A monthly visit recorded or changed from now on is tracked; whether
+        // it pays or is covered is settled in saved(), once it is in the month.
+        if (($pricingChanged || $entry->isDirty('student_id')) && Schema::hasColumn('student_entries', 'monthly_status')) {
+            $isMonthly = (int) $entry->entry_type === EntryType::Monthly();
+            $entry->monthly_status = $isMonthly ? MonthlySubscription::CHARGED : null;
+            $entry->monthly_admission_fee = null;
+        }
+    }
+
+    public function saved(StudentEntry $entry): void
+    {
+        if (! Schema::hasColumn('student_entries', 'monthly_status')
+            || ! ($entry->wasRecentlyCreated || $entry->wasChanged(['student_id', 'center_id', 'entry_type', 'entry_time']))) {
+            return;
+        }
+
+        $this->refreshMonthly($entry->student_id, $entry->center_id, $entry->entry_type, $entry->entry_time);
+
+        if (! $entry->wasRecentlyCreated) {
+            $original = $entry->getOriginal();
+            $this->refreshMonthly($original['student_id'] ?? null, $original['center_id'] ?? null, $original['entry_type'] ?? null, $original['entry_time'] ?? null);
+        }
+    }
+
+    protected function refreshMonthly(mixed $studentId, mixed $centerId, mixed $entryType, mixed $time): void
+    {
+        if ($studentId && $centerId && $time && (int) $entryType === EntryType::Monthly()) {
+            MonthlySubscription::refresh((string) $studentId, (int) $centerId);
+        }
     }
 
     /**
@@ -89,7 +120,10 @@ class StudentEntryObserver
      */
     public function deleted(StudentEntry $studentEntry): void
     {
-        //
+        // The next visit of the month takes over paying the subscription.
+        if (Schema::hasColumn('student_entries', 'monthly_status')) {
+            $this->refreshMonthly($studentEntry->student_id, $studentEntry->center_id, $studentEntry->entry_type, $studentEntry->entry_time);
+        }
     }
 
     protected function haltForLockedMonth(mixed $date): never
